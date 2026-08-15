@@ -281,6 +281,27 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- álbum de fotos ---------- */
+.galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.foto{position:relative;margin:0;border-radius:10px;overflow:hidden;background:var(--surface-3);aspect-ratio:1}
+.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.foto figcaption{
+  position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;
+  background:linear-gradient(to top, rgba(12,10,28,.85), rgba(12,10,28,0));
+  color:#FFF6E8;display:flex;flex-direction:column;gap:1px;pointer-events:none;
+}
+.foto-tag{font-size:10.5px;font-weight:600;line-height:1.15;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foto-h{font-family:var(--font-data);font-size:9.5px;opacity:.85}
+.foto-acoes{position:absolute;top:4px;right:4px;display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.foto:hover .foto-acoes,.foto:focus-within .foto-acoes{opacity:1}
+@media (hover:none){.foto-acoes{opacity:1}}
+.foto-acoes button{
+  background:rgba(12,10,28,.72);color:#FFF6E8;border:0;border-radius:6px;
+  width:24px;height:24px;font-size:12px;line-height:1;cursor:pointer;padding:0;
+}
+.fotobtn{white-space:nowrap}
+
 /* ---------- recibo ---------- */
 .recibo-linha{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
 .recibo-ok{font-size:12.5px;color:var(--ok);font-weight:600}
@@ -995,6 +1016,7 @@ function seed(){
     filas:{at:0, parques:{}},
     docs:[],
     gastos:[],
+    fotos:[],
     gastoAberto:false,
     carro:{},
     simularViagem:false
@@ -1284,7 +1306,7 @@ const TABS = [
 /* Segmentos dentro de Roteiro e Listas. Preferência de tela, não dado de
    viagem — por isso `seg` está em LOCAL_ONLY. */
 const SEGS = {
-  roteiro: [{id:"dias", label:"Dias"}, {id:"reservas", label:"Reservas"}],
+  roteiro: [{id:"dias", label:"Dias"}, {id:"reservas", label:"Reservas"}, {id:"fotos", label:"Fotos"}],
   listas:  [{id:"checklist", label:"Checklist"}, {id:"compras", label:"Compras"}, {id:"orcamento", label:"Orçamento"}]
 };
 
@@ -1394,6 +1416,7 @@ function blocoHojeNoRoteiro(){
         <span><h2 style="margin:0">${esc(PARKS[pk].n)}</h2>
         <span class="eyebrow">${hj === iso(today()) ? "hoje" : fmtDia(hj)} · dia ${idx} de ${dias.length}</span></span>
       </span>
+      ${btnFoto(pk, "", "📷")}
       <button class="btn ghost sm" type="button" data-act="verDiaHoje">Abrir no roteiro</button>
     </div>
     <div class="card-bd">
@@ -1786,8 +1809,14 @@ function viewRoteiro(){
   const days = tripDays();
   if(!days.length) return `<h1>Roteiro</h1><p class="sub">Defina as datas de ida e volta em <b>Ajustes › Viagem</b>.</p>`;
   const marcadas = S.dining.filter(r => r.done).length;
-  const cab = `<h1>Roteiro</h1>` + barraSeg("roteiro", {reservas: marcadas + "/" + S.dining.length});
-  return cab + (segAtual("roteiro") === "reservas" ? roteiroReservas(days) : roteiroDias(days));
+  const cab = `<h1>Roteiro</h1>` + barraSeg("roteiro", {
+    reservas: marcadas + "/" + S.dining.length,
+    fotos: S.fotos.length || ""
+  });
+  const seg = segAtual("roteiro");
+  return cab + (seg === "reservas" ? roteiroReservas(days)
+              : seg === "fotos"    ? roteiroFotos(days)
+              : roteiroDias(days));
 }
 
 function roteiroDias(days){
@@ -1864,6 +1893,7 @@ function roteiroDias(days){
       </span>
     </div>
     <div class="day-bd">
+      <div class="row" style="justify-content:flex-end;margin:-4px 0 8px">${btnFoto(p, "", "📷 Foto deste dia")}</div>
       <select data-day="${sel}" data-k="park" aria-label="Parque do dia">
         ${opts.map(o => `<option value="${o}" ${p===o?"selected":""}>${PARKS[o].n}</option>`).join("")}
       </select>
@@ -1892,6 +1922,79 @@ function roteiroDias(days){
     </div>
   </div>
   `;
+}
+
+/* Álbum agrupado por dia, com as etiquetas que a foto trouxe. */
+function roteiroFotos(days){
+  if(!S.fotos.length){
+    return `
+    <p class="sub">Fotos tiradas pelo app entram aqui já etiquetadas por dia, parque e atração — é isso que permite montar o álbum categorizado depois.</p>
+    <div class="warnbox" style="margin-bottom:16px">
+      <b>Elas não vão para o app Fotos do iPhone</b>
+      <p style="margin:6px 0 0">Nenhum site consegue escrever no rolo do iOS — não existe essa permissão. A foto fica guardada aqui, e o botão <b>exportar</b> de cada uma abre o compartilhar do sistema, de onde “Salvar Imagem” leva ao rolo de verdade. <b>Para o que você não pode perder, use a câmera normal do iPhone.</b></p>
+    </div>
+    <div class="card"><div class="card-bd" style="text-align:center;padding:26px 16px">
+      <p style="color:var(--fg-dim);font-size:13.5px;margin:0 0 14px">Nenhuma foto ainda. O botão de câmera aparece em cada atração da aba <b>Parques</b> e no card do dia, aqui no <b>Roteiro</b>.</p>
+      ${btnFoto("", "", "📷 Tirar uma foto agora")}
+      <p id="fotoMsg" style="font-size:12.5px;margin:12px 0 0;color:var(--fg-dim)"></p>
+    </div></div>`;
+  }
+
+  const porDia = {};
+  S.fotos.slice().sort((a,b) => b.at - a.at).forEach(f => {
+    const k = f.dia || iso(new Date(f.at));
+    (porDia[k] = porDia[k] || []).push(f);
+  });
+  const total = S.fotos.reduce((t,f) => t + (f.tam||0), 0);
+
+  return `
+  <p class="sub">${S.fotos.length} foto(s) · ${docFmt(total)} neste aparelho. Etiquetadas por dia, parque e atração.</p>
+  <div class="row" style="margin-bottom:14px;gap:8px;align-items:center">
+    ${btnFoto("", "", "📷 Tirar foto")}
+    <span id="fotoMsg" style="font-size:12.5px;color:var(--fg-dim)"></span>
+  </div>
+  <div class="warnbox" style="margin-bottom:16px">
+    <b>Não estão no app Fotos do iPhone</b>
+    <p style="margin:6px 0 0">Exporte as que importam — o botão ↗ de cada foto abre o compartilhar, e “Salvar Imagem” leva ao rolo. Remover o app daqui leva as não exportadas junto.</p>
+  </div>
+
+  <div class="stack">
+  ${Object.keys(porDia).sort().reverse().map(dia => {
+    const fs = porDia[dia];
+    const dd = d(dia);
+    const idx = days.indexOf(dia);
+    const pk = parkOf((S.days[dia]||{}).park || "none");
+    return `
+    <div class="card pk ${PARKS[pk].cls}">
+      <div class="parkbar"></div>
+      <div class="card-hd">
+        <span class="row" style="gap:9px">
+          <span class="parkicon sm">${parkIconSvg(pk)}</span>
+          <span><b style="font-family:var(--font-display);font-size:17px">${isNaN(dd) ? esc(dia) : String(dd.getDate()).padStart(2,"0") + " " + MO[dd.getMonth()]}</b>
+          <span class="eyebrow" style="display:block">${esc(PARKS[pk].n)}${idx >= 0 ? " · dia " + (idx+1) : ""}</span></span>
+        </span>
+        <span class="pill neutral">${fs.length}</span>
+      </div>
+      <div class="card-bd">
+        <div class="galeria">
+          ${fs.map(f => `
+          <figure class="foto">
+            <img data-fotoimg="${f.id}" alt="${esc(f.attr ? nomeDoAttr(f.attr) : PARKS[parkOf(f.park||"none")].n)}">
+            <figcaption>
+              ${f.attr ? `<span class="foto-tag">${esc(nomeDoAttr(f.attr))}</span>` : ""}
+              <span class="foto-h">${new Date(f.at).toTimeString().slice(0,5)}${f.lat ? " · GPS" : ""}</span>
+            </figcaption>
+            <span class="foto-acoes">
+              <button type="button" data-act="fotoVer" data-id="${f.id}" aria-label="Abrir">⤢</button>
+              <button type="button" data-act="fotoExp" data-id="${f.id}" aria-label="Exportar">↗</button>
+              <button type="button" data-act="fotoDel" data-id="${f.id}" aria-label="Remover">×</button>
+            </span>
+          </figure>`).join("")}
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>`;
 }
 
 function roteiroReservas(days){
@@ -2037,6 +2140,7 @@ function viewParques(){
                       : `<span class="pill crit">${esc(h.nome.split(" ")[0])}: faltam ${h.falta} cm</span>`).join("") : ""}
                   <a class="pill neutral linkpill" href="${attrLink(a[0], PARKS[pk].n)}" target="_blank" rel="noopener noreferrer">saiba mais ↗</a>
                   <a class="pill neutral linkpill" href="${mapUrl(a[0] + " " + PARKS[pk].n + " Orlando")}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+                  ${btnFoto(pk, id, "📷")}
                 </span>
               </span>
             </label>`;
@@ -2474,6 +2578,35 @@ function render(){
   main.innerHTML = mob + (VIEWS[S.tab] || viewHoje)() + botaoGasto() + folhaGasto();
   const exp = document.getElementById("expBox");
   if(exp) exp.value = encodeState();
+  carregarMiniaturas();
+}
+
+/* As miniaturas vêm do IndexedDB, então não dá para sair no HTML.
+   loading="lazy" não serve aqui: com src vindo de blob por JS o navegador adia
+   o carregamento e a imagem nunca aparece. Quem observa a rolagem é este
+   IntersectionObserver, que também evita criar centenas de blob URLs de uma vez
+   num álbum grande. */
+function carregarUma(img){
+  if(img.dataset.pronta) return;
+  img.dataset.pronta = "1";
+  docGet(fotoId(img.dataset.fotoimg)).then(b => {
+    if(!b) return;
+    const url = URL.createObjectURL(b);
+    img.onload = img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }).catch(() => {});
+}
+
+/* Carrega todas de uma vez, de propósito.
+   loading="lazy" não funciona com src vindo de blob por JS, e um
+   IntersectionObserver aqui é algo que eu não consegui verificar rodando — não
+   vale apoiar o álbum da viagem em comportamento não confirmado. Para algumas
+   centenas de fotos, criar as URLs de uma vez é barato, e cada uma é liberada
+   assim que a imagem termina de decodificar.
+
+   ponytail: se o álbum passar de uns milhares, aí sim vale carregar sob demanda. */
+function carregarMiniaturas(){
+  document.querySelectorAll("img[data-fotoimg]:not([data-pronta])").forEach(carregarUma);
 }
 
 /* ============================== 7. EVENTOS ============================== */
@@ -2544,6 +2677,9 @@ document.addEventListener("click", (e) => {
   else if(a === "gastoSalvar"){ salvarGasto(); return; }
   else if(a === "gastoDel"){ removerGasto(act.dataset.id); return; }
   else if(a === "recVer"){ abrirDocId(recId(act.dataset.id)); return; }
+  else if(a === "fotoVer"){ abrirDocId(fotoId(act.dataset.id)); return; }
+  else if(a === "fotoExp"){ exportarFoto(act.dataset.id); return; }
+  else if(a === "fotoDel"){ removerFoto(act.dataset.id); return; }
   else if(a === "recTirar"){ recPendente = null; render(); return; }
   else if(a === "verDiaHoje"){
     S.diaSel = iso(today()); S.seg = Object.assign({}, S.seg, {roteiro:"dias"});
@@ -2636,6 +2772,10 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.fotonova !== undefined){
+    guardarFoto(t.files && t.files[0], t.dataset.fotopark || "", t.dataset.fotoattr || "");
+    t.value = ""; return;
+  }
   if(t.dataset.recnovo !== undefined){
     escolherRecibo(t.files && t.files[0]); t.value = ""; return;
   }
@@ -2830,7 +2970,7 @@ const OBJS = ["trip","carro"];
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
-                    "simularViagem","photos","mapsKey"];
+                    "simularViagem","fotos","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -3266,7 +3406,7 @@ function pedirLocal(){
       const {latitude:la, longitude:ln} = pos.coords;
       const dentro = parqueAtual(la, ln);
       const perto = maisProximo(la, ln);
-      ondeEstou = perto ? {chave: dentro || perto.chave, dist: perto.dist, dentro: !!dentro} : null;
+      ondeEstou = perto ? {chave: dentro || perto.chave, dist: perto.dist, dentro: !!dentro, lat: la, lng: ln} : null;
       pedindoLocal = false;
       /* estando no parque, já abre a lista dele */
       if(dentro && ATTR[dentro]) S.parkFilter = dentro;
@@ -3532,6 +3672,106 @@ function blocoCarro(){
       <p id="carroMsg" style="font-size:12.5px;margin:10px 0 0;color:var(--fg-dim)"></p>
     </div>
   </div>`;
+}
+
+/* ============================== 8a-3. FOTOS DA VIAGEM ==============================
+   Foto tirada aqui entra etiquetada sozinha: dia do roteiro, parque, atração
+   (quando vem da lista) e coordenada, se houver permissão. É isso que permite o
+   álbum categorizado depois.
+
+   LIMITE QUE NÃO DÁ PARA CONTORNAR: um PWA no iOS não escreve no app Fotos —
+   não existe API. A foto fica no IndexedDB deste aparelho, e o botão de
+   exportar abre o compartilhar do sistema, de onde "Salvar Imagem" leva ao rolo.
+   Por isso a tela avisa, e por isso pedimos armazenamento persistente. */
+
+const fotoId = (id) => "foto-" + id;
+const FOTO_LADO = 2000;      /* memória de viagem merece mais que recibo */
+const FOTO_Q = 0.85;
+
+/* Reduz a chance de o navegador despejar os dados sozinho quando o disco apertar. */
+async function pedirPersistencia(){
+  try{
+    if(navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted()))
+      await navigator.storage.persist();
+  }catch(e){}
+}
+
+async function usoDisco(){
+  try{
+    if(!navigator.storage || !navigator.storage.estimate) return null;
+    const e = await navigator.storage.estimate();
+    return {usado: e.usage || 0, total: e.quota || 0};
+  }catch(e){ return null; }
+}
+
+/* Etiquetas do momento: de onde a foto veio decide o que dá para saber. */
+function etiquetasAgora(park, attr){
+  const hj = iso(today());
+  const dias = tripDays();
+  const dia = dias.includes(hj) ? hj : (S.diaSel && dias.includes(S.diaSel) ? S.diaSel : "");
+  const pk = park || (dia ? (S.days[dia] || {}).park : "") || (ondeEstou && ondeEstou.dentro ? ondeEstou.chave : "");
+  return {
+    dia, park: pk || "", attr: attr || "",
+    lat: ondeEstou ? ondeEstou.lat : null,
+    lng: ondeEstou ? ondeEstou.lng : null
+  };
+}
+
+async function guardarFoto(arquivo, park, attr){
+  if(!arquivo) return;
+  fotoMsg("Guardando…");
+  try{
+    await pedirPersistencia();
+    const blob = await comprimirImagem(arquivo, FOTO_LADO, FOTO_Q);
+    const f = Object.assign({id:uid("f"), at:Date.now(), tam:blob.size, nome:arquivo.name || ""},
+                            etiquetasAgora(park, attr));
+    await docPut(fotoId(f.id), blob);
+    S.fotos.push(f);
+    save("fotos");
+    render();
+    fotoMsg(`Guardada${f.attr ? " em " + esc(nomeDoAttr(f.attr)) : f.park && PARKS[f.park] ? " em " + esc(PARKS[f.park].n) : ""} · ${docFmt(blob.size)}`, "ok");
+  }catch(e){
+    fotoMsg(/quota|Quota/.test(String(e && e.name)) ? "Sem espaço no aparelho. Exporte e remova algumas fotos." : "Não foi possível guardar a foto.", "err");
+  }
+}
+
+async function removerFoto(id){
+  const f = S.fotos.find(x => x.id === id);
+  if(!confirm("Remover esta foto do aparelho? Se ela não foi exportada, some para sempre.")) return;
+  await docDel(fotoId(id));
+  S.fotos = S.fotos.filter(x => x.id !== id);
+  save("fotos"); render();
+}
+
+/* Exportar é o único caminho para o rolo do iPhone. */
+async function exportarFoto(id){
+  const f = S.fotos.find(x => x.id === id);
+  const blob = await docGet(fotoId(id));
+  if(!blob || !f) return;
+  const nome = "viagem-" + (f.dia || iso(new Date(f.at))) + "-" + id.slice(-4) + ".jpg";
+  const arq = new File([blob], nome, {type: blob.type || "image/jpeg"});
+  if(navigator.canShare && navigator.canShare({files:[arq]})){
+    try{ await navigator.share({files:[arq], title:"Foto da viagem"}); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function fotoMsg(t, tom){
+  const el = document.getElementById("fotoMsg");
+  if(!el) return;
+  el.textContent = t;
+  el.style.color = tom === "err" ? "var(--crit)" : tom === "ok" ? "var(--ok)" : "var(--fg-dim)";
+}
+
+/* Botão de câmera reaproveitado em vários contextos; o que muda é a etiqueta. */
+function btnFoto(park, attr, rotulo){
+  const d = [park ? `data-fotopark="${esc(park)}"` : "", attr ? `data-fotoattr="${esc(attr)}"` : ""].join(" ");
+  return `<label class="btn ghost sm fotobtn" style="cursor:pointer" title="Tirar foto">
+    ${rotulo || "📷"}<input type="file" accept="image/*" capture="environment" data-fotonova ${d} hidden></label>`;
 }
 
 /* ============================== 8a0. GASTOS DO DIA ==============================
@@ -4313,6 +4553,50 @@ function toggleTheme(){
       console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
     }
+
+    /* ---- Fotos da viagem ---- */
+    console.assert(fotoId("f-abc") === "foto-f-abc", "a chave da foto deriva do id");
+    console.assert(LOCAL_ONLY.includes("fotos"),
+      "o índice de fotos é do aparelho: o outro celular não tem os arquivos");
+    console.assert(payload().fotos === undefined, "fotos não podem entrar no payload");
+    console.assert(SEGS.roteiro.some(x => x.id === "fotos"), "o álbum é um segmento do Roteiro");
+    {
+      const bakF = S.fotos, bakD = S.days, bakO = ondeEstou, bakT = {s:S.trip.start,e:S.trip.end};
+      const h = today(), m = (n) => iso(new Date(h.getFullYear(),h.getMonth(),h.getDate()+n));
+
+      /* durante a viagem, a etiqueta sai do dia de hoje */
+      S.trip.start = m(-2); S.trip.end = m(7);
+      S.days = {}; S.days[iso(h)] = {park:"mk"};
+      ondeEstou = null;
+      let e = etiquetasAgora("", "");
+      console.assert(e.dia === iso(h), "o dia da etiqueta é hoje quando hoje é da viagem");
+      console.assert(e.park === "mk", "e o parque vem do roteiro daquele dia");
+
+      /* a atração passada explicitamente manda */
+      e = etiquetasAgora("ue", "at|ue3|Mario Kart");
+      console.assert(e.park === "ue" && e.attr === "at|ue3|Mario Kart",
+        "vindo da lista de atrações, a etiqueta é a daquela atração");
+
+      /* fora da viagem, cai no dia aberto no Roteiro */
+      S.trip.start = m(20); S.trip.end = m(30);
+      S.diaSel = tripDays()[2];
+      S.days[S.diaSel] = {park:"hs"};
+      e = etiquetasAgora("", "");
+      console.assert(e.dia === S.diaSel && e.park === "hs",
+        "fora da viagem, etiqueta pelo dia que está aberto");
+
+      /* GPS entra quando existe */
+      ondeEstou = {chave:"mk", dist:10, dentro:true, lat:28.41, lng:-81.58};
+      e = etiquetasAgora("", "");
+      console.assert(e.lat === 28.41 && e.lng === -81.58, "a coordenada acompanha a foto");
+      ondeEstou = null;
+      console.assert(etiquetasAgora("","").lat === null, "sem localização, não inventa coordenada");
+
+      S.fotos = bakF; S.days = bakD; ondeEstou = bakO;
+      S.trip.start = bakT.s; S.trip.end = bakT.e; S.diaSel = "";
+    }
+    console.assert(btnFoto("mk","at|mk1|X").indexOf('data-fotoattr="at|mk1|X"') !== -1,
+      "o botão carrega a etiqueta que vai virar a da foto");
 
     /* ---- Recibo do gasto ---- */
     console.assert(recId("g-abc") === "rec-g-abc", "a chave do recibo deriva do id do gasto");
