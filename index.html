@@ -340,6 +340,17 @@ table select:hover{border-color:var(--line-soft)}
 /* ---------- ícones das abas ---------- */
 .ico{width:20px;height:20px;flex:0 0 auto;fill:currentColor}
 
+/* ---------- trajeto ---------- */
+.rota{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
+.rota li{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13.5px;position:relative}
+.rota li:not(:last-child)::after{content:"";position:absolute;left:11px;top:29px;bottom:-3px;
+  width:2px;background:var(--line)}
+.rota li span{
+  flex:0 0 auto;width:24px;height:24px;border-radius:50%;
+  background:var(--accent);color:var(--on-accent);
+  display:grid;place-items:center;font-family:var(--font-data);font-size:11px;z-index:1;
+}
+
 /* ---------- álbum de fotos ---------- */
 .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .foto{position:relative;margin:0;border-radius:10px;overflow:hidden;background:var(--surface-3);aspect-ratio:1}
@@ -587,6 +598,12 @@ table select:hover{border-color:var(--line-soft)}
       <path d="M32 8 V3 M41 5 L34.5 7 L41 9Z"/>
     </g>
     <path d="M28 58 V50a4 4 0 0 1 8 0v8Z" fill="var(--paper)"/>
+  </symbol>
+
+  <symbol id="ico-mapa" viewBox="0 0 64 64">
+    <path d="M6 16l16-6 20 8 16-6v36l-16 6-20-8-16 6Z" fill="none" stroke="currentColor"
+          stroke-width="4" stroke-linejoin="round"/>
+    <path d="M22 10v40M42 18v40" fill="none" stroke="currentColor" stroke-width="4"/>
   </symbol>
 
   <symbol id="ico-fotos" viewBox="0 0 64 64">
@@ -1106,6 +1123,8 @@ function seed(){
     onlyKid:false,
     seg:{roteiro:"dias", listas:"checklist"},
     diaSel:"",
+    mapaDia:"",
+    mapaSel:{},
     clima:{at:0, dias:{}},
     filas:{at:0, parques:{}},
     docs:[],
@@ -1398,6 +1417,7 @@ const TABS = [
 const MENU = [
   {id:"hoje",    label:"Hoje",    desc:"contagem, o dia de hoje, onde você está"},
   {id:"roteiro", label:"Roteiro", desc:"os dias e as reservas"},
+  {id:"mapa",    label:"Mapa",    desc:"trajeto do dia, parada a parada"},
   {id:"parques", label:"Parques", desc:"119 atrações, régua de altura, filas"},
   {id:"listas",  label:"Listas",  desc:"checklist, compras e orçamento"},
   {id:"ajustes", label:"Ajustes", desc:"datas, família, sync e backup"}
@@ -2494,6 +2514,141 @@ function viewDocumentos(){
 /* Aba própria: lançar é a primeira coisa da tela, e a lista vem abaixo.
    O botão flutuante saiu — com Gastos na barra de baixo ele era o mesmo toque
    duas vezes, e ainda cobria conteúdo. */
+/* Tela de mapa: escolhe o dia, marca as paradas, vê o trajeto.
+   O iframe do Google exige chave da Maps Embed API (com faturamento). O link
+   que abre o app do Google Maps não exige nada e, no celular, é melhor — dá
+   trânsito e navegação de verdade. A tela serve dos dois jeitos. */
+
+/* Candidatos a parada do dia: hotel, o parque, e cada item da programação.
+   Devolve objetos com id estável para a seleção sobreviver ao render. */
+function paradasDoDia(dt){
+  const day = S.days[dt] || {};
+  const pk = parkOf(day.park || "none");
+  const out = [];
+  const cidade = pk === "mia" ? "miami" : "orlando";
+  const suf = pk === "mia" ? " Miami FL" : " Orlando FL";
+
+  const hotel = S.hotels.find(h => (h.cidade||"").toLowerCase().includes(cidade));
+  if(hotel && (hotel.endereco || hotel.nome))
+    out.push({id:"hotel", tipo:"hotel", nome: hotel.nome || "Hotel",
+              busca: hotel.endereco || (hotel.nome + " " + hotel.cidade)});
+
+  if(pk !== "none" && pk !== "off")
+    out.push({id:"parque", tipo:"parque", nome: PARKS[pk].n,
+              busca: PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL")});
+
+  if(pk === "off"){
+    const n = day.notes || "";
+    if(/Orlando\s*→\s*Miami/.test(n)){
+      out.push({id:"de", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
+      out.push({id:"para", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
+    }else if(/para Orlando/.test(n)){
+      out.push({id:"de", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
+      out.push({id:"para", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
+    }
+  }
+
+  mergedDayItems(dt, day).forEach(it => out.push({
+    id: it.id, tipo: it.fonte === "dining" ? "reserva" : "item",
+    nome: it.nome, periodo: it.periodo,
+    busca: it.nome + (pk === "none" ? "" : suf)
+  }));
+  return out;
+}
+
+/* Sem escolha explícita, marca tudo — é o que quase sempre se quer ver. */
+function selMapa(dt, todas){
+  const guardado = (S.mapaSel || {})[dt];
+  if(!Array.isArray(guardado)) return todas.map(p => p.id);
+  return guardado.filter(id => todas.some(p => p.id === id));
+}
+
+function viewMapa(){
+  const days = tripDays();
+  if(!days.length) return `<h1>Mapa</h1><p class="sub">Defina as datas da viagem em <b>Ajustes</b>.</p>`;
+
+  const t = iso(today());
+  const dt = days.includes(S.mapaDia) ? S.mapaDia : (days.includes(t) ? t : days[0]);
+  const day = S.days[dt] || {};
+  const pk = parkOf(day.park || "none");
+  const dd = d(dt);
+  const idx = days.indexOf(dt);
+
+  const todas = paradasDoDia(dt);
+  const sel = selMapa(dt, todas);
+  const paradas = todas.filter(p => sel.includes(p.id));
+  const buscas = paradas.map(p => p.busca);
+  const demais = buscas.length > MAX_MAP_STOPS ? buscas.length - MAX_MAP_STOPS : 0;
+  const usadas = buscas.slice(0, MAX_MAP_STOPS);
+
+  const abas = days.map(x => {
+    const dia = S.days[x] || {};
+    const p2 = parkOf(dia.park || "none");
+    const dx = d(x);
+    return `<button class="chip diachip pk ${PARKS[p2].cls}" type="button" data-mapadia="${x}"
+              aria-pressed="${x===dt}" title="${esc(PARKS[p2].n)}">
+      <span class="parkicon xs">${parkIconSvg(p2)}</span>
+      <span class="diachip-d">${String(dx.getDate()).padStart(2,"0")}/${String(dx.getMonth()+1).padStart(2,"0")}</span>
+      <span class="diachip-w">${WD[dx.getDay()].slice(0,3)}${x===t?" · hoje":""}</span>
+    </button>`;
+  }).join("");
+
+  return `<h1>Mapa</h1>
+  <p class="sub">Escolha o dia, marque as paradas e veja o trajeto. O tempo e o trânsito aparecem no Google Maps.</p>
+
+  <div class="diasbar">${abas}</div>
+
+  <div class="card pk ${PARKS[pk].cls}" style="margin-bottom:14px">
+    <div class="parkbar"></div>
+    <div class="card-hd">
+      <span class="row" style="gap:9px">
+        <span class="parkicon sm">${parkIconSvg(pk)}</span>
+        <span><b style="font-family:var(--font-display);font-size:17px">${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]}</b>
+        <span class="eyebrow" style="display:block">${esc(PARKS[pk].n)} · dia ${idx+1} de ${days.length}</span></span>
+      </span>
+      <span class="pill neutral">${paradas.length}/${todas.length}</span>
+    </div>
+    <div class="card-bd">
+      ${todas.length ? `
+        <div class="row" style="gap:8px;margin:0 0 10px">
+          <button class="btn ghost sm" type="button" data-act="mapaTodas">Marcar todas</button>
+          <button class="btn ghost sm" type="button" data-act="mapaNenhuma">Limpar</button>
+        </div>
+        ${todas.map(p => `
+          <label class="item" style="align-items:center;padding:7px 0">
+            <input type="checkbox" data-mapapar="${esc(p.id)}" ${sel.includes(p.id)?"checked":""}>
+            <span class="txt" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <b style="font-weight:600">${esc(p.nome)}</b>
+              <span class="pill ${p.tipo==="reserva"?"accent":p.tipo==="parque"?"ok":"neutral"}">${
+                p.tipo==="hotel"?"hotel":p.tipo==="parque"?"parque":p.tipo==="reserva"?"restaurante":p.tipo==="rota"?"trajeto":"programa"}</span>
+            </span>
+          </label>`).join("")}
+      ` : `<p style="font-size:13.5px;color:var(--fg-dim);margin:0">Nada para mapear neste dia. Defina o parque e a programação em <b>Roteiro</b>.</p>`}
+    </div>
+  </div>
+
+  ${paradas.length ? `
+  <div class="card">
+    <div class="card-hd"><h2>Trajeto</h2>
+      ${demais ? `<span class="pill warn">só as ${MAX_MAP_STOPS} primeiras</span>` : ""}</div>
+    <div class="card-bd">
+      <ol class="rota">${usadas.map((b,i) => `<li><span>${i+1}</span>${esc(paradas[i].nome)}</li>`).join("")}</ol>
+      ${demais ? `<p style="font-size:12.5px;color:var(--fg-dim);margin:8px 0 0">O Google Maps aceita ${MAX_MAP_STOPS} pontos por rota. ${demais} parada(s) ficaram de fora — desmarque algumas para trocar quais entram.</p>` : ""}
+      ${S.mapsKey
+        ? `<iframe class="mapembed" style="height:320px;margin-top:12px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+             src="${esc(mapEmbedUrl(usadas, S.mapsKey))}" title="Mapa do dia"></iframe>`
+        : `<div class="mapembed mapembed-empty" style="height:96px;margin-top:12px"><span>O mapa embutido precisa de uma chave do Google (com faturamento). Sem ela, o botão abaixo abre o mesmo trajeto no app do Google Maps — com trânsito e navegação, que o embutido não tem.</span></div>`}
+      <div class="row" style="margin-top:12px">
+        <a class="btn" style="flex:1;text-align:center" href="${mapDirLinkFromStops(usadas)}" target="_blank" rel="noopener noreferrer">Abrir trajeto no Google Maps ↗</a>
+      </div>
+      ${!S.mapsKey ? `<p style="font-size:12px;color:var(--fg-faint);margin:10px 0 0">Para o mapa aparecer aqui dentro, cole a chave em <b>Ajustes › Mapa</b>. O passo a passo está lá.</p>` : ""}
+    </div>
+  </div>` : `
+  <div class="card"><div class="card-bd" style="text-align:center;padding:22px 16px">
+    <p style="color:var(--fg-dim);font-size:13.5px;margin:0">Marque ao menos uma parada acima para montar o trajeto.</p>
+  </div></div>`}`;
+}
+
 function viewGastos(){
   const total = totalGastos();
   const linhas = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
@@ -2725,7 +2880,7 @@ function viewBackup(){
 
 const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, listas:viewListas,
                documentos:viewDocumentos, parques:viewParques, ajustes:viewAjustes,
-               fotos:viewFotos, gastos:viewGastos};
+               fotos:viewFotos, gastos:viewGastos, mapa:viewMapa};
 
 function render(){
   renderNav();
@@ -2783,6 +2938,9 @@ document.addEventListener("click", (e) => {
   if(e.target.closest("[data-act=menu]")){ S.menuAberto = true; save(false); render(); return; }
   if(e.target.closest("[data-act=menuFechar]")){ S.menuAberto = false; save(false); render(); return; }
 
+  const mapaDiaBtn = e.target.closest("[data-mapadia]");
+  if(mapaDiaBtn){ S.mapaDia = mapaDiaBtn.dataset.mapadia; save(false); render(); window.scrollTo({top:0}); return; }
+
   const diaBtn = e.target.closest("[data-dia]");
   if(diaBtn){ S.diaSel = diaBtn.dataset.dia; save(false); render(); return; }
 
@@ -2838,6 +2996,14 @@ document.addEventListener("click", (e) => {
   else if(a === "carroMarcar"){ marcarCarro(); return; }
   else if(a === "carroEsquecer"){ esquecerCarro(); return; }
   else if(a === "carroFotoVer"){ abrirDocId(CARRO_FOTO); return; }
+  else if(a === "mapaTodas" || a === "mapaNenhuma"){
+    const days = tripDays();
+    const t2 = iso(today());
+    const dt = days.includes(S.mapaDia) ? S.mapaDia : (days.includes(t2) ? t2 : days[0]);
+    S.mapaSel = Object.assign({}, S.mapaSel,
+      {[dt]: a === "mapaTodas" ? paradasDoDia(dt).map(p => p.id) : []});
+    save(false); render(); return;
+  }
   else if(a === "gastoAbrir"){ abrirGasto(); return; }
   else if(a === "gastoFechar"){ fecharGasto(); return; }
   else if(a === "gastoSalvar"){ salvarGasto(); return; }
@@ -2938,6 +3104,17 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.mapapar !== undefined){
+    const days = tripDays();
+    const t2 = iso(today());
+    const dt = days.includes(S.mapaDia) ? S.mapaDia : (days.includes(t2) ? t2 : days[0]);
+    const todas = paradasDoDia(dt);
+    const atual = new Set(selMapa(dt, todas));
+    if(t.checked) atual.add(t.dataset.mapapar); else atual.delete(t.dataset.mapapar);
+    /* guarda a ordem das paradas, não a de clique: é ela que vira o trajeto */
+    S.mapaSel = Object.assign({}, S.mapaSel, {[dt]: todas.map(p=>p.id).filter(id => atual.has(id))});
+    save(false); render(); return;
+  }
   if(t.dataset.fotonova !== undefined){
     guardarFoto(t.files && t.files[0], t.dataset.fotopark || "", t.dataset.fotoattr || "");
     t.value = ""; return;
@@ -3137,7 +3314,7 @@ const OBJS = ["trip","carro"];
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
-                    "simularViagem","menuAberto","fotos","photos","mapsKey"];
+                    "simularViagem","menuAberto","mapaDia","mapaSel","fotos","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -4715,6 +4892,45 @@ function toggleTheme(){
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
     }
 
+    /* ---- Mapa do dia ---- */
+    console.assert(MENU.some(m => m.id === "mapa") && typeof VIEWS.mapa === "function",
+      "o mapa entra pelo menu de planejamento");
+    console.assert(LOCAL_ONLY.includes("mapaDia") && LOCAL_ONLY.includes("mapaSel"),
+      "o dia aberto e as paradas marcadas são preferência de tela");
+    {
+      const bakD = S.days, bakH = S.hotels, bakT = {s:S.trip.start,e:S.trip.end}, bakM = S.mapaSel;
+      S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+      S.hotels = [{id:"h1", nome:"Hotel Teste", cidade:"Orlando, FL", endereco:"123 Rua"}];
+      const dt = tripDays()[2];
+      S.days = {}; S.days[dt] = {park:"mk", items:[
+        {id:"i1", nome:"Jungle Cruise", periodo:"manha", ord:0},
+        {id:"i2", nome:"Space Mountain", periodo:"tarde", ord:0}
+      ]};
+      const p = paradasDoDia(dt);
+      console.assert(p[0].tipo === "hotel", "o hotel abre o trajeto");
+      console.assert(p[1].tipo === "parque" && p[1].nome === "Magic Kingdom", "o parque vem depois do hotel");
+      console.assert(p.length === 4, "hotel + parque + 2 programas, veio " + p.length);
+      console.assert(p[2].busca.indexOf("Orlando FL") !== -1, "a busca leva a cidade, senão o Google acha outro lugar");
+
+      /* sem escolha, tudo marcado */
+      S.mapaSel = {};
+      console.assert(selMapa(dt, p).length === 4, "sem escolha explícita, todas as paradas entram");
+      /* escolha inválida (parada que sumiu) não pode quebrar */
+      S.mapaSel = {[dt]: ["hotel", "não-existe"]};
+      console.assert(selMapa(dt, p).length === 1, "id que não existe mais é descartado");
+      /* Dia de estrada: o hotel continua entrando, porque é de lá que se sai —
+         e quem não quiser desmarca. Depois dele vêm origem e destino. */
+      S.days[dt] = {park:"off", notes:"Orlando → Miami (~3h40)", items:[]};
+      const r = paradasDoDia(dt);
+      console.assert(r.length === 3, "hotel + origem + destino, veio " + r.length);
+      console.assert(r[0].tipo === "hotel", "o dia de estrada também começa no hotel");
+      console.assert(r[1].nome === "Orlando" && /Miami/.test(r[2].nome),
+        "e a rota do dia é Orlando → Miami");
+      console.assert(!r.some(x => x.tipo === "parque"), "dia de estrada não tem parque");
+      S.days = bakD; S.hotels = bakH; S.mapaSel = bakM;
+      S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
+
     /* ---- Fotos da viagem ---- */
     console.assert(fotoId("f-abc") === "foto-f-abc", "a chave da foto deriva do id");
     console.assert(LOCAL_ONLY.includes("fotos"),
@@ -4964,7 +5180,7 @@ function toggleTheme(){
 
     /* ---- F5: cinco abas e os segmentos ---- */
     console.assert(TABS.length === 3, "a barra de baixo tem as três ações do parque, veio " + TABS.length);
-    console.assert(MENU.length === 5, "o menu tem as cinco telas de planejar, veio " + MENU.length);
+    console.assert(MENU.length === 6, "o menu tem as telas de planejar, veio " + MENU.length);
     [...TABS, ...MENU].forEach(t => {
       console.assert(typeof VIEWS[t.id] === "function", "item sem view: " + t.id);
       console.assert(!!document.getElementById("ico-" + t.id), "item sem ícone no sprite: " + t.id);
