@@ -354,6 +354,56 @@ table select:hover{border-color:var(--line-soft)}
 /* ---------- ícones das abas ---------- */
 .ico{width:20px;height:20px;flex:0 0 auto;fill:currentColor}
 
+/* ---------- contagem no calendário ---------- */
+.capa{display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;text-align:left;font:inherit}
+/* No topo, não no rodapé: embaixo colidia com "dias para embarcar". */
+.capa-toque{
+  position:absolute;left:14px;top:12px;z-index:3;
+  font-size:10.5px;letter-spacing:.04em;color:#FFF6E8;
+  background:rgba(18,12,38,.5);border-radius:999px;padding:4px 10px;
+  backdrop-filter:blur(2px);
+}
+.folha-cal .folha-bd{padding-bottom:22px}
+.cal-dica{font-size:12.5px;color:var(--fg-dim);margin:0 0 12px;text-wrap:pretty}
+.cal-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
+.cal-sem span{text-align:center;font-family:var(--font-data);font-size:9.5px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--fg-faint)}
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-c{
+  position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;
+  display:grid;place-items:center;padding:0;
+  border:1px solid var(--line-soft);background:var(--surface-2);
+  cursor:pointer;font:inherit;color:var(--fg-dim);
+}
+.cal-vazia{background:none;border-color:transparent;cursor:default}
+.cal-n{font-family:var(--font-data);font-size:12px;line-height:1;z-index:1}
+.cal-c.hoje{border-color:var(--accent);border-width:2px}
+.cal-c.passou{opacity:.55}
+
+/* o X é desenhado, não aparece pronto: riscar é o ritual */
+.cal-x{position:absolute;inset:12%;width:76%;height:76%;pointer-events:none}
+.cal-x path{fill:none;stroke:var(--crit);stroke-width:4;stroke-linecap:round;
+  stroke-dasharray:32;stroke-dashoffset:32}
+.cal-conta.risca .cal-x path{animation:risca .26s ease-out forwards}
+.cal-conta.risca .cal-x path:nth-child(2){animation-delay:.13s}
+.cal-conta.risca{background:var(--crit-bg);border-color:var(--crit)}
+.cal-conta.risca .cal-n{opacity:.45}
+@keyframes risca{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){
+  .cal-conta.risca .cal-x path{animation:none;stroke-dashoffset:0}
+}
+
+.cal-viagem{background:var(--accent-soft);border-color:var(--accent);border-style:dashed}
+.cal-viagem .cal-mais{position:absolute;font-size:17px;color:var(--accent);opacity:.7}
+.cal-viagem .cal-n{position:absolute;top:3px;left:5px;color:var(--accent);font-weight:700}
+.cal-viagem.tem{border-style:solid}
+.cal-viagem img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cal-viagem.tem .cal-n{color:#FFF6E8;text-shadow:0 1px 4px rgba(15,10,35,.8);z-index:2}
+
+.cal-pe{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin-top:14px;padding-top:11px;border-top:1px solid var(--line-soft);
+  font-size:12px;color:var(--fg-dim)}
+
 /* ---------- trajeto ---------- */
 .rota{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
 .rota li{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13.5px;position:relative}
@@ -1139,6 +1189,9 @@ function seed(){
     diaSel:"",
     mapaDia:"",
     itemAberto:"",
+    calAberto:false,
+    riscados:{},
+    diaFoto:{},
     mapaSel:{},
     clima:{at:0, dias:{}},
     filas:{at:0, parques:{}},
@@ -1595,7 +1648,7 @@ function viewHoje(){
   const urgente = falta !== null && falta >= 0 && falta <= 14 && (planNow.length || docNow.length);
 
   return `
-  <div class="capa">
+  <button class="capa" type="button" data-act="calAbrir" aria-label="Abrir a contagem no calendário">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-labelledby="capa-titulo" preserveAspectRatio="xMidYMax slice">
       <title id="capa-titulo">A família em frente ao castelo, com balões e fogos ao fim da tarde</title>
     
@@ -1774,7 +1827,8 @@ function viewHoje(){
       <span class="capa-n">${countdown}</span>
       <span class="capa-l">${cdNote}</span>
     </div>
-  </div>
+    <span class="capa-toque">toque para riscar os dias</span>
+  </button>
 
   <h1>Miami · Orlando</h1>
   <p class="sub">Chegada e saída por Miami, quatro parques em Orlando: Magic Kingdom, Animal Kingdom, Hollywood Studios e Epic Universe. Tudo o que você marcar fica salvo neste aparelho — use <b>Ajustes</b> para levar os dados para outro celular ou computador.</p>
@@ -2924,7 +2978,7 @@ function render(){
   const aviso = S.simularViagem
     ? `<div class="simbar">Pré-visualização da viagem ligada — <button type="button" data-act="simularOff">desligar</button></div>`
     : "";
-  main.innerHTML = aviso + (VIEWS[S.tab] || viewHoje)() + folhaGasto();
+  main.innerHTML = aviso + (VIEWS[S.tab] || viewHoje)() + folhaGasto() + folhaCalendario();
 
   const gav = document.getElementById("gaveta");
   if(gav) gav.hidden = !S.menuAberto;
@@ -2961,6 +3015,16 @@ function carregarUma(img){
    ponytail: se o álbum passar de uns milhares, aí sim vale carregar sob demanda. */
 function carregarMiniaturas(){
   document.querySelectorAll("img[data-fotoimg]:not([data-pronta])").forEach(carregarUma);
+  /* as capas de dia no calendário vêm do mesmo banco, com outra chave */
+  document.querySelectorAll("img[data-capadia]:not([data-pronta])").forEach(img => {
+    img.dataset.pronta = "1";
+    docGet(capaDiaId(img.dataset.capadia)).then(b => {
+      if(!b) return;
+      const url = URL.createObjectURL(b);
+      img.onload = img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    }).catch(() => {});
+  });
 }
 
 /* ============================== 7. EVENTOS ============================== */
@@ -2973,6 +3037,9 @@ document.addEventListener("click", (e) => {
 
   if(e.target.closest("[data-act=menu]")){ S.menuAberto = true; save(false); render(); return; }
   if(e.target.closest("[data-act=menuFechar]")){ S.menuAberto = false; save(false); render(); return; }
+
+  const risc = e.target.closest("[data-riscar]");
+  if(risc){ riscarDia(risc.dataset.riscar); return; }
 
   const mapaDiaBtn = e.target.closest("[data-mapadia]");
   if(mapaDiaBtn){ S.mapaDia = mapaDiaBtn.dataset.mapadia; save(false); render(); window.scrollTo({top:0}); return; }
@@ -3101,6 +3168,8 @@ document.addEventListener("click", (e) => {
       periodo:per, ord:proximaOrd(dt, per)
     });
   }
+  else if(a === "calAbrir"){ S.calAberto = true; save(false); render(); return; }
+  else if(a === "calFechar"){ S.calAberto = false; save(false); render(); return; }
   else if(a === "itemLocal"){
     S.itemAberto = S.itemAberto === act.dataset.id ? "" : act.dataset.id;
     save(false); render(); return;
@@ -3144,6 +3213,9 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.capafoto !== undefined){
+    fotoDoDia(t.dataset.capafoto, t.files && t.files[0]); t.value = ""; return;
+  }
   if(t.dataset.mapapar !== undefined){
     const days = tripDays();
     const t2 = iso(today());
@@ -3258,6 +3330,7 @@ document.addEventListener("change", (e) => {
 /* Enter nos campos "adicionar" dispara o botão ao lado */
 document.addEventListener("keydown", (e) => {
   const t = e.target;
+  if(S.calAberto && e.key === "Escape"){ e.preventDefault(); S.calAberto = false; save(false); render(); return; }
   if(S.menuAberto && e.key === "Escape"){ e.preventDefault(); S.menuAberto = false; save(false); render(); return; }
   if(S.gastoAberto && e.key === "Escape"){ e.preventDefault(); fecharGasto(); return; }
   if(e.key === "Enter" && t.dataset && t.dataset.gasto){ e.preventDefault(); salvarGasto(); return; }
@@ -3346,7 +3419,7 @@ function aplicarSugestao(){
 
 /* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
 const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos"];
-const MAPS = ["checks","attrNotes"];
+const MAPS = ["checks","attrNotes","riscados"];
 /* Objetos de campos soltos: cada campo é um caminho próprio, como trip:rate. */
 const OBJS = ["trip","carro"];
 
@@ -3354,7 +3427,10 @@ const OBJS = ["trip","carro"];
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
-                    "simularViagem","menuAberto","mapaDia","mapaSel","itemAberto","fotos","photos","mapsKey"];
+                    "simularViagem","menuAberto","mapaDia","mapaSel","itemAberto","calAberto",
+                    "diaFoto","fotos","photos","mapsKey"];
+/* riscados NÃO entra: riscar o dia é ritual de família e tem que aparecer nos
+   dois celulares. A foto do dia (diaFoto) fica, porque é binário. */
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -4054,6 +4130,113 @@ function blocoCarro(){
         <button class="btn" type="button" data-act="carroMarcar">Marquei aqui</button>
       `}
       <p id="carroMsg" style="font-size:12.5px;margin:10px 0 0;color:var(--fg-dim)"></p>
+    </div>
+  </div>`;
+}
+
+/* ============================== 8a-4. CONTAGEM NO CALENDÁRIO ==============================
+   Abre ao tocar na capa. Antes da viagem, cada dia vira um X que a criança
+   risca — o X é desenhado, não aparece pronto, porque riscar é o ritual.
+   Nos dias da viagem, cada dia recebe uma foto que vira a capa daquele dia.
+
+   Os riscos SINCRONIZAM (o ritual é da família); a foto fica no aparelho,
+   como todo binário (ADR 0010). */
+
+const capaDiaId = (i) => "capadia-" + i;
+
+/* Do começo da semana de hoje até o fim da viagem, alinhado por dia da semana
+   para ler como calendário. */
+function diasDoCalendario(){
+  const fim = d(S.trip.end);
+  if(isNaN(fim)) return [];
+  const hj = today();
+  const ini = new Date(hj.getFullYear(), hj.getMonth(), hj.getDate() - hj.getDay());
+  const out = [];
+  for(let x = new Date(ini); x <= fim; x.setDate(x.getDate() + 1)) out.push(iso(new Date(x)));
+  /* fecha a última semana para o grid não ficar com buraco */
+  while(out.length % 7) {
+    const u = d(out[out.length-1]);
+    out.push(iso(new Date(u.getFullYear(), u.getMonth(), u.getDate() + 1)));
+  }
+  return out;
+}
+
+const ehDiaDaViagem = (i) => tripDays().includes(i);
+
+function riscarDia(i){
+  S.riscados = Object.assign({}, S.riscados);
+  if(S.riscados[i]) delete S.riscados[i]; else S.riscados[i] = true;
+  save();
+  render();
+}
+
+async function fotoDoDia(i, arquivo){
+  if(!arquivo) return;
+  try{
+    await pedirPersistencia();
+    const blob = await comprimirImagem(arquivo, 1200, 0.82);
+    await docPut(capaDiaId(i), blob);
+    S.diaFoto = Object.assign({}, S.diaFoto, {[i]: blob.size});
+    save(false); render();
+  }catch(e){ console.warn("capa do dia:", e && e.message); }
+}
+
+async function tirarFotoDoDia(i){
+  if(!confirm("Tirar a foto deste dia?")) return;
+  await docDel(capaDiaId(i));
+  const c = Object.assign({}, S.diaFoto); delete c[i];
+  S.diaFoto = c; save(false); render();
+}
+
+function folhaCalendario(){
+  if(!S.calAberto) return "";
+  const dias = diasDoCalendario();
+  if(!dias.length) return "";
+
+  const hj = iso(today());
+  const faltam = Math.max(0, diffDays(today(), d(S.trip.start)));
+  const riscados = dias.filter(x => S.riscados[x] && !ehDiaDaViagem(x)).length;
+  const comFoto = Object.keys(S.diaFoto || {}).length;
+
+  const cel = (i) => {
+    const dd = d(i);
+    const daViagem = ehDiaDaViagem(i);
+    const passou = i < hj;
+    const foraDoFim = d(i) > d(S.trip.end);
+    if(foraDoFim) return `<div class="cal-c cal-vazia"></div>`;
+
+    if(daViagem){
+      const tem = (S.diaFoto || {})[i];
+      return `<label class="cal-c cal-viagem${tem ? " tem" : ""}${i===hj ? " hoje" : ""}" title="${i}">
+        <span class="cal-n">${dd.getDate()}</span>
+        ${tem ? `<img data-capadia="${i}" alt="">` : `<span class="cal-mais">＋</span>`}
+        <input type="file" accept="image/*" capture="environment" data-capafoto="${i}" hidden>
+      </label>`;
+    }
+    return `<button class="cal-c cal-conta${S.riscados[i] ? " risca" : ""}${i===hj ? " hoje" : ""}${passou ? " passou" : ""}"
+        type="button" data-riscar="${i}" aria-pressed="${!!S.riscados[i]}" title="${i}">
+      <span class="cal-n">${dd.getDate()}</span>
+      <svg class="cal-x" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M9 9 L31 31"/><path d="M31 9 L9 31"/>
+      </svg>
+    </button>`;
+  };
+
+  return `
+  <div class="folha-fundo" data-act="calFechar"></div>
+  <div class="folha folha-cal" role="dialog" aria-label="Contagem para a viagem">
+    <div class="folha-hd">
+      <b>${faltam > 0 ? `Faltam ${faltam} dia${faltam===1?"":"s"}` : "A viagem começou"}</b>
+      <button class="del" type="button" data-act="calFechar" aria-label="Fechar">×</button>
+    </div>
+    <div class="folha-bd">
+      <p class="cal-dica">Risque um X a cada dia que passa. Nos dias da viagem, toque para escolher a foto daquele dia.</p>
+      <div class="cal-sem">${["dom","seg","ter","qua","qui","sex","sáb"].map(x=>`<span>${x}</span>`).join("")}</div>
+      <div class="cal-grade">${dias.map(cel).join("")}</div>
+      <div class="cal-pe">
+        <span>${riscados} dia${riscados===1?"":"s"} riscado${riscados===1?"":"s"}</span>
+        <span>${comFoto} de ${tripDays().length} dias com foto</span>
+      </div>
     </div>
   </div>`;
 }
@@ -4930,6 +5113,35 @@ function toggleTheme(){
       S.gastos = []; 
       console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
+    }
+
+    /* ---- Contagem no calendário ---- */
+    console.assert(!LOCAL_ONLY.includes("riscados"),
+      "riscar o dia é ritual de família: TEM que sincronizar");
+    console.assert(LOCAL_ONLY.includes("diaFoto") && LOCAL_ONLY.includes("calAberto"),
+      "a foto do dia é binário e a folha aberta é estado de tela");
+    console.assert(payload().riscados !== undefined && payload().diaFoto === undefined,
+      "o risco viaja, a foto não");
+    console.assert(capaDiaId("2026-08-25") === "capadia-2026-08-25", "chave da capa do dia");
+    {
+      const bakT = {s:S.trip.start, e:S.trip.end}, bakR = S.riscados;
+      S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+      const dias = diasDoCalendario();
+      console.assert(dias.length % 7 === 0, "a grade fecha em semanas inteiras, veio " + dias.length);
+      console.assert(d(dias[0]).getDay() === 0, "começa num domingo, senão a grade desalinha");
+      console.assert(dias.indexOf("2026-09-01") !== -1, "vai até o último dia da viagem");
+      console.assert(ehDiaDaViagem("2026-08-25") && !ehDiaDaViagem("2026-08-20"),
+        "só os dias entre ida e volta contam como viagem");
+
+      S.riscados = {};
+      riscarDia("2026-08-20");
+      console.assert(S.riscados["2026-08-20"] === true, "riscar marca");
+      riscarDia("2026-08-20");
+      console.assert(S.riscados["2026-08-20"] === undefined, "e tocar de novo desmarca");
+
+      S.trip.end = "";
+      console.assert(diasDoCalendario().length === 0, "sem data de volta não monta calendário");
+      S.trip.start = bakT.s; S.trip.end = bakT.e; S.riscados = bakR;
     }
 
     /* ---- Endereço do item ---- */
