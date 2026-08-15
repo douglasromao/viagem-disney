@@ -281,6 +281,10 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- recibo ---------- */
+.recibo-linha{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.recibo-ok{font-size:12.5px;color:var(--ok);font-weight:600}
+
 /* ---------- pré-visualização da viagem ---------- */
 .simbar{background:var(--warn-bg);color:var(--fg);border:1px solid var(--warn);
   border-radius:9px;padding:7px 11px;margin:0 0 12px;font-size:12.5px}
@@ -333,7 +337,7 @@ table select:hover{border-color:var(--line-soft)}
 .hoje-notas{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;padding-top:9px;border-top:1px solid var(--line-soft);text-wrap:pretty}
 
 /* ---------- documentos ---------- */
-.doc{display:grid;grid-template-columns:24px 1fr auto auto 26px;gap:8px;align-items:center;
+.doc{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto 26px;gap:8px;align-items:center;
   padding:9px 0;border-bottom:1px solid var(--line-soft)}
 .doc:last-of-type{border-bottom:0}
 .doc-i{font-size:17px;line-height:1}
@@ -2198,6 +2202,9 @@ function viewOrcamento(){
             <b>${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " · " + esc(g.nota) : ""}</b>
             <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}</span>
           </span>
+          ${g.rec
+            ? `<button class="btn ghost sm" type="button" data-act="recVer" data-id="${g.id}" aria-label="Ver o recibo">Recibo</button>`
+            : `<label class="btn ghost sm" style="cursor:pointer" title="Anexar foto do recibo">📷<input type="file" accept="image/*" capture="environment" data-recdepois="${g.id}" hidden></label>`}
           <button class="del" type="button" data-act="gastoDel" data-id="${g.id}" aria-label="Remover gasto">×</button>
         </div>`).join("")}
     </div>
@@ -2536,6 +2543,8 @@ document.addEventListener("click", (e) => {
   else if(a === "gastoFechar"){ fecharGasto(); return; }
   else if(a === "gastoSalvar"){ salvarGasto(); return; }
   else if(a === "gastoDel"){ removerGasto(act.dataset.id); return; }
+  else if(a === "recVer"){ abrirDocId(recId(act.dataset.id)); return; }
+  else if(a === "recTirar"){ recPendente = null; render(); return; }
   else if(a === "verDiaHoje"){
     S.diaSel = iso(today()); S.seg = Object.assign({}, S.seg, {roteiro:"dias"});
     setTab("roteiro"); return;
@@ -2627,6 +2636,12 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.recnovo !== undefined){
+    escolherRecibo(t.files && t.files[0]); t.value = ""; return;
+  }
+  if(t.dataset.recdepois){
+    anexarRecibo(t.dataset.recdepois, t.files && t.files[0]); t.value = ""; return;
+  }
   if(t.dataset.simular !== undefined){
     S.simularViagem = t.checked; save(false); render(); return;
   }
@@ -3339,6 +3354,56 @@ function acharFila(nome, lista){
   return score >= 0.6 ? melhor : null;
 }
 
+/* ---------- recibo do gasto ----------
+   Foto de recibo não precisa de 3 MB: reduz para 1400px e JPEG 0,72 antes de
+   guardar. Fica legível para conferir a fatura, salva na hora e não enche o
+   IndexedDB numa viagem de dez dias.
+
+   A foto fica no aparelho, como todo binário (ADR 0010). O gasto sincroniza. */
+const recId = (id) => "rec-" + id;
+
+function comprimirImagem(arquivo, maxLado = 1400, q = 0.72){
+  return new Promise((ok) => {
+    if(!/^image\//.test(arquivo.type || "")) return ok(arquivo);
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+      /* já é pequena: não reencoda para não perder qualidade à toa */
+      if(escala === 1 && arquivo.size < 900*1024){ URL.revokeObjectURL(url); return ok(arquivo); }
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * escala);
+      c.height = Math.round(img.height * escala);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => { URL.revokeObjectURL(url); ok(b || arquivo); }, "image/jpeg", q);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); ok(arquivo); };
+    img.src = url;
+  });
+}
+
+/* Segura a foto escolhida até o gasto ser salvo — antes disso ele não tem id. */
+let recPendente = null;
+
+async function escolherRecibo(arquivo){
+  if(!arquivo) return;
+  const m = document.getElementById("gastoMsg");
+  if(m){ m.textContent = "Preparando a foto…"; m.style.color = "var(--fg-dim)"; }
+  recPendente = await comprimirImagem(arquivo);
+  render();   /* mostra a miniatura na folha */
+}
+
+/* Anexa depois, direto da lista, sem reabrir a folha. */
+async function anexarRecibo(id, arquivo){
+  if(!arquivo) return;
+  const g = S.gastos.find(x => x.id === id);
+  if(!g) return;
+  const blob = await comprimirImagem(arquivo);
+  await docPut(recId(id), blob);
+  g.rec = blob.size;
+  save(); render();
+}
+
 let buscandoFilas = false;
 
 async function buscarFilas(forcar){
@@ -3490,12 +3555,13 @@ const gastoTotalBRL = () =>
   S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0) + totalGastos();
 
 function abrirGasto(){
+  recPendente = null;
   S.gastoAberto = true; save(false); render();
   setTimeout(() => { const el = document.querySelector("[data-gasto=valor]"); if(el) el.focus(); }, 30);
 }
-function fecharGasto(){ S.gastoAberto = false; save(false); render(); }
+function fecharGasto(){ recPendente = null; S.gastoAberto = false; save(false); render(); }
 
-function salvarGasto(){
+async function salvarGasto(){
   const v = parseFloat(String((document.querySelector("[data-gasto=valor]")||{}).value || "").replace(",", "."));
   if(!v || v <= 0){
     const m = document.getElementById("gastoMsg");
@@ -3506,7 +3572,13 @@ function salvarGasto(){
   const cat  = (document.querySelector("[data-gasto=cat]")  || {}).value || gastoCats()[0] || "Nos parques";
   const nota = ((document.querySelector("[data-gasto=nota]") || {}).value || "").trim();
 
-  S.gastos.push({id:uid("g"), valor:v, cur, cat, nota, dia:iso(today()), at:Date.now()});
+  const g = {id:uid("g"), valor:v, cur, cat, nota, dia:iso(today()), at:Date.now()};
+  if(recPendente){
+    try{ await docPut(recId(g.id), recPendente); g.rec = recPendente.size; }
+    catch(e){ console.warn("recibo:", e && e.message); }
+    recPendente = null;
+  }
+  S.gastos.push(g);
   S.gastoAberto = false;
   save();                    /* o caminho sai do diff, não do argumento */
   render();
@@ -3517,6 +3589,7 @@ function removerGasto(id){
   if(!g) return;
   if(!confirm(`Remover ${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " — " + g.nota : ""}?`)) return;
   S.gastos = S.gastos.filter(x => x.id !== id);
+  docDel(recId(id));         /* a foto vai junto */
   save();                    /* carimbar() vê o registro sumir e cria a lápide */
   render();
 }
@@ -3553,6 +3626,14 @@ function folhaGasto(){
         <select data-gasto="cat">${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
       <label class="f" style="margin-top:10px"><span>O que foi (opcional)</span>
         <input type="text" data-gasto="nota" placeholder="almoço, pipoca, estacionamento…"></label>
+      <div class="recibo-linha">
+        <label class="btn ghost sm" style="cursor:pointer">
+          ${recPendente ? "Trocar foto" : "📷 Foto do recibo"}
+          <input type="file" accept="image/*" capture="environment" data-recnovo hidden>
+        </label>
+        ${recPendente ? `<span class="recibo-ok">recibo anexado · ${docFmt(recPendente.size)}</span>
+          <button class="del" type="button" data-act="recTirar" aria-label="Tirar a foto">×</button>` : ""}
+      </div>
       <p id="gastoMsg" style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Convertido pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida em Ajustes.</p>
       <div class="row" style="margin-top:14px">
         <button class="btn" type="button" data-act="gastoSalvar" style="flex:1">Lançar</button>
@@ -4231,6 +4312,19 @@ function toggleTheme(){
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
     }
 
+    /* ---- Recibo do gasto ---- */
+    console.assert(recId("g-abc") === "rec-g-abc", "a chave do recibo deriva do id do gasto");
+    console.assert(typeof comprimirImagem === "function" && typeof anexarRecibo === "function",
+      "comprimir e anexar precisam existir");
+    {
+      /* o tamanho do recibo é só um número no índice: pode viajar, o binário não */
+      const bak = S.gastos;
+      S.gastos = [{id:"g1", valor:10, cur:"USD", cat:"x", nota:"", dia:"2026-08-25", at:1, rec:48000}];
+      console.assert(payload().gastos[0].rec === 48000,
+        "o marcador de que existe recibo acompanha o gasto");
+      console.assert(payload().gastos[0].foto === undefined, "mas o binário nunca entra no payload");
+      S.gastos = bak;
+    }
     /* ---- Fases da viagem ---- */
     {
       const bakT = {s:S.trip.start, e:S.trip.end};
@@ -4254,6 +4348,8 @@ function toggleTheme(){
          antes de embarcar as três telas que só existem durante a viagem */
       S.simularViagem = true;
       console.assert(faseViagem() === "durante", "simulando, a fase é durante");
+      /* precisa de datas válidas: sem elas não existe roteiro para mostrar */
+      S.trip.start = mais(5); S.trip.end = mais(15);
       console.assert(blocoHojeNoRoteiro() !== "",
         "simulando com a viagem no futuro, mostra o primeiro dia em vez de nada");
       console.assert(blocoHojeNoRoteiro().indexOf("dia 1 de") !== -1,
@@ -4533,6 +4629,12 @@ function toggleTheme(){
     console.assert(pendente() === false, "sincronizado = sem pendência");
   } finally { S = bak; }
 })();
+
+/* Fora do selfTest de propósito: ele é síncrono, e torná-lo async faria o
+   `finally` restaurar o state depois do render() lá embaixo — o app abriria
+   mostrando dado de teste. */
+comprimirImagem(new Blob(["x"], {type:"application/pdf"})).then(r =>
+  console.assert(r instanceof Blob, "arquivo que não é imagem tem que passar direto pelo compressor"));
 
 /* ============================== 11. INÍCIO ============================== */
 render();
