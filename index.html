@@ -393,9 +393,12 @@ table select:hover{border-color:var(--line-soft)}
   .cal-conta.risca .cal-x path{animation:none;stroke-dashoffset:0}
 }
 
-.cal-viagem{background:var(--accent-soft);border-color:var(--accent);border-style:dashed}
-.cal-viagem .cal-mais{position:absolute;font-size:17px;color:var(--accent);opacity:.7}
-.cal-viagem .cal-n{position:absolute;top:3px;left:5px;color:var(--accent);font-weight:700}
+/* --c vem da classe .pk-xx; --c-soft não existe na paleta, então o fundo fica
+   neutro e a cor do parque aparece na borda, no número e no ícone. */
+.cal-viagem{background:var(--surface-2);border-color:var(--c,var(--accent));border-style:dashed}
+.cal-viagem .cal-pico{position:absolute;inset:0;display:grid;place-items:center;color:var(--c,var(--accent));opacity:.55}
+.cal-viagem .cal-pico svg{width:60%;height:60%}
+.cal-viagem .cal-n{position:absolute;top:3px;left:5px;color:var(--c,var(--accent));font-weight:700;z-index:2}
 .cal-viagem.tem{border-style:solid}
 .cal-viagem img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cal-viagem.tem .cal-n{color:#FFF6E8;text-shadow:0 1px 4px rgba(15,10,35,.8);z-index:2}
@@ -4207,9 +4210,16 @@ function folhaCalendario(){
 
     if(daViagem){
       const tem = (S.diaFoto || {})[i];
-      return `<label class="cal-c cal-viagem${tem ? " tem" : ""}${i===hj ? " hoje" : ""}" title="${i}">
+      /* Sem foto, o dia mostra o ícone do PARQUE daquele dia — diz mais que um
+         símbolo genérico, e usa as silhuetas próprias que o app já desenha
+         (nada de personagem registrado, ADR 0007). */
+      const pkDia = parkOf((S.days[i] || {}).park || "none");
+      return `<label class="cal-c cal-viagem pk ${PARKS[pkDia].cls}${tem ? " tem" : ""}${i===hj ? " hoje" : ""}"
+          title="${i} · ${esc(PARKS[pkDia].n)}">
         <span class="cal-n">${dd.getDate()}</span>
-        ${tem ? `<img data-capadia="${i}" alt="">` : `<span class="cal-mais">＋</span>`}
+        ${tem
+          ? `<img data-capadia="${i}" alt="${esc(PARKS[pkDia].n)}">`
+          : `<span class="cal-pico">${parkIconSvg(pkDia)}</span>`}
         <input type="file" accept="image/*" capture="environment" data-capafoto="${i}" hidden>
       </label>`;
     }
