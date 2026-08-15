@@ -204,9 +204,6 @@ label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;t
 .linkpill{text-decoration:none;cursor:pointer}
 .linkpill:hover{color:var(--accent);border-color:var(--accent)}
 
-.zonemap{width:100%;max-width:420px;display:block;margin:0 auto;font-family:var(--font-display)}
-.zonecount{text-anchor:middle;dominant-baseline:middle;fill:var(--c);font-size:15px;font-weight:700}
-.zonelabel{text-anchor:middle;fill:var(--fg-dim);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase}
 
 .mapembed-wrap{margin-top:4px}
 .mapembed{width:100%;border:1px solid var(--line);border-radius:8px;display:block;background:var(--surface-2)}
@@ -220,8 +217,6 @@ label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;t
 .pk{--c:var(--gen)}
 .pk-mk{--c:var(--mk)} .pk-ak{--c:var(--ak)} .pk-hs{--c:var(--hs)} .pk-ue{--c:var(--ue)}
 .pk-ds{--c:var(--ds)} .pk-mia{--c:var(--mia)} .pk-off{--c:var(--gen)} .pk-none{--c:var(--gen)}
-.parktag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;color:var(--c)}
-.parktag::before{content:"";width:11px;height:11px;border-radius:3px;background:var(--c);flex:none}
 .parkbar{height:5px;background:var(--c)}
 
 .parkicon{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none;
@@ -493,16 +488,6 @@ table select:hover{border-color:var(--line-soft)}
   padding:8px 10px;margin:0 0 12px;font-size:12.5px;color:var(--fg-dim)}
 
 /* ---------- lançar gasto ---------- */
-.fab{
-  position:fixed;right:16px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:60;
-  display:flex;align-items:center;gap:7px;
-  background:var(--accent);color:var(--on-accent);border:0;border-radius:999px;
-  padding:13px 20px;cursor:pointer;box-shadow:0 6px 18px -6px rgba(15,31,41,.5);
-  font-family:var(--font-display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;
-}
-.fab span{font-size:19px;line-height:1;margin-top:-2px}
-.fab:active{transform:translateY(1px)}
-@media (min-width:861px){.fab{bottom:24px}}
 
 .folha-fundo{position:fixed;inset:0;background:rgba(10,16,26,.5);z-index:70}
 .folha{
@@ -1213,7 +1198,6 @@ function seed(){
     /* Metadados de sincronização (F2). u e del VIAJAM; version fica local. */
     u:{},
     del:{},
-    version:null,
     shop: SHOP.map(r => ({id:uid("s"), item:r[0], cat:r[1], loja:r[2], qtd:r[3], usd:r[4], prio:r[5], done:false})),
     budget: BUDGET.map(r => ({id:uid("b"), label:r[0], cat:r[1], plan:r[2], real:0, cur:r[3]})),
     dining: DINING.map(r => ({id:uid("d"), nome:r[0], local:r[1], nota:r[2], done:false, dia:"", hora:""})),
@@ -1222,7 +1206,6 @@ function seed(){
       {id:uid("h"), nome:"", cidade:"", endereco:""}
     ],
     days: sugerirRoteiro({start:"2026-08-23", end:"2026-09-01"}) || {},
-    attrNotes:{},
     parkFilter:"mk",
     onlyPlan:false,
     onlyKid:false,
@@ -3582,16 +3565,16 @@ function aplicarSugestao(){
 
 /* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
 const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos","listas"];
-const MAPS = ["checks","attrNotes","riscados"];
+const MAPS = ["checks","riscados"];
 /* Objetos de campos soltos: cada campo é um caminho próprio, como trip:rate. */
 const OBJS = ["trip","carro"];
 
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
+                    "lastSync","seg","diaSel","clima","filas","docs","gastoAberto",
                     "simularViagem","menuAberto","mapaDia","mapaSel","itemAberto","calAberto",
-                    "diaFoto","marcaDia","grupoFechado","fotos","photos","mapsKey"];
+                    "diaFoto","marcaDia","grupoFechado","fotos","mapsKey"];
 /* listas NÃO entra: lista própria é dado da viagem e sincroniza. */
 /* riscados NÃO entra: riscar o dia é ritual de família e tem que aparecer nos
    dois celulares. A foto do dia (diaFoto) fica, porque é binário. */
@@ -3840,7 +3823,6 @@ async function syncNow(){
 
       let resp = null;
       try{ resp = await put.json(); }catch(e){}
-      S.version = (resp && resp.version) || null;
 
       aplicarMerge(junto);
       const quantos = remoto ? Object.keys(remoto.u || {}).length : 0;
@@ -4375,13 +4357,6 @@ async function fotoDoDia(i, arquivo){
   }catch(e){ console.warn("capa do dia:", e && e.message); }
 }
 
-async function tirarFotoDoDia(i){
-  if(!confirm("Tirar a foto deste dia?")) return;
-  await docDel(capaDiaId(i));
-  const c = Object.assign({}, S.diaFoto); delete c[i];
-  S.diaFoto = c; save(false); render();
-}
-
 function folhaCalendario(){
   if(!S.calAberto) return "";
   const dias = diasDoCalendario();
@@ -4470,14 +4445,6 @@ async function pedirPersistencia(){
     if(navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted()))
       await navigator.storage.persist();
   }catch(e){}
-}
-
-async function usoDisco(){
-  try{
-    if(!navigator.storage || !navigator.storage.estimate) return null;
-    const e = await navigator.storage.estimate();
-    return {usado: e.usage || 0, total: e.quota || 0};
-  }catch(e){ return null; }
 }
 
 /* Etiquetas do momento: de onde a foto veio decide o que dá para saber. */
@@ -5132,14 +5099,18 @@ function toggleTheme(){
     /* ---- F2: carimbos, lápides e merge (ADR 0003) ---- */
     console.assert(!LOCAL_ONLY.includes("u") && !LOCAL_ONLY.includes("del"),
       "u e del TÊM que viajar no sync, senão o merge não existe entre aparelhos");
-    console.assert(LOCAL_ONLY.includes("photos") && LOCAL_ONLY.includes("version") && LOCAL_ONLY.includes("sync"),
-      "fotos, version e a config do servidor não podem viajar");
+    console.assert(LOCAL_ONLY.includes("fotos") && LOCAL_ONLY.includes("docs") && LOCAL_ONLY.includes("sync"),
+      "fotos, documentos e a config do servidor não podem viajar");
+    /* toda chave de LOCAL_ONLY tem que existir no state, senão é resto de
+       funcionalidade removida se acumulando */
+    Object.keys(seed()).length && LOCAL_ONLY.forEach(k => console.assert(
+      k in seed(), "LOCAL_ONLY cita uma chave que não existe no state: " + k));
     console.assert(payload().u !== undefined && payload().sync === undefined,
       "payload leva u e não leva a chave do servidor");
 
     {
       const st = (o) => Object.assign({trip:{}, family:[], hotels:[], shop:[], budget:[],
-                                       dining:[], extraCheck:[], checks:{}, attrNotes:{},
+                                       dining:[], extraCheck:[], checks:{},
                                        days:{}, u:{}, del:{}}, o);
       /* lados mexem em registros diferentes: nada se perde */
       const A = st({shop:[{id:"s1",item:"A"}], u:{"shop:s1":200}});
