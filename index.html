@@ -1,0 +1,2755 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0E7C86" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1F29" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="./icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viagem Disney">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Planejador Disney — Miami e Orlando · Ago/Set 2026</title>
+
+<style>
+:root{
+  --paper:#EEF1EE; --surface:#FFFFFF; --surface-2:#F6F9F7; --surface-3:#E7ECE9;
+  --fg:#12232E; --fg-dim:#54666E; --fg-faint:#8496 9C; --fg-faint:#849 69C; --fg-faint:#84969C;
+  --line:#CFD8D4; --line-soft:#E2E8E5;
+  --accent:#0E7C86; --accent-soft:#D6EBEC; --on-accent:#FFFFFF;
+  --ok:#2E7D4F; --warn:#9C6B12; --crit:#B33A2B;
+  --ok-bg:#DEEFE4; --warn-bg:#F5E9CE; --crit-bg:#F6DFDA;
+  --mk:#B4356B; --ak:#3F7A3A; --hs:#BE5A18; --ue:#4F46C4; --ds:#8A6D2F; --mia:#3D5AB5; --gen:#546A72;
+  --shadow:0 1px 2px rgba(15,31,41,.06), 0 6px 18px -12px rgba(15,31,41,.28);
+
+  --font-display:"Oswald","Avenir Next Condensed","Roboto Condensed","Arial Narrow","Helvetica Neue",Helvetica,sans-serif;
+  --font-ui:"Seravek","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-data:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0F1F29; --surface:#162B36; --surface-2:#1A3240; --surface-3:#23404E;
+    --fg:#E3EDEA; --fg-dim:#9EB1B6; --fg-faint:#6E8288;
+    --line:#2A4插; --line:#2A4插;
+    --line:#2A4452; --line-soft:#223846;
+    --accent:#43C2CB; --accent-soft:#123E45; --on-accent:#06232A;
+    --ok:#63C68C; --warn:#DCAA45; --crit:#E87764;
+    --ok-bg:#123528; --warn-bg:#3A2E12; --crit-bg:#3B211C;
+    --mk:#EE7BA6; --ak:#79BE6F; --hs:#EE9A5C; --ue:#9A93F0; --ds:#D4B267; --mia:#8B9FEE; --gen:#8FA5AC;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 22px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1F29; --surface:#162B36; --surface-2:#1A3240; --surface-3:#23404E;
+  --fg:#E3EDEA; --fg-dim:#9EB1B6; --fg-faint:#6E8288;
+  --line:#2A4452; --line-soft:#223846;
+  --accent:#43C2CB; --accent-soft:#123E45; --on-accent:#06232A;
+  --ok:#63C68C; --warn:#DCAA45; --crit:#E87764;
+  --ok-bg:#123528; --warn-bg:#3A2E12; --crit-bg:#3B211C;
+  --mk:#EE7BA6; --ak:#79BE6F; --hs:#EE9A5C; --ue:#9A93F0; --ds:#D4B267; --mia:#8B9FEE; --gen:#8FA5AC;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 22px -14px rgba(0,0,0,.7);
+}
+:root[data-theme="light"]{
+  --paper:#EEF1EE; --surface:#FFFFFF; --surface-2:#F6F9F7; --surface-3:#E7ECE9;
+  --fg:#12232E; --fg-dim:#54666E; --fg-faint:#84969C;
+  --line:#CFD8D4; --line-soft:#E2E8E5;
+  --accent:#0E7C86; --accent-soft:#D6EBEC; --on-accent:#FFFFFF;
+  --ok:#2E7D4F; --warn:#9C6B12; --crit:#B33A2B;
+  --ok-bg:#DEEFE4; --warn-bg:#F5E9CE; --crit-bg:#F6DFDA;
+  --mk:#B4356B; --ak:#3F7A3A; --hs:#BE5A18; --ue:#4F46C4; --ds:#8A6D2F; --mia:#3D5AB5; --gen:#546A72;
+  --shadow:0 1px 2px rgba(15,31,41,.06), 0 6px 18px -12px rgba(15,31,41,.28);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--fg);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.rail{background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;flex-direction:column;gap:2px;padding:0 6px}
+.brand b{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+.brand span{font-family:var(--font-data);font-size:11px;color:var(--fg-dim);letter-spacing:.04em}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;padding:9px 11px;border-radius:8px;cursor:pointer;color:var(--fg-dim);font-family:var(--font-display);font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:500}
+.nav button:hover{background:var(--surface-2);color:var(--fg)}
+.nav button[aria-current="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.nav .cnt{font-family:var(--font-data);font-size:11px;letter-spacing:0;opacity:.75;font-weight:400;text-transform:none}
+.rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 6px}
+.themebtn{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px;color:var(--fg-dim)}
+.themebtn:hover{border-color:var(--accent);color:var(--fg)}
+.syncbtn{font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--fg)}
+.syncbtn.pend{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+code{font-family:var(--font-data);font-size:.88em;background:var(--surface-3);padding:1px 5px;border-radius:4px;word-break:break-all}
+
+main{padding:26px 30px 90px;max-width:1120px;width:100%}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.6vw,36px);letter-spacing:.03em;text-transform:uppercase;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--fg-dim);margin:0 0 22px;font-size:14.5px;max-width:66ch}
+h2{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:.07em;text-transform:uppercase;margin:0}
+.eyebrow{font-family:var(--font-data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-faint)}
+
+/* ---------- card / stub ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.card-hd{position:relative;padding:14px 16px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-hd::after{content:"";position:absolute;left:16px;right:16px;bottom:0;border-bottom:2px dashed var(--line)}
+.card-hd::before{content:"";position:absolute;left:-8px;right:-8px;bottom:-8px;height:16px;background:
+   radial-gradient(circle 8px at 0 50%, var(--paper) 98%, transparent 100%),
+   radial-gradient(circle 8px at 100% 50%, var(--paper) 98%, transparent 100%);
+  pointer-events:none}
+.card-bd{padding:14px 16px 16px}
+.grid{display:grid;gap:14px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* ---------- inputs ---------- */
+input[type=text],input[type=date],input[type=number],select,textarea{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
+input[type=number]{font-family:var(--font-data);text-align:right;font-variant-numeric:tabular-nums}
+textarea{resize:vertical;font-size:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--fg-dim);min-width:0}
+label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:7px;padding:8px 14px;cursor:pointer;font-family:var(--font-display);font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--surface-2);color:var(--fg-dim);border:1px solid var(--line)}
+.btn.ghost:hover{color:var(--fg);border-color:var(--accent);filter:none}
+.btn.sm{padding:5px 10px;font-size:12px}
+.del{background:none;border:0;color:var(--fg-faint);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:15px;line-height:1}
+.del:hover{color:var(--crit);background:var(--crit-bg)}
+
+/* ---------- checkbox item ---------- */
+.item{display:flex;gap:11px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line-soft)}
+.item:last-child{border-bottom:0}
+.item input[type=checkbox]{appearance:none;flex:0 0 19px;width:19px;height:19px;margin-top:2px;border:2px solid var(--line);border-radius:5px;background:var(--surface-2);cursor:pointer;position:relative;transition:background .15s,border-color .15s}
+.item input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.item input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid var(--on-accent);border-width:0 2.5px 2.5px 0;transform:rotate(42deg)}
+.item .txt{flex:1;min-width:0}
+.item .txt b{font-weight:600;font-size:14.5px}
+.item .txt p{margin:2px 0 0;font-size:13px;color:var(--fg-dim);text-wrap:pretty}
+.item.done .txt b,.item.done .txt p{text-decoration:line-through;color:var(--fg-faint)}
+.item.done input[type=checkbox]+.txt{opacity:.62}
+
+/* ---------- pills ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-data);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 7px;border-radius:999px;border:1px solid;white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
+.pill.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.pill.crit{color:var(--crit);border-color:var(--crit);background:var(--crit-bg)}
+.pill.neutral{color:var(--fg-dim);border-color:var(--line);background:var(--surface-2)}
+.pill.accent{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.linkpill{text-decoration:none;cursor:pointer}
+.linkpill:hover{color:var(--accent);border-color:var(--accent)}
+
+.zonemap{width:100%;max-width:420px;display:block;margin:0 auto;font-family:var(--font-display)}
+.zonebubble{cursor:pointer}
+.zonebubble circle:first-of-type{fill:var(--c);fill-opacity:.14;stroke:var(--c);stroke-width:1.5;transition:fill-opacity .15s}
+.zonebubble:hover circle:first-of-type,.zonebubble:focus-visible circle:first-of-type{fill-opacity:.32}
+.zonecount{text-anchor:middle;dominant-baseline:middle;fill:var(--c);font-size:15px;font-weight:700}
+.zonelabel{text-anchor:middle;fill:var(--fg-dim);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase}
+.zonebubble:focus-visible{outline:none}
+.zonebubble:focus-visible circle:first-of-type{stroke-width:3}
+
+.mapembed-wrap{margin-top:4px}
+.mapembed{width:100%;border:1px solid var(--line);border-radius:8px;display:block;background:var(--surface-2)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) iframe.mapembed{filter:invert(92%) hue-rotate(180deg) contrast(90%)}}
+:root[data-theme="dark"] iframe.mapembed{filter:invert(92%) hue-rotate(180deg) contrast(90%)}
+.mapembed-empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;font-size:12.5px;color:var(--fg-dim);text-wrap:pretty}
+.mapembed-empty b{color:var(--fg)}
+
+/* ---------- park color coding ---------- */
+.pk{--c:var(--gen)}
+.pk-mk{--c:var(--mk)} .pk-ak{--c:var(--ak)} .pk-hs{--c:var(--hs)} .pk-ue{--c:var(--ue)}
+.pk-ds{--c:var(--ds)} .pk-mia{--c:var(--mia)} .pk-off{--c:var(--gen)} .pk-none{--c:var(--gen)}
+.parktag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;color:var(--c)}
+.parktag::before{content:"";width:11px;height:11px;border-radius:3px;background:var(--c);flex:none}
+.parkbar{height:5px;background:var(--c)}
+
+.parkicon{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none;
+  background:var(--surface);border:1.5px solid var(--line-soft);color:var(--c)}
+.parkicon svg{width:60%;height:60%;display:block}
+.parkicon.xs{width:20px;height:20px;border-width:1px}
+.parkicon.sm{width:28px;height:28px}
+.parkicon.lg{width:58px;height:58px;border-width:2px;box-shadow:var(--shadow)}
+.chip.pkchip{display:inline-flex;align-items:center;gap:7px}
+.chip.pkchip[aria-pressed="true"] .parkicon{background:rgba(255,255,255,.22);border-color:transparent;color:inherit}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;box-shadow:var(--shadow)}
+.stat .k{font-family:var(--font-data);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-faint)}
+.stat .v{font-family:var(--font-display);font-size:29px;font-weight:700;letter-spacing:.01em;line-height:1.15;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .n{font-size:12.5px;color:var(--fg-dim);margin-top:1px}
+.bar{height:7px;background:var(--surface-3);border-radius:99px;overflow:hidden;margin-top:9px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .35s ease}
+.bar.c-ok i{background:var(--ok)} .bar.c-warn i{background:var(--warn)} .bar.c-crit i{background:var(--crit)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint);text-align:left;padding:7px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap;font-weight:400}
+td{padding:6px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+td.num,th.num{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums}
+tfoot td{border-bottom:0;border-top:2px solid var(--line);font-weight:700;padding-top:10px}
+tbody tr.done td{opacity:.5}
+table input[type=text]{background:transparent;border:1px solid transparent;padding:4px 6px}
+table input[type=text]:hover{border-color:var(--line-soft)}
+table input[type=text]:focus{background:var(--surface-2);border-color:var(--line)}
+table input[type=number]{background:transparent;border:1px solid transparent;padding:4px 6px;max-width:104px}
+table input[type=number]:hover{border-color:var(--line-soft)}
+table input[type=number]:focus{background:var(--surface-2);border-color:var(--line)}
+table select{background:transparent;border:1px solid transparent;padding:4px 4px;font-size:13px}
+table select:hover{border-color:var(--line-soft)}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim)}
+.chip:hover{border-color:var(--accent);color:var(--fg)}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--paper);border-color:var(--fg)}
+.chip.pkchip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+:root[data-theme="dark"] .chip.pkchip[aria-pressed="true"],
+:root[data-theme="dark"] .chip[aria-pressed="true"]{color:#0F1F29}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0F1F29}}
+
+/* ---------- day cards ---------- */
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:13px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.day.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow)}
+.day-hd{padding:11px 13px 9px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.day-hd .dt{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.day-hd .wd{font-family:var(--font-data);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-faint)}
+.day-bd{padding:0 13px 13px;display:flex;flex-direction:column;gap:9px}
+.day-bd select{font-family:var(--font-display);letter-spacing:.05em;text-transform:uppercase;font-size:13px;color:var(--c);font-weight:600}
+
+.dayitems{display:flex;flex-direction:column;gap:6px}
+.dayitem{display:grid;grid-template-columns:84px 1fr 26px;gap:6px;align-items:center}
+.dayitem input[type=time]{font-family:var(--font-data);font-size:12.5px;padding:6px 5px;text-align:center}
+.dayitem input[type=text]{font-size:13px;padding:6px 8px}
+.dayitem-add{margin-top:2px}
+.dayitem-add input,.dayitem-add .btn{opacity:.85}
+.dayitem-dining{background:var(--accent-soft);border-radius:6px;padding:0 0 0 2px}
+.dayitem-name{font-size:13px;padding:6px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dayitem-add .btn{padding:6px 0;font-size:15px;line-height:1}
+
+/* ---------- attractions ---------- */
+.attr{display:flex;gap:11px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line-soft)}
+.attr:last-child{border-bottom:0}
+.attr .txt{flex:1;min-width:0}
+.attr .txt b{font-size:14.5px;font-weight:600}
+.attr .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.attr .land{font-family:var(--font-data);font-size:11px;color:var(--fg-faint);letter-spacing:.03em}
+.attr.done .txt b{text-decoration:line-through;color:var(--fg-faint)}
+.attr input[type=checkbox]{appearance:none;flex:0 0 19px;width:19px;height:19px;margin-top:2px;border:2px solid var(--line);border-radius:5px;background:var(--surface-2);cursor:pointer;position:relative}
+.attr input[type=checkbox]:checked{background:var(--c);border-color:var(--c)}
+.attr input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(42deg)}
+
+.note{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;font-size:13.5px;color:var(--fg);text-wrap:pretty}
+.note b{font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;font-size:13px}
+.warnbox{background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--r);padding:12px 14px;font-size:13.5px;text-wrap:pretty}
+.warnbox b{font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--warn)}
+
+.bottomnav{display:none}
+
+/* ---------- mobile ---------- */
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .rail{display:none}
+  main{padding:18px 15px 96px}
+  .bottomnav{display:block;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+  .bottomnav .inner{display:flex;overflow-x:auto;gap:2px;padding:5px 6px}
+  .bottomnav button{flex:0 0 auto;background:none;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--fg-dim);font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .bottomnav button[aria-current="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+  .mobhd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+  .mobhd .brand b{font-size:17px}
+  table{min-width:560px}
+}
+@media (min-width:861px){.mobhd{display:none}}
+</style>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <b>Viagem Disney</b>
+      <span id="railDates">—</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="Seções"></nav>
+    <div class="rail-foot">
+      <button class="themebtn syncbtn" type="button" data-act="syncNow" id="syncBtn">Sincronizar</button>
+      <button class="themebtn" id="themeBtn" type="button">Alternar tema</button>
+      <span class="eyebrow" id="saveState">salvo</span>
+    </div>
+  </aside>
+
+  <main id="view" tabindex="-1"></main>
+</div>
+
+<nav class="bottomnav" aria-label="Seções"><div class="inner" id="navMob"></div></nav>
+
+<script>
+"use strict";
+
+/* ============================== 1. DADOS-SEMENTE ============================== */
+
+const PARKS = {
+  mk:{n:"Magic Kingdom",  cls:"pk-mk"},
+  ak:{n:"Animal Kingdom", cls:"pk-ak"},
+  hs:{n:"Hollywood Studios",cls:"pk-hs"},
+  ue:{n:"Epic Universe",  cls:"pk-ue"},
+  ds:{n:"Disney Springs", cls:"pk-ds"},
+  mia:{n:"Miami",         cls:"pk-mia"},
+  off:{n:"Estrada / compras",cls:"pk-off"},
+  none:{n:"Descanso",     cls:"pk-none"}
+};
+/* Roteiro salvo antes de uma mudança de lista não pode quebrar a tela. */
+const parkOf = (k) => PARKS[k] ? k : "none";
+
+/* Símbolo próprio por parque — não personagens registrados (Mickey, Yoshi,
+   Harry Potter etc. são marca/direito autoral de terceiros). Silhueta única
+   em currentColor: herda a cor do parque de quem envolve o ícone. */
+const PARK_ICON = {
+mk:`<svg viewBox="0 0 64 64" fill="currentColor"><rect x="14" y="42" width="36" height="10" rx="1"/>
+  <rect x="9" y="27" width="11" height="17"/><polygon points="6,27 14.5,13 23,27"/>
+  <rect x="44" y="27" width="11" height="17"/><polygon points="41,27 49.5,13 58,27"/>
+  <rect x="25" y="19" width="14" height="27"/><polygon points="22,19 32,5 42,19"/>
+  <line x1="32" y1="5" x2="32" y2="-1" stroke="currentColor" stroke-width="2"/>
+  <polygon points="32,-1 39,2 32,5"/></svg>`,
+ak:`<svg viewBox="0 0 64 64" fill="currentColor"><path d="M32 6 C48 10 53 26 40 42 C31 53 15 50 10 39 C23 39 30 26 32 6 Z"/>
+  <line x1="31" y1="14" x2="18" y2="41" stroke="var(--surface)" stroke-width="2" fill="none"/>
+  <circle cx="47" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+hs:`<svg viewBox="0 0 64 64" fill="currentColor"><rect x="10" y="24" width="44" height="30" rx="2"/>
+  <g transform="rotate(-10 32 22)"><rect x="9" y="14" width="46" height="10" rx="1"/>
+  <rect x="9" y="14" width="8" height="10" fill="var(--surface)"/><rect x="24" y="14" width="8" height="10" fill="var(--surface)"/><rect x="39" y="14" width="8" height="10" fill="var(--surface)"/></g>
+  <polygon points="32,30 35,37 43,37 36,42 39,49 32,44 25,49 28,42 21,37 29,37" fill="var(--surface)"/></svg>`,
+ue:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor"><circle cx="32" cy="32" r="22" stroke-width="3"/>
+  <circle cx="32" cy="32" r="13" stroke-width="2.5"/><circle cx="32" cy="32" r="3.5" fill="currentColor" stroke="none"/>
+  <g fill="currentColor" stroke="none"><polygon points="10,10 12,15 17,15 13,18 15,23 10,20 5,23 7,18 3,15 8,15"/>
+  <polygon points="52,46 54,51 59,51 55,54 57,59 52,56 47,59 49,54 45,51 50,51"/></g></svg>`,
+ds:`<svg viewBox="0 0 64 64" fill="currentColor"><path d="M20 22 L44 22 L40 54 L24 54 Z"/>
+  <path d="M25 22 C25 12 29 7 32 7 C35 7 39 12 39 22" fill="none" stroke="currentColor" stroke-width="3"/>
+  <polygon points="46,12 48,17 53,17 49,20 51,25 46,22 41,25 43,20 39,17 44,17"/></svg>`,
+mia:`<svg viewBox="0 0 64 64" fill="currentColor"><circle cx="32" cy="26" r="11"/>
+  <g stroke="currentColor" stroke-width="2.5"><line x1="32" y1="4" x2="32" y2="10"/><line x1="12" y1="26" x2="18" y2="26"/>
+  <line x1="46" y1="26" x2="52" y2="26"/><line x1="17" y1="11" x2="21" y2="15"/><line x1="47" y1="11" x2="43" y2="15"/></g>
+  <path d="M4 42 Q12 34 20 42 T36 42 T52 42 T60 42" fill="none" stroke="currentColor" stroke-width="3"/>
+  <path d="M6 50 Q14 42 22 50 T38 50 T54 50" fill="none" stroke="currentColor" stroke-width="3" opacity=".55"/></svg>`,
+off:`<svg viewBox="0 0 64 64" fill="currentColor"><path d="M10 40 L13 28 Q15 24 20 24 L40 24 Q45 24 47 28 L52 40 Z"/>
+  <rect x="6" y="38" width="52" height="9" rx="3"/>
+  <circle cx="19" cy="48" r="6" fill="var(--surface)" stroke="currentColor" stroke-width="3"/>
+  <circle cx="45" cy="48" r="6" fill="var(--surface)" stroke="currentColor" stroke-width="3"/>
+  <rect x="21" y="28" width="9" height="8" fill="var(--surface)"/><rect x="32" y="28" width="9" height="8" fill="var(--surface)"/></svg>`,
+none:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><line x1="14" y1="14" x2="14" y2="54"/>
+  <line x1="50" y1="20" x2="50" y2="54"/><path d="M14 26 Q32 46 50 26"/>
+  <circle cx="46" cy="10" r="6" fill="currentColor" stroke="none"/></svg>`
+};
+function parkIconSvg(key){ return PARK_ICON[key] || PARK_ICON.none; }
+
+const ROTEIRO_NOTAS = {
+  mk:"Entrar na abertura. Sair ~13h para o hotel. Voltar à noite para os fogos se sobrar energia.",
+  hs:"Rope drop. Toy Story Land primeiro — é o que as crianças mais aproveitam.",
+  ak:"Abre cedo e esquenta rápido. Kilimanjaro Safaris logo na abertura, sair antes das 14h.",
+  ue:"Chegar na abertura. Super Nintendo World primeiro: é a área com mais coisa para os pequenos.",
+  ds:"Disney Springs à tarde/noite. Compras e jantar sem gastar ingresso de parque.",
+  none:"Descanso. Piscina do hotel e soneca — é isso que segura o resto da semana."
+};
+
+/* Roteiro real: voo (e chegada) fixam os dois primeiros dias e o embarque de
+   volta fixa os dois últimos; só o miolo em Orlando é distribuído. Função pura
+   (não toca em S) para poder rodar tanto no seed() quanto no botão da tela,
+   e ser testável sem estado global. Retorna null se a janela for curta demais.
+   Depende só de daysRange/d/iso (declaradas mais abaixo, mas hoisted) e de
+   PARKS acima — nunca de S, que ainda não existe quando o seed() chama isto. */
+function sugerirRoteiro(trip){
+  const days = daysRange(trip.start, trip.end);
+  const n = days.length;
+  if(n < 6) return null;
+
+  const plano = {};
+  plano[days[0]] = {park:"none",
+    notes:"Voo internacional (madrugada, saindo do Brasil). Sem compromisso na Flórida ainda — dia de embarque."};
+  plano[days[1]] = {park:"off",
+    notes:"Pouso em Miami às 7h. Retirar o carro alugado, instalar as cadeirinhas e seguir direto para Orlando (~3h40 de estrada). Chegando: check-in, mercado e descanso — sem parque hoje."};
+
+  const backIdx = n-3, miamiIdx = n-2, lastIdx = n-1;
+  plano[days[backIdx]] = {park:"off",
+    notes:"Orlando → Miami (~3h40 de estrada). Devolver o carro ou deixar para o dia seguinte, conforme a reserva."};
+  plano[days[miamiIdx]] = {park:"mia",
+    notes:"Dia inteiro em Miami — praia e descanso, sem pressa nenhuma."};
+  plano[days[lastIdx]] = {park:"mia",
+    notes:"Voo de volta às 19h. Aproveitem a manhã em Miami e saiam para o aeroporto com pelo menos 3h de folga — voo internacional pede check-in antecipado."};
+
+  /* Os quatro parques espalhados pelos dias de Orlando; o que sobra vira
+     descanso. Posicional em vez de ciclo fixo: um ciclo pode deixar o Epic
+     Universe de fora dependendo de quantos dias cabem no miolo. */
+  const PARQUES = ["mk","hs","ak","ue"];
+  const orlandoIdx = [];
+  for(let i = 2; i < backIdx; i++) orlandoIdx.push(i);
+  const m = orlandoIdx.length;
+  const cabem = Math.min(PARQUES.length, m);
+
+  const parkNaPos = {};
+  for(let i = 0; i < cabem; i++){
+    const pos = cabem === 1 ? 0 : Math.round(i * (m-1) / (cabem-1));
+    parkNaPos[pos] = PARQUES[i];
+  }
+
+  const folga = ["none","ds"];
+  let f = 0;
+  orlandoIdx.forEach((idx, pos) => {
+    const p = parkNaPos[pos] || folga[f++ % folga.length];
+    plano[days[idx]] = {park:p, notes:ROTEIRO_NOTAS[p] || ""};
+  });
+
+  const foraDoRoteiro = PARQUES.slice(cabem);
+  if(foraDoRoteiro.length){
+    plano[days[lastIdx]].notes += ` ATENÇÃO: não coube no roteiro — ${foraDoRoteiro.map(p => PARKS[p].n).join(", ")}. Adicione mais dias em Orlando.`;
+  }
+
+  return plano;
+}
+
+/* [nome, área, altura mínima cm (0 = livre), tags]
+   tags: T=imperdível  B=ok para o bebê (colo/livre)  P=precisa planejar antes  C=confirmar status */
+const ATTR = {
+mk:[
+ ["Walt Disney World Railroad","Main Street U.S.A.",0,"B"],
+ ["Festival of Fantasy Parade","Main Street U.S.A.",0,"TBP"],
+ ["Happily Ever After (fogos)","Main Street U.S.A.",0,"TBP"],
+ ["Jungle Cruise","Adventureland",0,"TB"],
+ ["Pirates of the Caribbean","Adventureland",0,"TB"],
+ ["Magic Carpets of Aladdin","Adventureland",0,"B"],
+ ["Walt Disney's Enchanted Tiki Room","Adventureland",0,"B"],
+ ["Swiss Family Treehouse","Adventureland",0,"B"],
+ ["Big Thunder Mountain Railroad","Frontierland",102,"T"],
+ ["Tiana's Bayou Adventure","Frontierland",102,"TP"],
+ ["Country Bear Musical Jamboree","Frontierland",0,"B"],
+ ["Tom Sawyer Island","Frontierland",0,"B"],
+ ["Haunted Mansion","Liberty Square",0,"TB"],
+ ["Liberty Square Riverboat","Liberty Square",0,"B"],
+ ["The Hall of Presidents","Liberty Square",0,"B"],
+ ["Seven Dwarfs Mine Train","Fantasyland",97,"TP"],
+ ["Peter Pan's Flight","Fantasyland",0,"TBP"],
+ ["it's a small world","Fantasyland",0,"TB"],
+ ["Prince Charming Regal Carrousel","Fantasyland",0,"B"],
+ ["Dumbo the Flying Elephant","Fantasyland",0,"TB"],
+ ["The Barnstormer","Fantasyland",89,"T"],
+ ["Mad Tea Party","Fantasyland",0,"B"],
+ ["Under the Sea ~ Little Mermaid","Fantasyland",0,"B"],
+ ["The Many Adventures of Winnie the Pooh","Fantasyland",0,"TB"],
+ ["Mickey's PhilharMagic","Fantasyland",0,"TB"],
+ ["Casey Jr. Splash 'N' Soak Station","Fantasyland",0,"B"],
+ ["Enchanted Tales with Belle","Fantasyland",0,"TB"],
+ ["Princess Fairytale Hall (Cinderella/Elsa)","Fantasyland",0,"TBP"],
+ ["Space Mountain","Tomorrowland",112,"T"],
+ ["TRON Lightcycle / Run","Tomorrowland",122,"TPC"],
+ ["Buzz Lightyear's Space Ranger Spin","Tomorrowland",0,"TB"],
+ ["Tomorrowland Speedway","Tomorrowland",81,"C"],
+ ["PeopleMover","Tomorrowland",0,"TB"],
+ ["Astro Orbiter","Tomorrowland",0,"B"],
+ ["Monsters Inc. Laugh Floor","Tomorrowland",0,"B"],
+ ["Carousel of Progress","Tomorrowland",0,"B"],
+ ["Meet Mickey — Town Square Theater","Main Street U.S.A.",0,"TBP"]
+],
+ue:[
+ ["Constellation Carousel","Celestial Park",0,"TB"],
+ ["Stardust Racers","Celestial Park",122,"T"],
+ ["Astronomica (área interativa)","Celestial Park",0,"B"],
+ ["Mario Kart: Bowser's Challenge","Super Nintendo World",102,"TP"],
+ ["Yoshi's Adventure","Super Nintendo World",86,"TB"],
+ ["Mine-Cart Madness (Donkey Kong)","Super Nintendo World",102,"TP"],
+ ["Power-Up Band — desafios interativos","Super Nintendo World",0,"TB"],
+ ["Harry Potter and the Battle at the Ministry","Ministry of Magic",122,"TP"],
+ ["Le Cirque Arcanus (show)","Ministry of Magic",0,"TB"],
+ ["Hiccup's Wing Gliders","Isle of Berk",102,"T"],
+ ["Dragon Racer's Rally","Isle of Berk",122,""],
+ ["Fyre Drill","Isle of Berk",107,""],
+ ["Viking Training Camp (playground)","Isle of Berk",0,"TB"],
+ ["The Untrainable Dragon (show)","Isle of Berk",0,"TB"],
+ ["Monsters Unchained: The Frankenstein Experiment","Dark Universe",122,"T"],
+ ["Curse of the Werewolf","Dark Universe",107,""]
+],
+hs:[
+ ["Star Wars: Rise of the Resistance","Galaxy's Edge",102,"TP"],
+ ["Millennium Falcon: Smugglers Run","Galaxy's Edge",97,"T"],
+ ["Savi's Workshop — montar sabre de luz","Galaxy's Edge",0,"PC"],
+ ["Droid Depot — montar droide","Galaxy's Edge",0,"PC"],
+ ["Slinky Dog Dash","Toy Story Land",97,"TP"],
+ ["Toy Story Mania!","Toy Story Land",0,"TB"],
+ ["Alien Swirling Saucers","Toy Story Land",81,"B"],
+ ["Mickey & Minnie's Runaway Railway","Grand Avenue",0,"TB"],
+ ["The Twilight Zone Tower of Terror","Sunset Blvd",102,"T"],
+ ["Rock 'n' Roller Coaster","Sunset Blvd",122,"TC"],
+ ["Star Tours","Echo Lake",102,""],
+ ["Indiana Jones Epic Stunt Spectacular","Echo Lake",0,"C"],
+ ["Frozen Sing-Along Celebration","Echo Lake",0,"TB"],
+ ["Disney Junior Play & Dance!","Animation Courtyard",0,"TB"],
+ ["Walt Disney Presents","Animation Courtyard",0,"B"],
+ ["Beauty and the Beast Live on Stage","Sunset Blvd",0,"TB"],
+ ["Fantasmic!","Sunset Blvd",0,"TBPC"],
+ ["Muppet*Vision 3D","Grand Avenue",0,"C"]
+],
+ak:[
+ ["Avatar Flight of Passage","Pandora",112,"TP"],
+ ["Na'vi River Journey","Pandora",0,"TBP"],
+ ["Kilimanjaro Safaris","Africa",0,"TB"],
+ ["Gorilla Falls Exploration Trail","Africa",0,"B"],
+ ["Festival of the Lion King","Africa",0,"TB"],
+ ["Expedition Everest","Asia",112,"T"],
+ ["Kali River Rapids","Asia",97,""],
+ ["Maharajah Jungle Trek","Asia",0,"B"],
+ ["Feathered Friends in Flight!","Asia",0,"B"],
+ ["TriceraTop Spin","DinoLand U.S.A.",0,"BC"],
+ ["The Boneyard (playground)","DinoLand U.S.A.",0,"BC"],
+ ["Wilderness Explorers (missões p/ crianças)","Discovery Island",0,"TB"],
+ ["Tree of Life Awakenings","Discovery Island",0,"B"],
+ ["Discovery Island Trails","Discovery Island",0,"B"],
+ ["Área nova (Tropical Americas / Zootopia)","AK",0,"C"]
+],
+ds:[
+ ["World of Disney (maior loja Disney)","The Marketplace",0,"TP"],
+ ["The LEGO Store","The Marketplace",0,"TB"],
+ ["Disney's Days of Christmas","The Marketplace",0,"B"],
+ ["Carrossel e trenzinho do Marketplace","The Marketplace",0,"B"],
+ ["Aerophile — balão gigante","West Side",0,"C"],
+ ["The Boathouse / Amphicar","The Landing",0,"P"],
+ ["Gideon's Bakehouse (cookie gigante)","The Landing",0,"T"],
+ ["Sprinkles / Ghirardelli (sorvete)","Marketplace",0,"B"],
+ ["Marketplace Co-Op (achados baratos)","The Marketplace",0,""]
+],
+mia:[
+ ["Retirar o carro alugado no aeroporto (MIA)","Chegada",0,"TP"],
+ ["South Beach / Lummus Park","Praia",0,"TB"],
+ ["Crandon Park Beach (Key Biscayne)","Praia",0,"TB"],
+ ["Haulover / Bal Harbour (mar mais calmo p/ crianças)","Praia",0,"B"],
+ ["Bayside Marketplace","Passeio",0,"B"],
+ ["Little Havana / Calle Ocho","Passeio",0,""],
+ ["Wynwood Walls","Passeio",0,""],
+ ["Jungle Island","Com crianças",0,"BC"],
+ ["Miami Children's Museum","Com crianças",0,"TB"],
+ ["Zoo Miami","Com crianças",0,"B"],
+ ["Sawgrass Mills (outlet gigante)","Compras",0,"TP"],
+ ["Dolphin Mall","Compras",0,""],
+ ["Aventura Mall","Compras",0,""],
+ ["Devolver o carro e voo de volta","Saída",0,"TP"]
+],
+off:[
+ ["Trecho Miami → Orlando (Turnpike, ~3h40)","Estrada",0,"TP"],
+ ["Trecho Orlando → Miami (sair com folga p/ o voo)","Estrada",0,"TP"],
+ ["Parada em Fort Pierce / Yeehaw Junction","Estrada",0,"B"],
+ ["Premium Outlets Vineland Ave","Compras Orlando",0,"TP"],
+ ["Premium Outlets International Drive","Compras Orlando",0,""],
+ ["Target / Walmart (fralda, lanche, água)","Compras Orlando",0,"TB"],
+ ["Publix (mercado)","Compras Orlando",0,"B"],
+ ["Mall at Millenia","Compras Orlando",0,""],
+ ["Florida Mall","Compras Orlando",0,""],
+ ["Piscina do hotel (dia de descanso)","Descanso",0,"TB"]
+]
+};
+
+/* Refeições com personagens e experiências que exigem reserva antecipada */
+const DINING = [
+ ["Cinderella's Royal Table","Magic Kingdom","Princesas — dentro do castelo. O mais concorrido."],
+ ["Chef Mickey's","Contemporary Resort","Mickey e turma. Buffet, ótimo p/ crianças pequenas."],
+ ["Topolino's Terrace (café)","Riviera Resort","Personagens em traje de artista. Comida ótima."],
+ ["Tusker House","Animal Kingdom","Mickey safári. Bom p/ almoço no calor."],
+ ["Hollywood & Vine","Hollywood Studios","Disney Junior no café da manhã."],
+ ["'Ohana","Polynesian Resort","Jantar familiar, sem personagens no jantar."],
+ ["Be Our Guest","Magic Kingdom","Castelo da Fera. Sem personagens, mas o cenário vale."],
+ ["Sci-Fi Dine-In","Hollywood Studios","Come dentro de carro antigo — as crianças amam."],
+ ["Atlantic / Blue Dragon","Epic Universe","Reserva pelo app da Universal, não pelo da Disney."],
+ ["Toothsome Chocolate Emporium","Universal CityWalk","Sobremesa absurda. Não precisa de ingresso de parque."]
+];
+
+/* Checklist: [grupo, título, detalhe] */
+const CHECK = [
+["Documentos","Passaportes de todos válidos por 6+ meses","Inclui os dois filhos — bebê precisa de passaporte próprio."],
+["Documentos","Visto B1/B2 válido para todos","Criança tem visto individual. Confirmar validade e nome grafado igual ao passaporte."],
+["Documentos","Passagens emitidas com nome idêntico ao passaporte","Qualquer divergência = problema no check-in."],
+["Documentos","Bebê no colo ou assento próprio definido com a cia. aérea","Com 1a10m ainda cabe no colo, mas confirme a política e a taxa."],
+["Documentos","Certidão de nascimento das crianças (cópia)","Se algum dos pais não viajar: autorização de viagem com firma reconhecida."],
+["Documentos","Comprovante de hospedagem impresso","A imigração americana costuma pedir o endereço do hotel."],
+["Documentos","Apólice do seguro viagem impressa + no celular","Leve o número de emergência 24h anotado."],
+["Documentos","CNH + Permissão Internacional para Dirigir (PID)","Vocês vão dirigir de Miami a Orlando e voltar — leve as duas. A PID sai no Detran."],
+["Documentos","Carteira de vacinação das crianças","Raramente pedem, mas é leve e evita dor de cabeça."],
+["Documentos","e-DBV (Receita Federal) se levar itens de valor","Notebook, câmera, joias. Evita cobrança na volta."],
+["Documentos","Itinerário compartilhado com alguém no Brasil","Voos, hotel, telefones."],
+
+["Dinheiro","Cartão internacional carregado em dólar","Wise / Nomad / C6 — compare a cotação e o IOF antes de carregar."],
+["Dinheiro","Avisar o banco / desbloquear uso internacional","Cartão de crédito bloqueado no primeiro dia é clássico."],
+["Dinheiro","Dinheiro em espécie para gorjetas","US$ 200–300 em notas pequenas (US$ 1 e 5) resolve a viagem."],
+["Dinheiro","Conferir limite do cartão de crédito","Hotel e locadora bloqueiam caução no limite."],
+["Dinheiro","Definir teto de gastos por dia com a família","Combinar antes evita discussão na loja."],
+
+["Carro e estrada","Aluguel reservado com retirada e devolução no aeroporto de Miami","Confirme que a devolução é no MIA e não em Orlando — one-way entre cidades costuma custar caro."],
+["Carro e estrada","Cadeirinha para as duas crianças","Na Flórida é obrigatório até 5 anos. O de 4 anos precisa de cadeirinha ou assento de elevação; o bebê, cadeirinha voltada para trás. Alugar sai ~US$ 14/dia por cadeira — levar a sua costuma compensar."],
+["Carro e estrada","Decidir sobre o pedágio (SunPass / Toll by Plate)","A Florida's Turnpike entre Miami e Orlando é quase toda sem cabine. A locadora cobra o pedágio mais uma taxa diária de conveniência — pergunte o valor antes de aceitar."],
+["Carro e estrada","Seguro do carro definido antes do balcão","Decida em casa se vai pegar o do cartão ou o da locadora. No balcão eles vendem sob pressão e com pressa."],
+["Carro e estrada","Rota Miami → Orlando salva offline","São ~380 km, cerca de 3h40 sem parada. Com duas crianças pequenas, conte 5h com paradas."],
+["Carro e estrada","Combinar as paradas do trajeto","Fort Pierce e Yeehaw Junction têm posto, banheiro e comida. Depois de Yeehaw Junction fica vazio por um bom trecho."],
+["Carro e estrada","Duas reservas de hotel: Miami e Orlando","Confirme as datas de cada uma — é o erro mais comum quando a viagem tem duas bases."],
+
+["Universal — Epic Universe","Conta Universal Orlando criada e app baixado","Sistema separado do da Disney. Ingresso, fila e pedido de comida ficam todos lá."],
+["Universal — Epic Universe","Ingresso do Epic Universe comprado para a data certa","O ingresso do Epic Universe é datado. Confirme que o dia bate com o roteiro."],
+["Universal — Epic Universe","Decidir sobre o Express Pass","Caro, mas no Epic Universe a fila é longa. Com criança pequena e pouco tempo de parque, costuma valer mais que na Disney."],
+["Universal — Epic Universe","Early Park Admission","Hóspede de hotel Universal entra 1h antes. Se vocês não vão ficar lá, cheguem na abertura mesmo assim."],
+["Universal — Epic Universe","Conferir as alturas mínimas no app da Universal","Parque novo: as réguas mudaram desde a inauguração. Confirme antes de prometer qualquer brinquedo para o de 4 anos."],
+
+["Disney — janelas de tempo","Conta My Disney Experience criada e família toda vinculada","Faça já: sem isso não dá para comprar Lightning Lane nem ver as filas."],
+["Disney — janelas de tempo","Ingressos Disney comprados e vinculados na conta","São 3 dias de parque: Magic Kingdom, Animal Kingdom e Hollywood Studios. Confirme que aparecem no app antes de embarcar."],
+["Disney — janelas de tempo","Reservas de restaurante (ADR)","A janela de 60 dias já passou. Cheque cancelamentos todo dia de manhã — abre vaga o tempo todo."],
+["Disney — janelas de tempo","Lightning Lane Multi Pass","Hóspede de hotel Disney compra até 7 dias antes da chegada; fora do complexo, 3 dias antes. Confirme a regra vigente no app."],
+["Disney — janelas de tempo","Lightning Lane Single Pass das atrações principais","Compra no dia. Decida antes quais valem para vocês."],
+["Disney — janelas de tempo","Decidir sobre Memory Maker","Com duas crianças pequenas costuma valer — é a única forma de ter foto com a família inteira junta."],
+["Disney — janelas de tempo","MagicBand+ ou usar só o celular","MagicBand+ ajuda muito com criança pequena (não precisa sacar o telefone)."],
+["Disney — janelas de tempo","Cadastrar cartão de crédito no MDE","Permite pagar pelo app e pedir comida antecipada (Mobile Order)."],
+["Disney — janelas de tempo","Check-in online do hotel","Normalmente libera a partir de 5 dias antes."],
+["Disney — janelas de tempo","Baixar e logar no app My Disney Experience ANTES de viajar","Fazer login no aeroporto sem internet é péssimo."],
+["Disney — janelas de tempo","Reservar carrinho de bebê (ou levar o seu)","Aluguel no parque é caro e não reserva lugar. Carrinho dobrável leve é melhor."],
+
+["Antes de embarcar","Check-in da companhia aérea","Abre 48h ou 24h antes, conforme a cia."],
+["Antes de embarcar","eSIM / chip internacional ativado e testado","Teste ainda no Brasil se der."],
+["Antes de embarcar","Desenhos e filmes baixados offline","Voo longo com 4 anos e 1a10m — isso salva a viagem."],
+["Antes de embarcar","Power bank carregado","Bagagem de mão obrigatoriamente, nunca despachado."],
+["Antes de embarcar","Fotos dos documentos salvas offline no celular","Passaporte, visto, seguro, reservas."],
+["Antes de embarcar","Assento das crianças escolhido junto dos pais","Confirme no site — nem sempre o sistema faz sozinho."],
+
+["Mala de mão","Documentos de todos","Nunca despachar."],
+["Mala de mão","Muda de roupa completa para cada criança","Mala despachada atrasa; criança suja a roupa no voo."],
+["Mala de mão","Fraldas, lenços e pomada para o voo inteiro + margem","Calcule o dobro do que acha que precisa."],
+["Mala de mão","Remédios das crianças","Antitérmico, dipirona/paracetamol infantil, soro, band-aid."],
+["Mala de mão","Lanches e chupeta / mamadeira","Pressurização: dar líquido na decolagem e no pouso alivia o ouvido."],
+["Mala de mão","Brinquedo pequeno e livro novo","Novidade prende mais atenção."],
+
+["Mala despachada","Poncho / capa de chuva para todos","Fim de agosto em Orlando chove quase toda tarde."],
+["Mala despachada","Capa de chuva para o carrinho de bebê","Item mais esquecido e mais necessário."],
+["Mala despachada","Tênis confortável já amaciado (2 pares por pessoa)","São 15–20 km por dia. Tênis novo destrói o pé."],
+["Mala despachada","Meias extras (muitas)","Molha e não seca no calor."],
+["Mala despachada","Protetor solar FPS 50+ (infantil)","Leve o da criança de casa; compre o dos adultos no Target, sai mais barato."],
+["Mala despachada","Repelente","Fim de tarde no Animal Kingdom."],
+["Mala despachada","Roupa de banho e boia/colete do bebê","Piscina do hotel é metade da diversão nessa idade."],
+["Mala despachada","Ventilador portátil com borrifador","Agosto passa de 35 °C com umidade alta. Não é frescura."],
+["Mala despachada","Garrafa de água reutilizável para cada um","Água gelada é de graça em qualquer balcão de comida do parque."],
+["Mala despachada","Fantasia Disney para o de 4 anos","Não pode máscara adulta, mas fantasia infantil é liberada."],
+["Mala despachada","Caderninho de autógrafos + caneta grossa","Personagem assina com luva — caneta fina não funciona."],
+["Mala despachada","Pins para trocar (pin trading)","Compre um lote barato no Brasil ou na Amazon; trocar com o cast member é grátis e o de 4 anos vai amar."],
+["Mala despachada","Cooler bag pequena / bolsa térmica","Pode entrar no parque com comida e água."],
+["Mala despachada","Sacola plástica para roupa molhada","Kali River Rapids, Casey Jr., chuva."],
+["Mala despachada","Adaptador de tomada e carregadores","EUA é 110V, plugue quase igual ao brasileiro — mas leve o adaptador."],
+["Mala despachada","Mala vazia extra ou sacola dobrável","Para trazer as compras."],
+["Mala despachada","Fita ou etiqueta identificando as malas","Malas pretas são todas iguais na esteira."]
+];
+
+const SHOP = [
+ ["Orelhas da Minnie","Disney","Parque / World of Disney",1,32,3],
+ ["Pelúcia (personagem favorito)","Disney","Parque",2,32,2],
+ ["Camiseta Disney infantil","Disney","Outlet Disney Character Warehouse",4,15,2],
+ ["Camiseta Disney adulto","Disney","Outlet Disney Character Warehouse",2,18,1],
+ ["Pins para trocar (lote)","Disney","Amazon / Marketplace Co-Op",1,25,2],
+ ["Popcorn bucket / caneca souvenir","Disney","Parque",1,20,1],
+ ["Varinha ou espada","Disney","Parque",1,28,1],
+ ["Fantasia de princesa/herói","Disney","Outlet ou World of Disney",1,45,2],
+ ["Tênis Nike / Adidas","Roupas","Premium Outlets",3,55,3],
+ ["Roupas infantis Carter's / Gap Kids","Roupas","Premium Outlets",12,12,3],
+ ["Roupas adulto (Ralph Lauren, Tommy)","Roupas","Premium Outlets",6,30,2],
+ ["Mochila / mala","Roupas","Outlet (Samsonite)",1,90,2],
+ ["Fralda + lenço umedecido","Farmácia","Target",1,60,3],
+ ["Protetor solar","Farmácia","Target / Walmart",3,12,3],
+ ["Vitaminas e suplementos","Farmácia","Walmart / GNC",4,18,2],
+ ["Perfume / cosméticos","Farmácia","Ross / TJ Maxx",3,35,1],
+ ["Fone de ouvido","Eletrônicos","Best Buy / Target",1,150,1],
+ ["Apple Watch / iPad","Eletrônicos","Best Buy",1,400,1],
+ ["LEGO","Brinquedos","Target / LEGO Store",2,45,2],
+ ["Brinquedos diversos p/ presente","Brinquedos","Target",6,15,2],
+ ["Chocolates e balas p/ presente","Presentes","Walmart / Publix",10,5,2],
+ ["Café / snacks americanos","Presentes","Publix",8,6,1]
+];
+
+const BUDGET = [
+ ["Passagens aéreas para Miami (4 pax)","Antes da viagem",0,"BRL"],
+ ["Hotel em Miami — 3 noites","Antes da viagem",0,"USD"],
+ ["Hotel em Orlando — 6 noites","Antes da viagem",0,"USD"],
+ ["Ingressos Disney — 3 dias (2 ad + 1 criança)","Antes da viagem",0,"USD"],
+ ["Ingresso Epic Universe — 1 dia (2 ad + 1 criança)","Antes da viagem",0,"USD"],
+ ["Seguro viagem (4 pax)","Antes da viagem",0,"BRL"],
+ ["eSIM / internet","Antes da viagem",0,"USD"],
+ ["Aluguel do carro + seguro (10 dias, MIA)","Carro e estrada",0,"USD"],
+ ["Cadeirinhas (2 crianças)","Carro e estrada",0,"USD"],
+ ["Combustível (Miami–Orlando ida e volta + local)","Carro e estrada",0,"USD"],
+ ["Pedágios da Turnpike + taxa da locadora","Carro e estrada",0,"USD"],
+ ["Estacionamento nos parques","Carro e estrada",0,"USD"],
+ ["Lightning Lane Multi Pass (3 dias Disney)","Nos parques",0,"USD"],
+ ["Express Pass Universal (se decidirem levar)","Nos parques",0,"USD"],
+ ["Memory Maker / fotos","Nos parques",0,"USD"],
+ ["Alimentação dentro dos parques","Nos parques",0,"USD"],
+ ["Refeições fora + mercado","No destino",0,"USD"],
+ ["Gorjetas","No destino",0,"USD"],
+ ["Compras e souvenirs","Compras",0,"USD"],
+ ["Reserva de emergência","Reserva",0,"USD"]
+];
+
+/* ============================== 2. ESTADO ============================== */
+
+const KEY = "disneytrip.v1";
+const uid = (p) => p + "-" + Math.random().toString(36).slice(2, 9);
+
+function seed(){
+  return {
+    v:1,
+    tab:"inicio",
+    device:"",
+    updatedAt:0,
+    lastSync:0,
+    sync:{ provider:"jsonbin", url:"", token:"", header:"X-Master-Key", auto:false },
+    mapsKey:"",
+    trip:{ start:"2026-08-23", end:"2026-09-01", rate:5.40 },
+    family:[
+      {id:uid("f"), nome:"Adulto 1", tipo:"adulto", altura:175},
+      {id:uid("f"), nome:"Adulto 2", tipo:"adulto", altura:165},
+      {id:uid("f"), nome:"Criança (4 anos)", tipo:"crianca", altura:104},
+      {id:uid("f"), nome:"Bebê (1a10m)", tipo:"bebe", altura:85}
+    ],
+    checks:{},
+    extraCheck:[],
+    /* Metadados de sincronização (F2). u e del VIAJAM; version fica local. */
+    u:{},
+    del:{},
+    version:null,
+    shop: SHOP.map(r => ({id:uid("s"), item:r[0], cat:r[1], loja:r[2], qtd:r[3], usd:r[4], prio:r[5], done:false})),
+    budget: BUDGET.map(r => ({id:uid("b"), label:r[0], cat:r[1], plan:r[2], real:0, cur:r[3]})),
+    dining: DINING.map(r => ({id:uid("d"), nome:r[0], local:r[1], nota:r[2], done:false, dia:"", hora:""})),
+    hotels:[
+      {id:uid("h"), nome:"", cidade:"", endereco:""},
+      {id:uid("h"), nome:"", cidade:"", endereco:""}
+    ],
+    days: sugerirRoteiro({start:"2026-08-23", end:"2026-09-01"}) || {},
+    attrNotes:{},
+    parkFilter:"mk",
+    onlyPlan:false,
+    onlyKid:false
+  };
+}
+
+let S;
+try{
+  const raw = localStorage.getItem(KEY);
+  S = raw ? Object.assign(seed(), JSON.parse(raw)) : seed();
+}catch(e){ S = seed(); }
+
+if(!S.device) S.device = navigator.platform && /iphone|ipad|android/i.test(navigator.userAgent) ? "Celular" : "Computador";
+
+let saveTimer;
+/* bump=false para mudanças só de interface (aba, filtro): não conta como
+   alteração de dado e portanto não dispara conflito de sincronização. */
+function save(bump){
+  if(bump !== false){
+    /* Carimba comparando com o retrato tirado antes do handler rodar. Um lugar
+       só em vez de 25: pega também aplicarSugestao, limparRoteiro e reset, que
+       trocam o state em bloco. */
+    if(retratoAntes) carimbar(retratoAntes);
+    S.updatedAt = Date.now();
+  }
+  clearTimeout(saveTimer);
+  const el = document.getElementById("saveState");
+  if(el) el.textContent = "salvando…";
+  saveTimer = setTimeout(() => {
+    try{
+      localStorage.setItem(KEY, JSON.stringify(S));
+      if(el) el.textContent = rotuloSalvo();
+    }catch(e){ if(el) el.textContent = "erro ao salvar"; }
+  }, 300);
+}
+
+const pendente = () => !!S.sync.url && S.updatedAt > (S.lastSync||0);
+
+/* ---------- rede e rótulo de estado (F3) ----------
+   O mesmo arquivo abre no navegador do computador, então tudo que é nativo
+   passa por esta guarda e degrada para o comportamento web. */
+const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+
+let comRede = navigator.onLine !== false;
+
+/* Quatro estados, sempre com texto além da cor. */
+function rotuloSalvo(){
+  if(sincronizando) return "sincronizando…";
+  if(!pendente())   return "salvo";
+  return comRede ? "salvo · sync pendente" : "salvo · offline";
+}
+function rotuloBotao(curto){
+  if(!S.sync.url) return curto ? "Sync" : "Configurar sync";
+  if(sincronizando) return curto ? "Sync…" : "Sincronizando…";
+  if(!comRede && pendente()) return curto ? "Off •" : "Offline •";
+  if(!comRede) return curto ? "Off" : "Offline";
+  return pendente() ? (curto ? "Sync •" : "Sincronizar •") : (curto ? "Sync" : "Sincronizar");
+}
+
+/* ============================== 3. UTILIDADES ============================== */
+
+const WD = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const MO = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+function d(iso){ const [y,m,dd] = iso.split("-").map(Number); return new Date(y, m-1, dd); }
+function iso(dt){ return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"); }
+function today(){ const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+function diffDays(a,b){ return Math.round((b-a)/86400000); }
+
+function daysRange(startIso, endIso){
+  const out = [];
+  const a = d(startIso), b = d(endIso);
+  if(isNaN(a) || isNaN(b) || b < a) return out;
+  for(let cur = new Date(a); cur <= b && out.length < 60; cur.setDate(cur.getDate()+1)) out.push(iso(cur));
+  return out;
+}
+
+function tripDays(){
+  return daysRange(S.trip.start, S.trip.end);
+}
+
+const brl = n => "R$ " + (n||0).toLocaleString("pt-BR",{minimumFractionDigits:0, maximumFractionDigits:0});
+const usd = n => "US$ " + (n||0).toLocaleString("en-US",{minimumFractionDigits:0, maximumFractionDigits:0});
+function toBRL(v, cur){ return cur === "USD" ? (v||0) * (S.trip.rate||1) : (v||0); }
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* Busca em vez de link direto: com 130+ atrações, um endereço oficial
+   inventado ou desatualizado é pior que nenhum link. Isto sempre resolve. */
+function attrLink(nome, parqueNome){
+  return "https://www.google.com/search?q=" + encodeURIComponent(nome + " " + parqueNome + " Orlando");
+}
+
+/* Link universal do Google Maps: abre o app no celular, o site no PC —
+   sem chave de API. Mesma lógica dos links de "saiba mais". */
+function mapUrl(query){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query); }
+
+/* Mapa embutido de verdade — Maps Embed API oficial do Google, que exige
+   uma chave (gratuita, com cota generosa). O truque antigo sem chave
+   (output=embed) foi bloqueado pelo Google ("This content is blocked") e
+   não é mais confiável. A chave fica só neste aparelho (aba Backup), igual
+   à chave do sync — nunca entra no payload nem no código de transferência.
+   Um único local vira um pino (endpoint /place); dois ou mais viram uma
+   rota com pino em cada parada (endpoint /directions). Confirmado pelo
+   console do navegador: o Artifact publicado no claude.ai barra QUALQUER
+   iframe externo — "frame-src 'self' blob: data:" — então o mapa nunca
+   vai aparecer ali, com chave válida ou não; isso não tem conserto por
+   configuração de chave, só hospedando o arquivo fora do claude.ai. Por
+   isso todo embed vem com um link "abrir no Maps" sem chave, que funciona
+   sempre — dentro ou fora do Artifact. O checklist de configuração da
+   chave (aba Backup) só se aplica quando já se está fora do claude.ai. */
+const MAX_MAP_STOPS = 9;
+
+function mapEmbedUrl(stops, key){
+  if(!key) return "";
+  const base = "https://www.google.com/maps/embed/v1/";
+  if(stops.length === 1){
+    return base + "place?key=" + encodeURIComponent(key) + "&q=" + encodeURIComponent(stops[0]);
+  }
+  const meio = stops.slice(1, -1);
+  return base + "directions?key=" + encodeURIComponent(key) +
+    "&origin=" + encodeURIComponent(stops[0]) +
+    "&destination=" + encodeURIComponent(stops[stops.length-1]) +
+    (meio.length ? "&waypoints=" + meio.map(encodeURIComponent).join("|") : "");
+}
+function mapDirLinkFromStops(stops){
+  if(stops.length === 1) return mapUrl(stops[0]);
+  const meio = stops.slice(1, -1);
+  return "https://www.google.com/maps/dir/?api=1&origin=" + encodeURIComponent(stops[0]) +
+    "&destination=" + encodeURIComponent(stops[stops.length-1]) +
+    (meio.length ? "&waypoints=" + meio.map(encodeURIComponent).join("|") : "");
+}
+function mapEmbedBlock(stopsIn, opts){
+  const stops = stopsIn.filter(Boolean);
+  if(!stops.length) return "";
+  const cortadas = Math.max(0, stops.length - MAX_MAP_STOPS);
+  const usaveis = cortadas ? stops.slice(0, MAX_MAP_STOPS) : stops;
+  const height = (opts && opts.height) || 220;
+  const label = (opts && opts.label) || "mapa";
+  const key = S.mapsKey;
+  return `<div class="mapembed-wrap">
+    ${key
+      ? `<iframe class="mapembed" style="height:${height}px" src="${mapEmbedUrl(usaveis, key)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="${esc(label)}"></iframe>`
+      : `<div class="mapembed mapembed-empty" style="height:${Math.min(height,110)}px">Configure sua chave gratuita do Google Maps na aba <b>Backup</b> para ver o mapa aqui — e lembre que, publicado no claude.ai, o mapa embutido não aparece de qualquer forma (veja o aviso abaixo). Use o link "abrir no Google Maps" por enquanto.</div>`}
+    <div class="row" style="margin-top:7px;gap:8px">
+      <a class="pill neutral linkpill" href="${mapDirLinkFromStops(stops)}" target="_blank" rel="noopener noreferrer">abrir no Google Maps ↗</a>
+      <span class="eyebrow">se o mapa não aparecer acima, use este link — no claude.ai publicado, é sempre o caminho certo</span>
+    </div>
+    ${cortadas ? `<p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">+${cortadas} local(is) marcados não coube${cortadas===1?"":"ram"} no mapa (limite do link de rota) — continuam na lista abaixo.</p>` : ""}
+  </div>`;
+}
+
+/* Locais marcados (checkbox) dentro de um parque/pseudo-parque, formatados
+   para busca no Maps. Reaproveitado pelo mapa do dia e pelo mapa do parque. */
+function checkedStops(pk){
+  const list = ATTR[pk] || [];
+  const sufixo = (pk === "mia" || pk === "off") ? ", FL" : " Orlando FL";
+  return list.filter((a,i) => S.checks[attrId(pk,i,a[0])]).map(a => a[0] + " " + PARKS[pk].n + sufixo);
+}
+
+/* Paradas do dia para o mapa do roteiro: hotel da cidade certa, o próprio
+   parque, e os itens que a família cadastrou para o dia — em ordem de
+   horário, que é o "alinhados" que faz o mapa desenhar a rota do dia na
+   sequência certa. Nos dias de estrada, os itens vêm depois da rota
+   Miami↔Orlando; no dia de voo, só os itens contam (não há base fixa). */
+function dayItemsSorted(items){
+  return (items||[]).filter(i => i.nome && i.nome.trim())
+    .slice().sort((a,b) => (a.hora||"99:99").localeCompare(b.hora||"99:99"));
+}
+function dayStops(pk, notes, items){
+  const nomes = dayItemsSorted(items);
+  if(pk === "off"){
+    const base = [];
+    if(/Orlando\s*→\s*Miami/.test(notes)) base.push("Orlando, FL", "Miami International Airport, FL");
+    else if(/para Orlando/.test(notes)) base.push("Miami International Airport, FL", "Orlando, FL");
+    return base.concat(nomes.map(i => i.nome + " Orlando FL"));
+  }
+  if(pk === "none") return nomes.map(i => i.nome);
+
+  const stops = [];
+  const cidade = pk === "mia" ? "miami" : "orlando";
+  const hotel = S.hotels.find(h => (h.cidade||"").toLowerCase().includes(cidade));
+  if(hotel && (hotel.endereco || hotel.nome)) stops.push(hotel.endereco || (hotel.nome + " " + hotel.cidade));
+  stops.push(PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL"));
+  const sufixo = pk === "mia" ? " Miami FL" : " Orlando FL";
+  stops.push(...nomes.map(i => i.nome + sufixo));
+  return stops;
+}
+
+/* Ponte entre Restaurantes e o roteiro: uma reserva com dia atribuído
+   entra sozinha na programação daquele dia, lado a lado com os itens
+   manuais — sem duplicar cadastro em dois lugares. */
+function diningForDay(dt){
+  return S.dining.filter(r => r.dia === dt && r.nome && r.nome.trim());
+}
+function mergedDayItems(dt, day){
+  const manuais = (day.items || []).map(it => ({id:it.id, hora:it.hora, nome:it.nome, fonte:"item"}));
+  const reservas = diningForDay(dt).map(r => ({id:r.id, hora:r.hora, nome:r.nome, fonte:"dining"}));
+  return dayItemsSorted(manuais.concat(reservas));
+}
+
+function landId(pk, land){ return "land-" + pk + "-" + land.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-"); }
+
+/* Mapa esquemático das áreas de um parque — bolhas ligadas ao centro,
+   não uma planta real (não temos coordenadas oficiais e não vamos fingir
+   que temos). O raio de cada bolha cresce com o número de atrações. */
+function zoneMap(pk){
+  const list = ATTR[pk];
+  const lands = [];
+  list.forEach(a => { if(!lands.includes(a[1])) lands.push(a[1]); });
+  const n = lands.length;
+  const cx = 180, cy = 130, R = n <= 4 ? 74 : 96;
+  const nodes = lands.map((land, i) => {
+    const count = list.filter(a => a[1] === land).length;
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+    return { land, count, x: cx + R * Math.cos(ang), y: cy + R * Math.sin(ang), r: 15 + Math.min(13, count * 1.4) };
+  });
+  const lines = nodes.map(nd => `<line x1="${cx}" y1="${cy}" x2="${nd.x.toFixed(1)}" y2="${nd.y.toFixed(1)}" stroke="var(--line)" stroke-width="2"/>`).join("");
+  const hub = `<circle cx="${cx}" cy="${cy}" r="15" fill="var(--c)" opacity=".16"/><circle cx="${cx}" cy="${cy}" r="5" fill="var(--c)"/>`;
+  const bubbles = nodes.map(nd => `
+    <g class="zonebubble" tabindex="0" role="button" data-act="gotoLand" data-park="${pk}" data-land="${landId(pk, nd.land)}">
+      <title>${esc(nd.land)} — ${nd.count} atraç${nd.count===1?"ão":"ões"}</title>
+      <circle cx="${nd.x.toFixed(1)}" cy="${nd.y.toFixed(1)}" r="${nd.r}"/>
+      <text x="${nd.x.toFixed(1)}" y="${nd.y.toFixed(1)}" class="zonecount">${nd.count}</text>
+      <text x="${nd.x.toFixed(1)}" y="${(nd.y + nd.r + 13).toFixed(1)}" class="zonelabel">${esc(nd.land)}</text>
+    </g>`).join("");
+  return `<svg viewBox="0 0 360 235" class="zonemap">${lines}${hub}${bubbles}</svg>`;
+}
+
+function checkId(kind, a, b){ return kind + "|" + a + "|" + b; }
+
+function allCheckItems(){
+  return CHECK.map((c,i) => ({id:checkId("ck", i, c[1]), grupo:c[0], titulo:c[1], det:c[2], custom:false}))
+    .concat(S.extraCheck.map(x => ({id:x.id, grupo:x.grupo, titulo:x.titulo, det:"", custom:true})));
+}
+
+function progress(ids){
+  const done = ids.filter(i => S.checks[i]).length;
+  return {done, total:ids.length, pct: ids.length ? Math.round(done/ids.length*100) : 0};
+}
+
+function attrId(pk, i, nome){ return checkId("at", pk + i, nome); }
+
+const kids = () => S.family.filter(f => f.tipo !== "adulto");
+
+/* Retorna estado de altura para uma atração: null (livre) ou lista por criança */
+function heightInfo(minCm){
+  if(!minCm) return null;
+  return kids().map(k => ({nome:k.nome, ok:(k.altura||0) >= minCm, falta: Math.max(0, minCm - (k.altura||0))}));
+}
+
+/* ============================== 4. NAVEGAÇÃO ============================== */
+
+const TABS = [
+  {id:"inicio",    label:"Início",    short:"Início"},
+  {id:"checklist", label:"Checklist", short:"Check"},
+  {id:"roteiro",   label:"Roteiro",   short:"Dias"},
+  {id:"parques",   label:"Parques",   short:"Parques"},
+  {id:"compras",   label:"Compras",   short:"Compras"},
+  {id:"orcamento", label:"Orçamento", short:"R$"},
+  {id:"backup",    label:"Backup",    short:"Backup"}
+];
+
+function renderNav(){
+  const ck = progress(allCheckItems().map(c => c.id));
+  const shopDone = S.shop.filter(s => s.done).length;
+  const counts = {checklist: ck.done + "/" + ck.total, compras: shopDone + "/" + S.shop.length};
+
+  document.getElementById("nav").innerHTML = TABS.map(t =>
+    `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">
+       <span>${t.label}</span>${counts[t.id] ? `<span class="cnt">${counts[t.id]}</span>` : ""}
+     </button>`).join("");
+
+  document.getElementById("navMob").innerHTML = TABS.map(t =>
+    `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">${t.short}</button>`).join("");
+
+  const a = d(S.trip.start), b = d(S.trip.end);
+  document.getElementById("railDates").textContent =
+    isNaN(a) || isNaN(b) ? "defina as datas" :
+    `${a.getDate()} ${MO[a.getMonth()]} — ${b.getDate()} ${MO[b.getMonth()]} ${b.getFullYear()}`;
+
+  const sb = document.getElementById("syncBtn");
+  if(sb){
+    sb.textContent = rotuloBotao(false);
+    sb.classList.toggle("pend", pendente());
+  }
+  const sb2 = document.getElementById("syncBtn2");
+  if(sb2){
+    sb2.textContent = rotuloBotao(true);
+    sb2.classList.toggle("pend", pendente());
+  }
+  const el = document.getElementById("saveState");
+  if(el) el.textContent = rotuloSalvo();
+}
+
+/* ============================== 5. TELAS ============================== */
+
+function viewInicio(){
+  const days = tripDays();
+  const start = d(S.trip.start);
+  const falta = isNaN(start) ? null : diffDays(today(), start);
+
+  const ck = progress(allCheckItems().map(c => c.id));
+  const shopDone = S.shop.filter(s => s.done).length;
+  const orcBRL = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+  const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
+
+  const planNow = allCheckItems().filter(c => c.grupo === "Disney — janelas de tempo" && !S.checks[c.id]);
+  const docNow  = allCheckItems().filter(c => c.grupo === "Documentos" && !S.checks[c.id]);
+
+  const parkDays = days.filter(x => S.days[x] && ["mk","ak","hs","ue"].includes(S.days[x].park)).length;
+
+  let countdown, cdNote;
+  if(falta === null){ countdown = "—"; cdNote = "Defina as datas abaixo."; }
+  else if(falta > 0){ countdown = falta; cdNote = falta === 1 ? "dia para embarcar" : "dias para embarcar"; }
+  else if(falta <= 0 && diffDays(today(), d(S.trip.end)) >= 0){ countdown = "AGORA"; cdNote = "Vocês estão na viagem"; }
+  else { countdown = "✓"; cdNote = "Viagem concluída"; }
+
+  const urgente = falta !== null && falta >= 0 && falta <= 14 && (planNow.length || docNow.length);
+
+  return `
+  <h1>Miami · Orlando</h1>
+  <p class="sub">Chegada e saída por Miami, quatro parques em Orlando: Magic Kingdom, Animal Kingdom, Hollywood Studios e Epic Universe. Tudo o que você marcar fica salvo neste aparelho — use a aba <b>Backup</b> para levar os dados para outro celular ou computador.</p>
+
+  <div class="stack">
+
+    <div class="stats">
+      <div class="stat">
+        <div class="k">Contagem regressiva</div>
+        <div class="v">${countdown}</div>
+        <div class="n">${cdNote}</div>
+      </div>
+      <div class="stat">
+        <div class="k">Checklist</div>
+        <div class="v">${ck.pct}<span style="font-size:18px">%</span></div>
+        <div class="n">${ck.done} de ${ck.total} itens</div>
+        <div class="bar ${ck.pct>66?"c-ok":ck.pct>33?"c-warn":"c-crit"}"><i style="width:${ck.pct}%"></i></div>
+      </div>
+      <div class="stat">
+        <div class="k">Dias de parque</div>
+        <div class="v">${parkDays}<span style="font-size:18px">/4</span></div>
+        <div class="n">de ${days.length} dias de viagem</div>
+      </div>
+      <div class="stat">
+        <div class="k">Orçamento previsto</div>
+        <div class="v" style="font-size:23px">${brl(orcBRL)}</div>
+        <div class="n">gasto lançado: ${brl(realBRL)}</div>
+      </div>
+    </div>
+
+    ${urgente ? `<div class="warnbox">
+      <b>Faltam ${falta} dias — prioridade agora</b>
+      <p style="margin:6px 0 0">${docNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${docNow.length} item(ns) de documento</b> ainda em aberto. ` : ""}${planNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${planNow.length} item(ns) de janela de tempo da Disney</b> pendentes — alguns têm prazo fixo (Lightning Lane, check-in do hotel, check-in do voo).` : ""}</p>
+    </div>` : ""}
+
+    <div class="card">
+      <div class="card-hd"><h2>Datas e cotação</h2></div>
+      <div class="card-bd">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+          <label class="f"><span>Ida</span><input type="date" data-trip="start" value="${esc(S.trip.start)}"></label>
+          <label class="f"><span>Volta</span><input type="date" data-trip="end" value="${esc(S.trip.end)}"></label>
+          <label class="f"><span>Cotação do dólar</span><input type="number" step="0.01" min="0" data-trip="rate" value="${S.trip.rate}"></label>
+        </div>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Use a cotação real do seu cartão, já com IOF — é ela que vale no orçamento, não a do noticiário.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <h2>Quem vai</h2>
+        <button class="btn ghost sm" type="button" data-act="addFam">+ pessoa</button>
+      </div>
+      <div class="card-bd">
+        <div class="tw"><table>
+          <thead><tr><th>Nome</th><th>Tipo</th><th class="num">Altura (cm)</th><th></th></tr></thead>
+          <tbody>${S.family.map(f => `
+            <tr>
+              <td><input type="text" data-fam="${f.id}" data-k="nome" value="${esc(f.nome)}"></td>
+              <td><select data-fam="${f.id}" data-k="tipo">
+                ${["adulto","crianca","bebe"].map(t => `<option value="${t}" ${f.tipo===t?"selected":""}>${t==="adulto"?"Adulto":t==="crianca"?"Criança":"Bebê"}</option>`).join("")}
+              </select></td>
+              <td class="num"><input type="number" min="0" max="230" data-fam="${f.id}" data-k="altura" value="${f.altura}"></td>
+              <td style="width:34px"><button class="del" type="button" data-act="delFam" data-id="${f.id}" aria-label="Remover">×</button></td>
+            </tr>`).join("")}</tbody>
+        </table></div>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">A altura alimenta os avisos da aba <b>Parques</b>: cada brinquedo mostra se as crianças passam na régua ou quantos centímetros faltam. Meça com o tênis que ela vai usar — é assim que medem na fila.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <h2>Hospedagem</h2>
+        <button class="btn ghost sm" type="button" data-act="addHotel">+ hotel</button>
+      </div>
+      <div class="card-bd">
+        ${S.hotels.map(h => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--line-soft)">
+          <div class="row" style="align-items:flex-end">
+            <label class="f" style="flex:1;min-width:140px"><span>Nome</span>
+              <input type="text" data-hotel="${h.id}" data-k="nome" value="${esc(h.nome)}"></label>
+            <label class="f" style="flex:1;min-width:120px"><span>Cidade</span>
+              <input type="text" data-hotel="${h.id}" data-k="cidade" value="${esc(h.cidade)}"></label>
+            <label class="f" style="flex:2;min-width:180px"><span>Endereço (opcional)</span>
+              <input type="text" data-hotel="${h.id}" data-k="endereco" value="${esc(h.endereco)}" placeholder="rua, número — deixe em branco para buscar só pelo nome"></label>
+            <button class="del" type="button" data-act="delHotel" data-id="${h.id}" aria-label="Remover">×</button>
+          </div>
+          ${mapEmbedBlock([h.endereco || (h.nome + " " + h.cidade)], {height:170, label:"Mapa de " + h.nome})}
+        </div>`).join("")}
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Assim que reservar, preencha o endereço — o mapa fica mais preciso do que buscar só pelo nome do hotel.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>Por que este roteiro alterna parque e descanso</b>
+      <p style="margin:6px 0 0">Fim de agosto na Flórida é calor alto com umidade e chuva quase todo fim de tarde. Com 4 anos e 1a10m o que funciona é: entrar na abertura, sair por volta das 13h, dormir e piscina no hotel, e voltar à noite só se ainda houver energia. Tentar ficar o dia inteiro derruba a família no dia seguinte. Some a isso os dois trechos de estrada entre Miami e Orlando, que consomem um dia cada, e sobram quatro dias de parque em dez de viagem — que é exatamente o desenho do roteiro sugerido.</p>
+    </div>
+
+  </div>`;
+}
+
+function viewChecklist(){
+  const items = allCheckItems();
+  const grupos = [];
+  items.forEach(i => { if(!grupos.includes(i.grupo)) grupos.push(i.grupo); });
+
+  return `
+  <h1>Checklist pré-viagem</h1>
+  <p class="sub">Organizado por natureza da tarefa, não por data — mas os itens de <b>janela de tempo da Disney</b> têm prazo fixo e são os que travam a viagem se passarem.</p>
+
+  <div class="stack">
+  ${grupos.map(g => {
+    const its = items.filter(i => i.grupo === g);
+    const p = progress(its.map(i => i.id));
+    const cls = p.pct === 100 ? "ok" : p.pct >= 50 ? "warn" : "crit";
+    return `
+    <div class="card">
+      <div class="card-hd">
+        <h2>${esc(g)}</h2>
+        <span class="pill ${cls}">${p.done}/${p.total}</span>
+      </div>
+      <div class="card-bd">
+        <div class="bar c-${cls}" style="margin:0 0 8px"><i style="width:${p.pct}%"></i></div>
+        ${its.map(i => `
+          <label class="item ${S.checks[i.id]?"done":""}">
+            <input type="checkbox" data-check="${esc(i.id)}" ${S.checks[i.id]?"checked":""}>
+            <span class="txt">
+              <b>${esc(i.titulo)}</b>
+              ${i.det ? `<p>${esc(i.det)}</p>` : ""}
+            </span>
+            ${i.custom ? `<button class="del" type="button" data-act="delCheck" data-id="${esc(i.id)}" aria-label="Remover">×</button>` : ""}
+          </label>`).join("")}
+        <div class="row" style="margin-top:12px">
+          <input type="text" placeholder="Adicionar item em “${esc(g)}”…" data-newcheck="${esc(g)}" style="flex:1;min-width:180px">
+          <button class="btn ghost sm" type="button" data-act="addCheck" data-grupo="${esc(g)}">Adicionar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>`;
+}
+
+function viewRoteiro(){
+  const days = tripDays();
+  if(!days.length) return `<h1>Roteiro</h1><p class="sub">Defina as datas de ida e volta na aba <b>Início</b>.</p>`;
+
+  const t = iso(today());
+  const opts = Object.keys(PARKS);
+
+  return `
+  <h1>Roteiro dia a dia</h1>
+  <p class="sub">${days.length} dias: voo na madrugada de 23/08, pouso em Miami às 7h de 24/08 e direto para Orlando de carro, quatro parques com descanso entre eles, volta a Miami em 30/08 e voo de volta às 19h de 01/09. Clique em <b>Aplicar sugestão</b> para preencher com esse plano e depois ajuste à vontade.</p>
+
+  <div class="row" style="margin-bottom:16px">
+    <button class="btn" type="button" data-act="sugestao">Aplicar sugestão</button>
+    <button class="btn ghost" type="button" data-act="limparRoteiro">Limpar roteiro</button>
+  </div>
+
+  <div class="days">
+    ${days.map((dt,idx) => {
+      const day = S.days[dt] || {};
+      const p = parkOf(day.park || "none");
+      const dd = d(dt);
+      const itens = mergedDayItems(dt, day);
+      const sugestoes = [...new Set([...(ATTR[p]||[]).map(a=>a[0]), ...S.dining.map(r=>r.nome)])].filter(Boolean);
+      return `
+      <div class="day pk ${PARKS[p].cls} ${dt===t?"today":""}">
+        <div class="parkbar"></div>
+        <div class="day-hd">
+          <span class="row" style="gap:9px">
+            <span class="parkicon sm">${parkIconSvg(p)}</span>
+            <span><span class="dt" style="display:block">${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]}</span>
+            <span class="wd">${WD[dd.getDay()]}${dt===t?" · hoje":""} · d${idx+1}</span></span>
+          </span>
+        </div>
+        <div class="day-bd">
+          <select data-day="${dt}" data-k="park" aria-label="Parque do dia ${dt}">
+            ${opts.map(o => `<option value="${o}" ${p===o?"selected":""}>${PARKS[o].n}</option>`).join("")}
+          </select>
+
+          <div class="f"><span>Programação do dia</span>
+            <datalist id="sug-${dt}">${sugestoes.map(s => `<option value="${esc(s)}">`).join("")}</datalist>
+            <div class="dayitems">
+              ${itens.map(it => it.fonte === "dining" ? `
+                <div class="dayitem dayitem-dining">
+                  <input type="time" data-din="${it.id}" data-k="hora" value="${esc(it.hora||"")}" aria-label="Horário da reserva">
+                  <span class="dayitem-name"><span class="pill accent" style="margin-right:6px">restaurante</span>${esc(it.nome)}</span>
+                  <button class="del" type="button" data-act="unassignDining" data-id="${it.id}" aria-label="Tirar deste dia" title="Tirar deste dia (continua em Restaurantes)">×</button>
+                </div>` : `
+                <div class="dayitem">
+                  <input type="time" data-item="${dt}|${it.id}" data-k="hora" value="${esc(it.hora||"")}" aria-label="Horário">
+                  <input type="text" data-item="${dt}|${it.id}" data-k="nome" value="${esc(it.nome)}" list="sug-${dt}" aria-label="Programa">
+                  <button class="del" type="button" data-act="delItem" data-dt="${dt}" data-id="${it.id}" aria-label="Remover">×</button>
+                </div>`).join("")}
+              <div class="dayitem dayitem-add">
+                <input type="time" data-newitemtime="${dt}" aria-label="Horário do novo item">
+                <input type="text" data-newitemname="${dt}" list="sug-${dt}" placeholder="parque, atração, passeio…" aria-label="Nome do novo item">
+                <button class="btn ghost sm" type="button" data-act="addItem" data-dt="${dt}">+</button>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">Restaurantes com dia marcado na aba <b>Restaurantes e reservas</b>, mais abaixo, entram aqui sozinhos.</p>
+          </div>
+
+          <label class="f"><span>Notas do dia</span>
+            <textarea rows="2" data-day="${dt}" data-k="notes" placeholder="rope drop, o que levar, hora de sair…">${esc(day.notes||"")}</textarea></label>
+          ${mapEmbedBlock(dayStops(p, day.notes||"", itens), {height:190, label:"Mapa do dia " + (idx+1)})}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-hd"><h2>Restaurantes e reservas</h2><span class="pill warn">janela de 60 dias já passou</span></div>
+    <div class="card-bd">
+      <p style="font-size:13.5px;color:var(--fg-dim);margin:0 0 12px">Não desista destas: cancelamento aparece o tempo todo. Abra o app de manhã cedo e de novo por volta das 18h — muita gente cancela nas 24h anteriores para não pagar a multa de no-show. Marque como reservado assim que confirmar, e escolha o dia — a reserva aparece sozinha na programação daquele dia, lá em cima.</p>
+      ${mapEmbedBlock(S.dining.filter(r => r.nome).map(r => r.nome + " " + (r.local||"") + " Orlando FL"), {height:230, label:"Todos os restaurantes"})}
+      ${S.dining.map(r => `
+        <div class="item ${r.done?"done":""}" style="align-items:center">
+          <input type="checkbox" data-dinchk="${r.id}" ${r.done?"checked":""} aria-label="Reservado">
+          <span class="txt" style="display:grid;gap:6px;grid-template-columns:1fr 1fr;align-items:center">
+            <input type="text" data-din="${r.id}" data-k="nome" value="${esc(r.nome)}" placeholder="Nome do restaurante" style="font-weight:600">
+            <input type="text" data-din="${r.id}" data-k="local" value="${esc(r.local)}" placeholder="Onde (parque/hotel)">
+            <select data-din="${r.id}" data-k="dia">
+              <option value="">— sem dia —</option>
+              ${days.map(dt => { const dd=d(dt); return `<option value="${dt}" ${r.dia===dt?"selected":""}>${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]} · ${WD[dd.getDay()].slice(0,3)}</option>`; }).join("")}
+            </select>
+            <input type="time" data-din="${r.id}" data-k="hora" value="${esc(r.hora||"")}" aria-label="Horário da reserva" style="font-family:var(--font-data)">
+            <input type="text" data-din="${r.id}" data-k="nota" value="${esc(r.nota)}" placeholder="Nota — quem indicou, preferências…" style="grid-column:1/-1">
+            <a class="pill neutral linkpill" style="justify-self:start" href="${mapUrl(r.nome + " " + r.local)}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+          </span>
+          <button class="del" type="button" data-act="delDining" data-id="${r.id}" aria-label="Remover">×</button>
+        </div>`).join("")}
+      <div class="row" style="margin-top:12px">
+        <input type="text" placeholder="Adicionar restaurante…" data-newdining style="flex:1;min-width:180px">
+        <button class="btn ghost sm" type="button" data-act="addDining">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-hd">
+      <h2>Lembretes no Calendário</h2>
+      <button class="btn" type="button" data-act="baixarIcs">Exportar lembretes</button>
+    </div>
+    <div class="card-bd">
+      <p style="font-size:13.5px;color:var(--fg-dim);margin:0 0 10px">Gera um arquivo do Calendário com <b>${construirAgenda(S, Date.now()).length} lembretes</b>: o resumo do dia às 7h em cada dia de viagem, o aviso de abertura da janela de 60 dias, e um alerta 1h antes de cada reserva com horário marcado. Quem toca o alarme é o Calendário do aparelho — funciona sem internet, dentro do parque.</p>
+      <p style="font-size:12.5px;color:var(--fg-faint);margin:0">Mande o arquivo para o resto da família no WhatsApp: cada um importa no próprio celular, sem instalar nada. <b>Mudou o roteiro ou o horário de uma reserva? Exporte de novo</b> — reimportar substitui os lembretes antigos em vez de duplicar.</p>
+      <p id="icsMsg" style="font-size:13px;margin:10px 0 0"></p>
+    </div>
+  </div>`;
+}
+
+function viewParques(){
+  const pk = ATTR[S.parkFilter] ? S.parkFilter : "mk";
+  const list = ATTR[pk];
+  const cls = PARKS[pk].cls;
+
+  const filtered = list.filter((a,i) => {
+    if(S.onlyPlan && !a[3].includes("P")) return false;
+    if(S.onlyKid){
+      const hs = heightInfo(a[2]);
+      if(hs && !hs.some(h => h.ok)) return false;
+    }
+    return true;
+  });
+
+  const ids = list.map((a,i) => attrId(pk,i,a[0]));
+  const p = progress(ids);
+
+  const lands = [];
+  filtered.forEach(a => { if(!lands.includes(a[1])) lands.push(a[1]); });
+
+  const planTotal = Object.keys(ATTR).reduce((t,k) =>
+    t + ATTR[k].filter(a => a[3].includes("P")).length, 0);
+
+  return `
+  <h1>Parques e atrações</h1>
+  <p class="sub">Marque o que a família quer fazer. As etiquetas <span class="pill accent">planejar antes</span> são as ${planTotal} coisas que não se resolvem na hora — exigem reserva, compra de fila ou fila virtual no app.</p>
+
+  <div class="filters">
+    ${Object.keys(PARKS).filter(k => ATTR[k]).map(k =>
+      `<button class="chip pkchip pk ${PARKS[k].cls}" type="button" data-park="${k}" aria-pressed="${pk===k}">
+        <span class="parkicon xs">${parkIconSvg(k)}</span>${PARKS[k].n}</button>`).join("")}
+  </div>
+  <div class="filters">
+    <button class="chip" type="button" data-act="tgPlan" aria-pressed="${S.onlyPlan}">Só o que precisa planejar</button>
+    <button class="chip" type="button" data-act="tgKid" aria-pressed="${S.onlyKid}">Só o que as crianças pegam</button>
+  </div>
+
+  <div class="card pk ${cls}" style="margin-bottom:16px">
+    <div class="parkbar"></div>
+    <div class="card-hd">
+      <span class="row" style="gap:12px"><span class="parkicon sm">${parkIconSvg(pk)}</span><h2>Áreas do parque</h2></span>
+      <span class="eyebrow">esquemático — clique numa área</span>
+    </div>
+    <div class="card-bd">${zoneMap(pk)}</div>
+  </div>
+
+  <div class="card pk ${cls}" style="margin-bottom:16px">
+    <div class="parkbar"></div>
+    <div class="card-hd">
+      <span class="row" style="gap:12px"><span class="parkicon sm">${parkIconSvg(pk)}</span><h2>Suas marcadas no mapa</h2></span>
+    </div>
+    <div class="card-bd">
+      ${checkedStops(pk).length
+        ? mapEmbedBlock(checkedStops(pk), {height:230, label:"Marcadas em " + PARKS[pk].n})
+        : `<p style="color:var(--fg-dim);margin:6px 0;font-size:13.5px">Marque atrações na lista abaixo para elas aparecerem aqui como pinos no mapa.</p>`}
+    </div>
+  </div>
+
+  <div class="card pk ${cls}">
+    <div class="parkbar"></div>
+    <div class="card-hd">
+      <span class="row" style="gap:12px"><span class="parkicon lg">${parkIconSvg(pk)}</span><h2>${PARKS[pk].n}</h2></span>
+      <span class="pill neutral">${p.done}/${p.total} marcadas</span>
+    </div>
+    <div class="card-bd">
+      ${filtered.length === 0 ? `<p style="color:var(--fg-dim);margin:6px 0">Nenhuma atração com esses filtros.</p>` : ""}
+      ${lands.map(land => `
+        <div style="margin:14px 0 0">
+          <div class="eyebrow" id="${landId(pk,land)}" style="margin-bottom:2px">${esc(land)}</div>
+          ${filtered.filter(a => a[1] === land).map(a => {
+            const i = list.indexOf(a);
+            const id = attrId(pk,i,a[0]);
+            const hs = heightInfo(a[2]);
+            const tags = a[3];
+            return `
+            <label class="attr ${S.checks[id]?"done":""}">
+              <input type="checkbox" data-check="${esc(id)}" ${S.checks[id]?"checked":""}>
+              <span class="txt">
+                <b>${esc(a[0])}</b>
+                <span class="meta">
+                  ${tags.includes("T") ? `<span class="pill neutral">imperdível</span>` : ""}
+                  ${tags.includes("P") ? `<span class="pill accent">planejar antes</span>` : ""}
+                  ${tags.includes("B") ? `<span class="pill ok">ok p/ bebê</span>` : ""}
+                  ${tags.includes("C") ? `<span class="pill warn">confirmar status</span>` : ""}
+                  ${a[2] ? `<span class="pill neutral">${a[2]} cm</span>` : ""}
+                  ${hs ? hs.map(h => h.ok
+                      ? `<span class="pill ok">${esc(h.nome.split(" ")[0])} passa</span>`
+                      : `<span class="pill crit">${esc(h.nome.split(" ")[0])}: faltam ${h.falta} cm</span>`).join("") : ""}
+                  <a class="pill neutral linkpill" href="${attrLink(a[0], PARKS[pk].n)}" target="_blank" rel="noopener noreferrer">saiba mais ↗</a>
+                  <a class="pill neutral linkpill" href="${mapUrl(a[0] + " " + PARKS[pk].n + " Orlando")}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+                </span>
+              </span>
+            </label>`;
+          }).join("")}
+        </div>`).join("")}
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:16px">
+    <b>Rider Switch — o truque que salva o dia</b>
+    <p style="margin:6px 0 0">Nas atrações com altura mínima, peça <i>Rider Switch</i> na entrada (a Universal chama de <i>Child Swap</i> e tem em todo brinquedo com régua). Um adulto anda enquanto o outro fica com as crianças; depois troca sem pegar a fila de novo, e pode levar mais uma pessoa junto. Na prática: o adulto e a criança de 4 anos que passar na régua andam duas vezes, enquanto o outro adulto fica com o bebê. Vale para Big Thunder, Space Mountain, Everest, Tower of Terror, Slinky Dog, Stardust Racers, Mario Kart — todas.</p>
+  </div>
+
+  ${pk === "ue" ? `<div class="warnbox" style="margin-top:14px">
+    <b>Epic Universe: confirme as réguas antes de prometer</b>
+    <p style="margin:6px 0 0">O parque é novo e as alturas mínimas mudaram algumas vezes desde a inauguração — as daqui são ponto de partida, não medida oficial. Confirme cada uma no app da Universal antes de montar o dia. E repare no detalhe que decide o passeio: com ${kids()[0] ? esc(kids()[0].nome) + " em " + (kids()[0].altura||0) + " cm" : "o de 4 anos"}, várias atrações ficam em cima da linha de 102 cm. Medem com o tênis calçado, na entrada, e não negociam. Se estiver a 2 ou 3 cm da régua, trate como “provavelmente não” e tenha um plano B — Super Nintendo World e Isle of Berk têm bastante coisa sem régua.</p>
+  </div>` : ""}
+
+  <div class="warnbox" style="margin-top:14px">
+    <b>Sobre os itens “confirmar status”</b>
+    <p style="margin:6px 0 0">Parque muda: atração fecha para reforma, área inteira é substituída, show noturno troca de nome. Antes de fechar o roteiro, confirme esses itens no app da Disney ou no da Universal — a lista aqui é ponto de partida, não horário oficial.</p>
+  </div>`;
+}
+
+function viewCompras(){
+  const cats = [];
+  S.shop.forEach(s => { if(!cats.includes(s.cat)) cats.push(s.cat); });
+
+  const totUSD = S.shop.reduce((t,s) => t + (s.qtd||0) * (s.usd||0), 0);
+  const feitoUSD = S.shop.filter(s => s.done).reduce((t,s) => t + (s.qtd||0) * (s.usd||0), 0);
+  const done = S.shop.filter(s => s.done).length;
+
+  const LOJAS = ["Parque / World of Disney","Outlet Disney Character Warehouse","Premium Outlets","Target","Walmart","Publix","Best Buy","Ross / TJ Maxx","LEGO Store","Amazon","Mall at Millenia","Florida Mall","A definir"];
+
+  return `
+  <h1>Lista de compras</h1>
+  <p class="sub">Preço unitário em dólar, convertido pela sua cotação. A prioridade existe para quando o orçamento apertar no último dia — corte de baixo para cima.</p>
+
+  <div class="stats" style="margin-bottom:16px">
+    <div class="stat"><div class="k">Total previsto</div><div class="v" style="font-size:23px">${usd(totUSD)}</div><div class="n">${brl(totUSD*S.trip.rate)}</div></div>
+    <div class="stat"><div class="k">Já comprado</div><div class="v" style="font-size:23px">${usd(feitoUSD)}</div><div class="n">${done} de ${S.shop.length} itens</div>
+      <div class="bar"><i style="width:${S.shop.length?Math.round(done/S.shop.length*100):0}%"></i></div></div>
+    <div class="stat"><div class="k">Falta comprar</div><div class="v" style="font-size:23px">${usd(totUSD-feitoUSD)}</div><div class="n">${brl((totUSD-feitoUSD)*S.trip.rate)}</div></div>
+  </div>
+
+  <div class="stack">
+  ${cats.map(c => {
+    const its = S.shop.filter(s => s.cat === c);
+    const sub = its.reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
+    return `
+    <div class="card">
+      <div class="card-hd"><h2>${esc(c)}</h2><span class="pill neutral">${usd(sub)}</span></div>
+      <div class="card-bd">
+        <div class="tw"><table>
+          <thead><tr><th style="width:26px"></th><th>Item</th><th>Onde</th><th class="num">Qtd</th><th class="num">US$ un.</th><th class="num">Total</th><th class="num">Prio</th><th></th></tr></thead>
+          <tbody>
+          ${its.map(s => `
+            <tr class="${s.done?"done":""}">
+              <td><input type="checkbox" data-shopchk="${s.id}" ${s.done?"checked":""} aria-label="Comprado"></td>
+              <td><input type="text" data-shop="${s.id}" data-k="item" value="${esc(s.item)}"></td>
+              <td><select data-shop="${s.id}" data-k="loja">
+                ${LOJAS.concat(LOJAS.includes(s.loja)?[]:[s.loja]).map(l => `<option ${l===s.loja?"selected":""}>${esc(l)}</option>`).join("")}
+              </select></td>
+              <td class="num"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="qtd" value="${s.qtd}"></td>
+              <td class="num"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="usd" value="${s.usd}"></td>
+              <td class="num">${usd((s.qtd||0)*(s.usd||0))}</td>
+              <td class="num"><select data-shop="${s.id}" data-k="prio">
+                ${[3,2,1].map(p => `<option value="${p}" ${s.prio==p?"selected":""}>${p===3?"alta":p===2?"média":"baixa"}</option>`).join("")}
+              </select></td>
+              <td style="width:34px"><button class="del" type="button" data-act="delShop" data-id="${s.id}" aria-label="Remover">×</button></td>
+            </tr>`).join("")}
+          </tbody>
+        </table></div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" placeholder="Novo item em “${esc(c)}”…" data-newshop="${esc(c)}" style="flex:1;min-width:180px">
+          <button class="btn ghost sm" type="button" data-act="addShop" data-cat="${esc(c)}">Adicionar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>
+
+  <div class="note" style="margin-top:16px">
+    <b>Onde economiza de verdade</b>
+    <p style="margin:6px 0 0">Produto Disney dentro do parque custa quase o dobro do <i>Disney's Character Warehouse</i> (a loja de outlet oficial, no Vineland e no International Drive) — é o mesmo item da temporada passada. Compre no parque só o que a criança escolher na hora e o resto no outlet. Roupa infantil no Carter's e no Gap Outlet sai por menos de US$ 10 a peça em promoção. Fralda, protetor solar e lanche: Target, nunca no parque. Em Miami, o Sawgrass Mills é maior e costuma ter preço melhor que os outlets de Orlando — e vocês passam por lá duas vezes, então dá para deixar o volume das compras para o fim e não carregar tudo na estrada. Leve uma mala vazia: despachar mala extra é mais barato que comprar mala nova lá.</p>
+  </div>`;
+}
+
+function viewOrcamento(){
+  const cats = [];
+  S.budget.forEach(b => { if(!cats.includes(b.cat)) cats.push(b.cat); });
+
+  const planBRL = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+  const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
+  const lancados = S.budget.filter(b => b.real > 0).length;
+  const delta = realBRL - planBRL;
+
+  const shopUSD = S.shop.reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
+
+  return `
+  <h1>Orçamento</h1>
+  <p class="sub">Valores iniciais são <b>estimativas</b> para vocês substituírem pelos números reais. Cada linha tem moeda própria — o total é sempre convertido para real pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida na aba Início.</p>
+
+  <div class="stats" style="margin-bottom:16px">
+    <div class="stat"><div class="k">Previsto</div><div class="v" style="font-size:23px">${brl(planBRL)}</div><div class="n">${S.budget.length} linhas</div></div>
+    <div class="stat"><div class="k">Gasto lançado</div><div class="v" style="font-size:23px">${brl(realBRL)}</div><div class="n">${lancados} linha(s) com valor real</div>
+      <div class="bar ${realBRL>planBRL?"c-crit":"c-ok"}"><i style="width:${planBRL?Math.min(100,Math.round(realBRL/planBRL*100)):0}%"></i></div></div>
+    <div class="stat"><div class="k">${delta>=0?"Acima do previsto":"Abaixo do previsto"}</div>
+      <div class="v" style="font-size:23px;color:${delta>0?"var(--crit)":"var(--ok)"}">${brl(Math.abs(delta))}</div>
+      <div class="n">comparado ao planejado</div></div>
+    <div class="stat"><div class="k">Lista de compras</div><div class="v" style="font-size:23px">${usd(shopUSD)}</div><div class="n">total da aba Compras</div></div>
+  </div>
+
+  <div class="stack">
+  ${cats.map(c => {
+    const its = S.budget.filter(b => b.cat === c);
+    const sub = its.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+    return `
+    <div class="card">
+      <div class="card-hd"><h2>${esc(c)}</h2><span class="pill neutral">${brl(sub)}</span></div>
+      <div class="card-bd">
+        <div class="tw"><table>
+          <thead><tr><th>Item</th><th>Moeda</th><th class="num">Previsto</th><th class="num">Real</th><th class="num">Previsto em R$</th><th></th></tr></thead>
+          <tbody>
+          ${its.map(b => `
+            <tr>
+              <td><input type="text" data-bud="${b.id}" data-k="label" value="${esc(b.label)}"></td>
+              <td><select data-bud="${b.id}" data-k="cur">
+                <option value="BRL" ${b.cur==="BRL"?"selected":""}>R$</option>
+                <option value="USD" ${b.cur==="USD"?"selected":""}>US$</option>
+              </select></td>
+              <td class="num"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}"></td>
+              <td class="num"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}"></td>
+              <td class="num">${brl(toBRL(b.plan,b.cur))}</td>
+              <td style="width:34px"><button class="del" type="button" data-act="delBud" data-id="${b.id}" aria-label="Remover">×</button></td>
+            </tr>`).join("")}
+          </tbody>
+          <tfoot><tr><td colspan="4">Subtotal ${esc(c)}</td><td class="num">${brl(sub)}</td><td></td></tr></tfoot>
+        </table></div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" placeholder="Nova linha em “${esc(c)}”…" data-newbud="${esc(c)}" style="flex:1;min-width:180px">
+          <button class="btn ghost sm" type="button" data-act="addBud" data-cat="${esc(c)}">Adicionar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd"><h2>Total geral</h2></div>
+    <div class="card-bd">
+      <div class="tw"><table style="min-width:0">
+        <tbody>
+          <tr><td>Previsto</td><td class="num" style="font-size:19px;font-weight:700">${brl(planBRL)}</td></tr>
+          <tr><td>Gasto lançado</td><td class="num" style="font-size:19px;font-weight:700">${brl(realBRL)}</td></tr>
+          <tr><td>Por pessoa (${S.family.length} pax)</td><td class="num">${brl(S.family.length?planBRL/S.family.length:0)}</td></tr>
+          <tr><td>Por dia (${tripDays().length||1} dias)</td><td class="num">${brl(planBRL/(tripDays().length||1))}</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="warnbox" style="margin-top:14px">
+    <b>Custos que costumam ser esquecidos</b>
+    <p style="margin:6px 0 0">Caução do hotel e da locadora bloqueia limite do cartão por vários dias. Estacionamento é cobrado por dia em cada parque — na Disney e na Universal, separadamente. Resort fee aparece na conta do hotel mesmo quando a diária já foi paga, e em Miami quase todo hotel de praia cobra também o estacionamento por diária. A taxa de motorista adicional da locadora vale para os dez dias, mesmo que o segundo adulto dirija só um trecho. Gorjeta de 18–20% não vem inclusa e é praticamente obrigatória em restaurante com garçom. O Toll by Plate cobra uma taxa diária de conveniência além do pedágio em si. E a bagagem extra na volta, se as compras crescerem.</p>
+  </div>`;
+}
+
+function fmtWhen(ms){
+  if(!ms) return "nunca";
+  const dt = new Date(ms);
+  const hoje = iso(today()) === iso(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  const hora = String(dt.getHours()).padStart(2,"0") + ":" + String(dt.getMinutes()).padStart(2,"0");
+  return hoje ? "hoje " + hora : `${String(dt.getDate()).padStart(2,"0")} ${MO[dt.getMonth()]} ${hora}`;
+}
+
+function viewBackup(){
+  const cfg = S.sync, on = !!cfg.url;
+  const jb = cfg.provider === "jsonbin";
+  const pend = pendente();
+
+  return `
+  <h1>Dados e sincronização</h1>
+  <p class="sub">Tudo é salvo em JSON no próprio aparelho, na hora. A sincronização é manual e explícita: você aperta <b>Sincronizar</b> quando quiser mandar suas marcações para o local central e trazer as dos outros.</p>
+
+  <div class="stats" style="margin-bottom:16px">
+    <div class="stat">
+      <div class="k">Estado</div>
+      <div class="v" style="font-size:20px;color:${!on?"var(--fg-dim)":pend?"var(--warn)":"var(--ok)"}">${!on?"Só local":pend?"Pendente":"Em dia"}</div>
+      <div class="n">${!on?"sync não configurado":pend?"há alterações não enviadas":"nada para enviar"}</div>
+    </div>
+    <div class="stat"><div class="k">Última alteração</div><div class="v" style="font-size:20px">${fmtWhen(S.updatedAt)}</div><div class="n">neste aparelho</div></div>
+    <div class="stat"><div class="k">Última sincronização</div><div class="v" style="font-size:20px">${fmtWhen(S.lastSync)}</div><div class="n">${on?esc(cfg.provider==="jsonbin"?"JSONBin":"endpoint próprio"):"—"}</div></div>
+  </div>
+
+  <div class="stack">
+
+    <div class="card">
+      <div class="card-hd">
+        <h2>Sincronizar</h2>
+        <button class="btn" type="button" data-act="syncNow" ${on?"":"disabled style=\"opacity:.45;cursor:not-allowed\""}>Sincronizar agora</button>
+      </div>
+      <div class="card-bd">
+        <p id="syncMsg" style="font-size:13.5px;margin:0 0 12px;color:var(--fg-dim);text-wrap:pretty">${on?"Combina esta versão com a do servidor registro a registro. Se os dois aparelhos mudaram coisas diferentes desde a última vez, os dois conjuntos entram — ninguém perde o que fez.":"Preencha a configuração abaixo para habilitar."}</p>
+        <p style="font-size:12.5px;color:var(--fg-faint);margin:10px 0 0">Não existe “forçar envio” nem “forçar download”: as duas versões são combinadas registro a registro, e o que cada aparelho fez é preservado. Só a edição do <i>mesmo campo do mesmo item</i> nos dois lados fica com a mais recente.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Configuração do servidor</h2>${on?`<span class="pill ok">configurado</span>`:`<span class="pill warn">não configurado</span>`}</div>
+      <div class="card-bd">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+          <label class="f"><span>Serviço</span>
+            <select data-sync="provider">
+              <option value="jsonbin" ${jb?"selected":""}>JSONBin.io (mais fácil)</option>
+              <option value="generic" ${!jb?"selected":""}>Endpoint próprio (GET/PUT)</option>
+            </select></label>
+          <label class="f"><span>Nome deste aparelho</span>
+            <input type="text" data-device value="${esc(S.device)}" placeholder="ex.: meu iPhone"></label>
+        </div>
+        <div style="display:grid;gap:12px;margin-top:12px">
+          <label class="f"><span>${jb?"URL do bin":"URL do endpoint"}</span>
+            <input type="text" data-sync="url" value="${esc(cfg.url)}" placeholder="${jb?"https://api.jsonbin.io/v3/b/SEU_BIN_ID":"https://sua-api.workers.dev/viagem"}"></label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+            ${jb?"":`<label class="f"><span>Nome do cabeçalho</span><input type="text" data-sync="header" value="${esc(cfg.header)}" placeholder="Authorization"></label>`}
+            <label class="f"><span>${jb?"X-Master-Key":"Valor do cabeçalho"}</span>
+              <input type="text" data-sync="token" value="${esc(cfg.token)}" placeholder="${jb?"$2a$10$…":"Bearer …"}"></label>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:12px 0 0">A chave fica guardada só neste aparelho e <b>nunca</b> vai junto com os dados para o servidor. Cada aparelho precisa configurá-la uma vez.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Como ligar o JSONBin em 3 minutos</h2></div>
+      <div class="card-bd" style="font-size:13.5px;color:var(--fg-dim);text-wrap:pretty">
+        <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px">
+          <li>Crie uma conta grátis em <b>jsonbin.io</b>.</li>
+          <li>Em <b>API Keys</b>, copie a <b>X-Master-Key</b> e cole no campo acima.</li>
+          <li>Em <b>Bins</b>, crie um bin novo com o conteúdo <code>{}</code> e salve. Marque como <b>Private</b>.</li>
+          <li>Copie o <b>Bin ID</b> e monte a URL: <code>https://api.jsonbin.io/v3/b/SEU_BIN_ID</code>.</li>
+          <li>Volte aqui, aperte <b>Sincronizar agora</b>. No outro aparelho, repita os passos 2 e 4 com os mesmos valores.</li>
+        </ol>
+        <p style="margin:12px 0 0">O plano grátis dá 10.000 requisições por mês — mais que suficiente para uma família apertando o botão algumas vezes por dia.</p>
+      </div>
+    </div>
+
+    <div class="warnbox">
+      <b>Onde o sync funciona</b>
+      <p style="margin:6px 0 0">Na versão publicada no claude.ai o navegador bloqueia chamadas para outros servidores, então o botão Sincronizar não vai completar — só o backup por código abaixo funciona lá. Para o sync valer, hospede este arquivo em qualquer lugar (GitHub Pages, Netlify e Vercel são grátis) ou abra o arquivo direto do computador.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Mapa (Google Maps)</h2>${S.mapsKey?`<span class="pill ok">configurado</span>`:`<span class="pill warn">não configurado</span>`}</div>
+      <div class="card-bd">
+        <label class="f"><span>Chave da API (Maps Embed API)</span>
+          <input type="text" data-mapskey value="${esc(S.mapsKey)}" placeholder="AIzaSy…"></label>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Fica só neste aparelho — nunca vai no sync nem no código de transferência. Cada aparelho configura a sua vez (ou copie manualmente entre eles).</p>
+      </div>
+    </div>
+
+    <div class="warnbox">
+      <b>Onde o mapa embutido funciona</b>
+      <p style="margin:6px 0 0">Confirmado pelo console do navegador: o Artifact publicado no claude.ai bloqueia <i>qualquer</i> iframe de fora ("frame-src 'self' blob: data:") — o mapa embutido não vai aparecer aqui, com chave configurada ou não, sem exceção. Isso não é erro de configuração, é a política de segurança da própria página publicada. Enquanto estiver testando por aqui, use sempre o link <b>"abrir no Google Maps"</b> que acompanha cada mapa — ele não depende de embed e sempre funciona. O mapa embutido passa a aparecer de verdade quando você hospedar este arquivo fora do claude.ai (GitHub Pages, Netlify, Vercel, ou até abrindo o arquivo direto no computador) — mesma chave, mesmo app.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Como conseguir a chave grátis em 5 minutos</h2></div>
+      <div class="card-bd" style="font-size:13.5px;color:var(--fg-dim);text-wrap:pretty">
+        <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px">
+          <li>Acesse <b>console.cloud.google.com</b> e crie um projeto novo (ou use um existente).</li>
+          <li>No menu, vá em <b>APIs e Serviços → Biblioteca</b>, procure <b>Maps Embed API</b> e clique em <b>Ativar</b>.</li>
+          <li>Em <b>APIs e Serviços → Credenciais</b>, crie uma <b>Chave de API</b>.</li>
+          <li>Clique na chave criada e em <b>Restrições de aplicativo</b> escolha <b>Sites (referenciadores HTTP)</b> — isso impede que outra pessoa use sua chave copiando a URL. Se for usar só no claude.ai, pode deixar sem restrição por ora.</li>
+          <li>Cole a chave no campo acima.</li>
+        </ol>
+        <p style="margin:12px 0 0">O Google pede um cartão de crédito para ativar a conta (verificação, não cobrança), mas a Maps Embed API tem cota gratuita generosa — uma viagem em família não chega perto do limite.</p>
+      </div>
+    </div>
+
+    <div class="warnbox">
+      <b>Já hospedado fora do claude.ai, e mesmo assim mostra "Esta página não carregou o Google Maps corretamente"?</b>
+      <p style="margin:6px 0 8px">Esse checklist só vale depois que o arquivo já está fora do claude.ai — dentro do Artifact publicado, o aviso acima é sempre a explicação, não estas quatro. Fora daqui, essa mensagem é do próprio Google: o iframe carregou, só que ele recusou a chave. É sempre uma destas coisas, quase sempre uma das duas primeiras:</p>
+      <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+        <li><b>Faturamento não habilitado.</b> Em console.cloud.google.com → <b>Faturamento</b>, confirme que o projeto tem uma conta de faturamento vinculada. Sem isso, toda chave do Maps falha — mesmo no uso gratuito.</li>
+        <li><b>API errada ativada.</b> Em <b>APIs e Serviços → APIs ativadas</b>, confirme que aparece exatamente <b>Maps Embed API</b> — não "Maps JavaScript API" nem "Maps Static API", que são outras.</li>
+        <li><b>Restrição de site (referenciador) bloqueando esta página.</b> Se você configurou "Restrições de aplicativo" na chave, o site de onde você está abrindo o app precisa estar na lista. Para testar rápido, volte lá e mude para "Nenhuma restrição" temporariamente — se o mapa passar a funcionar, o problema era esse; depois é só adicionar o site certo à lista.</li>
+        <li><b>Restrição de API na própria chave.</b> Se você limitou a chave a certas APIs (seção "Restrições de API"), confirme que <b>Maps Embed API</b> está marcada.</li>
+      </ol>
+      <p style="margin:8px 0 0">Para saber qual das quatro é, abra o mapa com erro, aperte F12 (ou inspecionar elemento) e olhe a aba <b>Console</b> — o Google grava ali um código específico tipo <code>BillingNotEnabledMapError</code>, <code>ApiNotActivatedMapError</code> ou <code>RefererNotAllowedMapError</code>, que aponta direto pro item certo desta lista.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Arquivo JSON</h2><button class="btn ghost sm" type="button" data-act="baixarJson">Baixar backup</button></div>
+      <div class="card-bd">
+        <p style="font-size:13.5px;color:var(--fg-dim);margin:0">Salva um <code>.json</code> com tudo. Serve como cópia de segurança independente do servidor — guarde um antes de embarcar.</p>
+        <p id="dlMsg" style="font-size:13px;margin:8px 0 0"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Transferir por código</h2><button class="btn ghost sm" type="button" data-act="copiar">Copiar código</button></div>
+      <div class="card-bd">
+        <textarea id="expBox" rows="4" readonly style="font-family:var(--font-data);font-size:11px"></textarea>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:8px 0 12px">Funciona sem servidor nenhum: copie, mande para você no WhatsApp e cole no outro aparelho.</p>
+        <textarea id="impBox" rows="4" placeholder="Cole aqui o código gerado no outro aparelho…" style="font-family:var(--font-data);font-size:11px"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn ghost sm" type="button" data-act="importar">Substituir dados com este código</button></div>
+        <p id="impMsg" style="font-size:13px;margin:8px 0 0"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2>Recomeçar</h2></div>
+      <div class="card-bd">
+        <p style="font-size:13.5px;color:var(--fg-dim);margin:0 0 10px">Volta tudo ao conteúdo original, perdendo o que foi marcado e editado neste aparelho.</p>
+        <button class="btn ghost" type="button" data-act="reset">Zerar tudo</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================== 6. RENDER ============================== */
+
+const VIEWS = {inicio:viewInicio, checklist:viewChecklist, roteiro:viewRoteiro,
+               parques:viewParques, compras:viewCompras, orcamento:viewOrcamento, backup:viewBackup};
+
+function render(){
+  renderNav();
+  const main = document.getElementById("view");
+  const mob = `<div class="mobhd"><div class="brand"><b>Viagem Disney</b><span>${document.getElementById("railDates").textContent}</span></div>
+    <div class="row" style="gap:6px;flex-wrap:nowrap">
+      <button class="themebtn syncbtn" type="button" data-act="syncNow" id="syncBtn2">${rotuloBotao(true)}</button>
+      <button class="themebtn" type="button" id="themeBtn2">Tema</button>
+    </div></div>`;
+  main.innerHTML = mob + (VIEWS[S.tab] || viewInicio)();
+  if(S.tab === "backup") document.getElementById("expBox").value = encodeState();
+}
+
+/* ============================== 7. EVENTOS ============================== */
+
+function setTab(t){ S.tab = t; save(false); render(); window.scrollTo({top:0}); document.getElementById("view").focus({preventScroll:true}); }
+
+document.addEventListener("click", (e) => {
+  const tabBtn = e.target.closest("[data-tab]");
+  if(tabBtn){ setTab(tabBtn.dataset.tab); return; }
+
+  const parkBtn = e.target.closest("[data-park]");
+  if(parkBtn){ S.parkFilter = parkBtn.dataset.park; save(false); render(); return; }
+
+  if(e.target.closest("[data-act='syncNow']")){
+    if(!S.sync.url){ setTab("backup"); return; }
+    if(S.tab !== "backup") setTab("backup");
+    syncNow();
+    return;
+  }
+
+  const zone = e.target.closest("[data-act='gotoLand']");
+  if(zone){
+    S.parkFilter = zone.dataset.park; S.onlyPlan = false; S.onlyKid = false;
+    setTab("parques");
+    setTimeout(() => {
+      const el = document.getElementById(zone.dataset.land);
+      if(el) el.scrollIntoView({behavior:"auto", block:"start"});
+    }, 60);
+    return;
+  }
+
+  if(e.target.id === "themeBtn" || e.target.id === "themeBtn2"){ toggleTheme(); return; }
+
+  const act = e.target.closest("[data-act]");
+  if(!act) return;
+  const a = act.dataset.act;
+
+  if(a === "addFam"){ S.family.push({id:uid("f"), nome:"Nova pessoa", tipo:"adulto", altura:170}); }
+  else if(a === "delFam"){ S.family = S.family.filter(f => f.id !== act.dataset.id); }
+  else if(a === "delShop"){ S.shop = S.shop.filter(s => s.id !== act.dataset.id); }
+  else if(a === "delBud"){ S.budget = S.budget.filter(b => b.id !== act.dataset.id); }
+  else if(a === "delDining"){ S.dining = S.dining.filter(r => r.id !== act.dataset.id); }
+  else if(a === "unassignDining"){
+    const r = S.dining.find(x => x.id === act.dataset.id);
+    if(r) r.dia = "";
+  }
+  else if(a === "addHotel"){ S.hotels.push({id:uid("h"), nome:"Novo hotel", cidade:"", endereco:""}); }
+  else if(a === "delHotel"){ S.hotels = S.hotels.filter(h => h.id !== act.dataset.id); }
+  else if(a === "delCheck"){ S.extraCheck = S.extraCheck.filter(x => x.id !== act.dataset.id); delete S.checks[act.dataset.id]; }
+  else if(a === "tgPlan"){ S.onlyPlan = !S.onlyPlan; save(false); render(); return; }
+  else if(a === "tgKid"){ S.onlyKid = !S.onlyKid; save(false); render(); return; }
+
+  else if(a === "baixarJson"){ baixarJson(); return; }
+  else if(a === "baixarIcs"){ baixarIcs(); return; }
+
+  else if(a === "addCheck"){
+    const g = act.dataset.grupo;
+    const inp = document.querySelector(`[data-newcheck="${CSS.escape(g)}"]`);
+    const v = inp && inp.value.trim();
+    if(!v) return;
+    S.extraCheck.push({id:uid("ck"), grupo:g, titulo:v});
+  }
+  else if(a === "addShop"){
+    const c = act.dataset.cat;
+    const inp = document.querySelector(`[data-newshop="${CSS.escape(c)}"]`);
+    const v = inp && inp.value.trim();
+    if(!v) return;
+    S.shop.push({id:uid("s"), item:v, cat:c, loja:"A definir", qtd:1, usd:0, prio:2, done:false});
+  }
+  else if(a === "addBud"){
+    const c = act.dataset.cat;
+    const inp = document.querySelector(`[data-newbud="${CSS.escape(c)}"]`);
+    const v = inp && inp.value.trim();
+    if(!v) return;
+    S.budget.push({id:uid("b"), label:v, cat:c, plan:0, real:0, cur:"USD"});
+  }
+  else if(a === "addDining"){
+    const inp = document.querySelector("[data-newdining]");
+    const v = inp && inp.value.trim();
+    if(!v) return;
+    S.dining.push({id:uid("d"), nome:v, local:"", nota:"", done:false});
+  }
+
+  else if(a === "sugestao"){ aplicarSugestao(); }
+  else if(a === "limparRoteiro"){ if(confirm("Limpar todo o roteiro?")) S.days = {}; else return; }
+
+  else if(a === "addItem"){
+    const dt = act.dataset.dt;
+    const nomeInp = document.querySelector(`[data-newitemname="${CSS.escape(dt)}"]`);
+    const horaInp = document.querySelector(`[data-newitemtime="${CSS.escape(dt)}"]`);
+    const nome = nomeInp && nomeInp.value.trim();
+    if(!nome) return;
+    S.days[dt] = S.days[dt] || {};
+    S.days[dt].items = S.days[dt].items || [];
+    S.days[dt].items.push({id:uid("it"), hora:(horaInp && horaInp.value) || "", nome});
+  }
+  else if(a === "delItem"){
+    const dt = act.dataset.dt;
+    if(S.days[dt] && S.days[dt].items) S.days[dt].items = S.days[dt].items.filter(it => it.id !== act.dataset.id);
+  }
+
+  else if(a === "copiar"){
+    const box = document.getElementById("expBox");
+    box.select(); box.setSelectionRange(0, 999999);
+    navigator.clipboard.writeText(box.value)
+      .then(() => { act.textContent = "Copiado"; setTimeout(() => act.textContent = "Copiar código", 1600); })
+      .catch(() => { act.textContent = "Copie manualmente"; });
+    return;
+  }
+  else if(a === "importar"){ importar(); return; }
+  else if(a === "reset"){
+    if(!confirm("Isso apaga tudo o que foi marcado e editado. Continuar?")) return;
+    S = seed();
+  }
+  else return;
+
+  save(); render();
+});
+
+document.addEventListener("change", (e) => {
+  const t = e.target;
+
+  if(t.dataset.sync){
+    const k = t.dataset.sync;
+    S.sync[k] = t.type === "checkbox" ? t.checked : t.value.trim();
+    save(false);
+    if(k === "provider") render();
+    return;
+  }
+  if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
+  if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
+
+  if(t.dataset.check !== undefined){
+    if(t.checked) S.checks[t.dataset.check] = true; else delete S.checks[t.dataset.check];
+    save(); renderNav();
+    const wrap = t.closest(".item, .attr");
+    if(wrap) wrap.classList.toggle("done", t.checked);
+    if(S.tab === "checklist" || S.tab === "inicio") render();
+    return;
+  }
+  if(t.dataset.shopchk !== undefined){
+    const s = S.shop.find(x => x.id === t.dataset.shopchk);
+    if(s){ s.done = t.checked; save(); render(); }
+    return;
+  }
+  if(t.dataset.trip){
+    const k = t.dataset.trip;
+    S.trip[k] = k === "rate" ? (parseFloat(t.value) || 0) : t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.fam){
+    const f = S.family.find(x => x.id === t.dataset.fam);
+    if(f){ f[t.dataset.k] = t.dataset.k === "altura" ? (parseInt(t.value,10)||0) : t.value; save(); }
+    return;
+  }
+  if(t.dataset.day){
+    const dt = t.dataset.day;
+    S.days[dt] = S.days[dt] || {};
+    S.days[dt][t.dataset.k] = t.value;
+    save();
+    if(t.dataset.k === "park") render();
+    return;
+  }
+  if(t.dataset.item){
+    const [dt, id] = t.dataset.item.split("|");
+    const items = S.days[dt] && S.days[dt].items;
+    const it = items && items.find(x => x.id === id);
+    if(!it) return;
+    it[t.dataset.k] = t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.shop){
+    const s = S.shop.find(x => x.id === t.dataset.shop);
+    if(!s) return;
+    const k = t.dataset.k;
+    s[k] = (k === "qtd" || k === "usd" || k === "prio") ? (parseFloat(t.value) || 0) : t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.bud){
+    const b = S.budget.find(x => x.id === t.dataset.bud);
+    if(!b) return;
+    const k = t.dataset.k;
+    b[k] = (k === "plan" || k === "real") ? (parseFloat(t.value) || 0) : t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.din){
+    const r = S.dining.find(x => x.id === t.dataset.din);
+    if(!r) return;
+    r[t.dataset.k] = t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.dinchk !== undefined){
+    const r = S.dining.find(x => x.id === t.dataset.dinchk);
+    if(r){ r.done = t.checked; save(); render(); }
+    return;
+  }
+  if(t.dataset.hotel){
+    const h = S.hotels.find(x => x.id === t.dataset.hotel);
+    if(!h) return;
+    h[t.dataset.k] = t.value;
+    save(); render(); return;
+  }
+});
+
+/* Enter nos campos "adicionar" dispara o botão ao lado */
+document.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if(e.key === "Enter" && (t.dataset.newcheck || t.dataset.newshop || t.dataset.newbud || t.dataset.newdining !== undefined || t.dataset.newitemname !== undefined)){
+    e.preventDefault();
+    const btn = t.parentElement.querySelector("[data-act]");
+    if(btn) btn.click();
+    return;
+  }
+  if((e.key === "Enter" || e.key === " ") && t.closest && t.closest("[data-act='gotoLand']")){
+    e.preventDefault();
+    t.closest("[data-act='gotoLand']").dispatchEvent(new MouseEvent("click", {bubbles:true}));
+  }
+});
+
+/* ============================== 8. AÇÕES ============================== */
+/* sugerirRoteiro() e ROTEIRO_NOTAS ficam na seção 1 — o seed() precisa deles
+   antes de S existir, e const não é hoisted como function declaration. */
+
+function aplicarSugestao(){
+  const plano = sugerirRoteiro(S.trip);
+  if(!plano){ alert("O roteiro sugerido precisa de pelo menos 6 dias. Ajuste as datas na aba Início."); return; }
+
+  /* Itens já cadastrados no dia não se perdem ao reaplicar a sugestão. */
+  Object.keys(plano).forEach(dt => { plano[dt].items = (S.days[dt] && S.days[dt].items) || []; });
+
+  S.days = plano;
+}
+
+/* ---------- sincronização ----------
+   Merge por registro: docs/specs/F2-sync-offline.md · ADR 0003.
+   Espelho de build/merge.js, que roda os mesmos testes fora do navegador. */
+
+/* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
+const COLS = ["family","hotels","shop","budget","dining","extraCheck"];
+const MAPS = ["checks","attrNotes"];
+
+/* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
+   photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
+const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
+                    "lastSync","version","seg","photos","mapsKey"];
+
+const clone = (v) => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
+
+/* Todo caminho sincronizável presente no state. */
+function caminhos(S){
+  const out = [];
+  for(const k of Object.keys(S.trip || {})) out.push("trip:" + k);
+  for(const c of COLS) for(const r of S[c] || []) if(r && r.id) out.push(c + ":" + r.id);
+  for(const m of MAPS) for(const k of Object.keys(S[m] || {})) out.push(m + ":" + k);
+  for(const isoD of Object.keys(S.days || {})){
+    const dia = S.days[isoD] || {};
+    for(const k of Object.keys(dia)) if(k !== "items") out.push("days:" + isoD + ":" + k);
+    for(const it of dia.items || []) if(it && it.id) out.push("days:" + isoD + ":items:" + it.id);
+  }
+  return out;
+}
+
+/* Corta só nos separadores estruturais: id de check tem "|" e pode ter o que quiser. */
+function parse(p){
+  const i = p.indexOf(":");
+  const raiz = p.slice(0, i), resto = p.slice(i + 1);
+  if(raiz !== "days") return {raiz, id:resto};
+  const j = resto.indexOf(":");
+  const campo = resto.slice(j + 1);
+  return campo.slice(0, 6) === "items:"
+    ? {raiz, iso:resto.slice(0, j), item:campo.slice(6)}
+    : {raiz, iso:resto.slice(0, j), campo};
+}
+
+function ler(S, p){
+  const q = parse(p);
+  if(q.raiz === "trip") return (S.trip || {})[q.id];
+  if(COLS.includes(q.raiz)) return (S[q.raiz] || []).find(r => r && r.id === q.id);
+  if(MAPS.includes(q.raiz)) return (S[q.raiz] || {})[q.id];
+  if(q.raiz === "days"){
+    const dia = (S.days || {})[q.iso];
+    if(!dia) return undefined;
+    return q.item ? (dia.items || []).find(it => it && it.id === q.item) : dia[q.campo];
+  }
+  return undefined;
+}
+
+function escrever(S, p, v){
+  const q = parse(p);
+  if(q.raiz === "trip"){ (S.trip = S.trip || {})[q.id] = v; return; }
+  if(COLS.includes(q.raiz)){ porId(S[q.raiz] = S[q.raiz] || [], q.id, v); return; }
+  if(MAPS.includes(q.raiz)){ (S[q.raiz] = S[q.raiz] || {})[q.id] = v; return; }
+  if(q.raiz === "days"){
+    S.days = S.days || {};
+    const dia = S.days[q.iso] = S.days[q.iso] || {};
+    if(q.item) porId(dia.items = dia.items || [], q.item, v);
+    else dia[q.campo] = v;
+  }
+}
+
+function apagar(S, p){
+  const q = parse(p);
+  if(q.raiz === "trip"){ if(S.trip) delete S.trip[q.id]; return; }
+  if(COLS.includes(q.raiz)){ semId(S[q.raiz], q.id); return; }
+  if(MAPS.includes(q.raiz)){ if(S[q.raiz]) delete S[q.raiz][q.id]; return; }
+  if(q.raiz === "days"){
+    const dia = (S.days || {})[q.iso];
+    if(!dia) return;
+    if(q.item) semId(dia.items, q.item); else delete dia[q.campo];
+  }
+}
+
+function porId(arr, id, v){
+  const i = arr.findIndex(r => r && r.id === id);
+  if(i >= 0) arr[i] = v; else arr.push(v);
+}
+function semId(arr, id){
+  if(!arr) return;
+  const i = arr.findIndex(r => r && r.id === id);
+  if(i >= 0) arr.splice(i, 1);
+}
+
+const carimbo = (x, p) => Math.max(((x.u || {})[p]) || 0, ((x.del || {})[p]) || 0);
+
+/* Pura: nada de I/O, Date.now() nem variável global. Empate vai para "a" (o local),
+   que é determinístico e evita ping-pong entre dois aparelhos. */
+function merge(a, b){
+  const R = clone(a);
+  R.u = R.u || {}; R.del = R.del || {};
+  const todos = new Set([].concat(
+    caminhos(a), caminhos(b),
+    Object.keys(a.u || {}), Object.keys(a.del || {}),
+    Object.keys(b.u || {}), Object.keys(b.del || {})
+  ));
+  for(const p of todos){
+    const ca = carimbo(a, p), cb = carimbo(b, p);
+
+    /* Sem carimbo nenhum nos dois lados = dado anterior a esta fase. Preserva. */
+    if(!ca && !cb){
+      const v = ler(a, p) !== undefined ? ler(a, p) : ler(b, p);
+      if(v !== undefined) escrever(R, p, clone(v));
+      continue;
+    }
+
+    const vence = ca >= cb ? a : b, perde = vence === a ? b : a;
+    const morto = (vence.del || {})[p] !== undefined;
+    /* Se o vencedor não tem lápide mas também não tem o dado, cai para o outro lado:
+       só lápide apaga registro, ausência não. */
+    const v = morto ? undefined
+            : (ler(vence, p) !== undefined ? ler(vence, p) : ler(perde, p));
+
+    if(v === undefined){
+      apagar(R, p); delete R.u[p]; R.del[p] = Math.max(ca, cb);
+    }else{
+      escrever(R, p, clone(v)); delete R.del[p]; R.u[p] = Math.max(ca, cb);
+    }
+  }
+  R.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+  return R;
+}
+
+/* Retrato dos caminhos antes de um handler mexer no state. Em captura, então
+   roda antes de qualquer listener de bolha. */
+let retratoAntes = null;
+
+function retrato(){
+  const m = {};
+  for(const p of caminhos(S)) m[p] = JSON.stringify(ler(S, p));
+  return m;
+}
+
+/* Diferença entre o retrato e o agora vira carimbo (mudou) ou lápide (sumiu). */
+function carimbar(antes){
+  const agora = Date.now();
+  const depois = retrato();
+  S.u = S.u || {}; S.del = S.del || {};
+  for(const p in depois){
+    if(antes[p] !== depois[p]){ S.u[p] = agora; delete S.del[p]; }
+  }
+  for(const p in antes){
+    if(!(p in depois)){ S.del[p] = agora; delete S.u[p]; }
+  }
+}
+
+["click","change","input"].forEach(ev =>
+  document.addEventListener(ev, () => { retratoAntes = retrato(); }, true));
+
+function payload(){
+  const p = {};
+  Object.keys(S).forEach(k => { if(!LOCAL_ONLY.includes(k)) p[k] = S[k]; });
+  p.updatedAt = S.updatedAt;
+  p.updatedBy = S.device;
+  return p;
+}
+
+function syncUrls(){
+  const base = S.sync.url.replace(/\/+$/,"");
+  if(S.sync.provider === "jsonbin"){
+    return { read: base + "/latest", write: base,
+             headers: {"X-Master-Key": S.sync.token, "X-Bin-Meta":"false"} };
+  }
+  const h = {};
+  if(S.sync.token) h[S.sync.header || "Authorization"] = S.sync.token;
+  /* O contrato (docs/API.md) é GET/PUT em /trip. Aceita a URL base ou já com o
+     caminho, para não depender de o usuário lembrar de colar o final certo. */
+  const alvo = /\/trip$/.test(base) ? base : base + "/trip";
+  return { read: alvo, write: alvo, headers: h };
+}
+
+function syncMsg(txt, tone){
+  const el = document.getElementById("syncMsg");
+  if(!el) return;
+  el.textContent = txt;
+  el.style.color = tone === "ok" ? "var(--ok)" : tone === "err" ? "var(--crit)" : "var(--fg-dim)";
+}
+
+/* Traduz a falha para algo acionável em vez de "Failed to fetch". */
+function syncErro(e, res){
+  if(res){
+    if(res.status === 401 || res.status === 403) return "Chave recusada pelo servidor. Confira a X-Master-Key.";
+    if(res.status === 404) return "Endereço não encontrado. Confira o Bin ID na URL.";
+    if(res.status === 429) return "Muitas requisições seguidas. Espere um minuto e tente de novo.";
+    return `O servidor respondeu ${res.status}.`;
+  }
+  return "Não foi possível falar com o servidor. Se você está na página publicada no claude.ai, o sync não funciona lá — ela bloqueia chamadas externas. Hospede o arquivo ou abra-o do computador.";
+}
+
+let sincronizando = false;
+
+/* Merge no cliente + version opaca do servidor. Não existe "forçar": com merge
+   por registro, forçar é justamente a maneira de perder dado (ADR 0003). */
+async function syncNow(){
+  if(sincronizando) return;
+  if(!S.sync.url){ syncMsg("Configure a URL do servidor primeiro.", "err"); return; }
+  if(!comRede){ syncMsg("Sem rede agora. Suas alterações estão salvas e sobem sozinhas quando a conexão voltar.", "err"); return; }
+  sincronizando = true;
+  renderNav();
+
+  const u = syncUrls();
+  const jb = S.sync.provider === "jsonbin";
+
+  try{
+    for(let tentativa = 1; tentativa <= 3; tentativa++){
+      syncMsg(tentativa === 1 ? "Sincronizando…" : `Alguém gravou antes — remesclando (${tentativa}/3)…`);
+
+      /* 1 · lê o remoto */
+      let remoto = null, versaoRemota = null, res = null;
+      try{
+        res = await fetch(u.read, {headers: u.headers, cache:"no-store"});
+      }catch(e){ syncMsg(syncErro(e, null), "err"); return; }
+
+      if(res.status === 404){
+        remoto = null;                       /* servidor vazio: primeiro envio */
+      }else if(!res.ok){
+        syncMsg(syncErro(null, res), "err"); return;
+      }else{
+        let body;
+        try{ body = await res.json(); }
+        catch(e){ syncMsg("O servidor respondeu algo que não é JSON válido.", "err"); return; }
+        if(jb){
+          remoto = (body && body.record !== undefined) ? body.record : body;
+        }else{
+          remoto = body ? body.data : null;
+          versaoRemota = body ? body.version : null;
+        }
+        if(!remoto || typeof remoto !== "object" || !remoto.trip) remoto = null;
+      }
+
+      /* 2 · mescla (função pura, testada em build/merge.js) */
+      const local = payload();
+      const junto = remoto ? merge(local, remoto) : local;
+
+      /* 3 · grava, respeitando a version que acabamos de ler */
+      const envio = jb ? junto : {version: versaoRemota, data: junto};
+      let put;
+      try{
+        put = await fetch(u.write, {
+          method:"PUT",
+          headers: Object.assign({"Content-Type":"application/json"}, u.headers),
+          body: JSON.stringify(envio)
+        });
+      }catch(e){ syncMsg(syncErro(e, null), "err"); return; }
+
+      if(put.status === 409){ continue; }        /* corrida: relê e remescla */
+      if(!put.ok){ syncMsg(syncErro(null, put), "err"); return; }
+
+      let resp = null;
+      try{ resp = await put.json(); }catch(e){}
+      S.version = (resp && resp.version) || null;
+
+      aplicarMerge(junto);
+      const quantos = remoto ? Object.keys(remoto.u || {}).length : 0;
+      syncMsg(remoto
+        ? `Sincronizado. Nada se perdeu — os dois lados foram combinados.`
+        : `Enviado. O servidor agora tem a versão deste aparelho (${S.device}).`, "ok");
+      return;
+    }
+    syncMsg("Outro aparelho gravou três vezes seguidas durante a sincronização. Tente de novo em alguns segundos.", "err");
+  }finally{
+    sincronizando = false;
+    renderNav();
+  }
+}
+
+/* ---------- gatilhos de sincronização (F3) ----------
+   Não existe fila de operações: S.u e S.del já SÃO a fila, e o merge resolve o
+   resto. O que falta é só o gatilho. */
+
+let redeTimer;
+
+/* Debounce de 3s: entrar e sair de Wi-Fi dispara o listener várias vezes
+   seguidas, e a trava `sincronizando` sozinha não evita a rajada. */
+function agendarSync(){
+  clearTimeout(redeTimer);
+  redeTimer = setTimeout(() => {
+    if(comRede && pendente() && !sincronizando) syncNow();
+  }, 3000);
+}
+
+function marcarRede(ligada){
+  const mudou = comRede !== ligada;
+  comRede = ligada;
+  if(mudou) renderNav();
+  if(ligada) agendarSync();
+}
+
+if(NATIVE && Capacitor.Plugins && Capacitor.Plugins.Network){
+  const Rede = Capacitor.Plugins.Network;
+  Rede.getStatus().then(st => marcarRede(!!st.connected)).catch(() => {});
+  Rede.addListener("networkStatusChange", st => marcarRede(!!st.connected));
+}else{
+  addEventListener("online",  () => marcarRede(true));
+  addEventListener("offline", () => marcarRede(false));
+}
+
+/* App voltando do segundo plano. Sem retry agressivo: se falhar, espera o
+   próximo evento de rede — com 4 aparelhos e o botão manual à mão, o próximo
+   evento é backoff suficiente. */
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible") agendarSync();
+});
+
+/* Aplica o resultado do merge sem carimbar de novo: os carimbos já vieram
+   prontos de dentro do merge, e recarimbar aqui marcaria tudo como local. */
+function aplicarMerge(junto){
+  const manter = {};
+  LOCAL_ONLY.forEach(k => manter[k] = S[k]);
+  S = Object.assign(seed(), junto, manter);
+  S.lastSync = S.updatedAt = junto.updatedAt || Date.now();
+  retratoAntes = null;
+  save(false);
+  render();
+}
+
+async function baixarJson(){
+  const nome = "viagem-disney-" + iso(today()) + ".json";
+  const dados = JSON.stringify(payload(), null, 2);
+  const msg = document.getElementById("dlMsg");
+  const diz = (t,c) => { if(msg){ msg.textContent = t; msg.style.color = c; } };
+
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:nome, data:dados}); diz("Backup salvo.", "var(--ok)"); }
+    catch(err){
+      const c = err && err.code;
+      diz(c === "declined" ? "Download cancelado." :
+          c === "too_large" ? "Arquivo grande demais para salvar aqui — use o código de transferência." :
+          "Não foi possível salvar por aqui. Use o código de transferência abaixo.", "var(--crit)");
+    }
+    return;
+  }
+  try{
+    const url = URL.createObjectURL(new Blob([dados], {type:"application/json"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = nome; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    diz("Backup salvo.", "var(--ok)");
+  }catch(e){ diz("Este navegador não deixou baixar. Use o código de transferência abaixo.", "var(--crit)"); }
+}
+
+function encodeState(){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(payload()))));
+}
+
+function importar(){
+  const box = document.getElementById("impBox");
+  const msg = document.getElementById("impMsg");
+  const raw = box.value.trim();
+  if(!raw){ msg.textContent = "Cole o código antes de importar."; msg.style.color = "var(--crit)"; return; }
+  let obj;
+  try{
+    obj = JSON.parse(decodeURIComponent(escape(atob(raw))));
+  }catch(err){
+    try{ obj = JSON.parse(raw); }
+    catch(err2){ msg.textContent = "Código inválido. Copie de novo do outro aparelho, sem cortar nenhuma parte."; msg.style.color = "var(--crit)"; return; }
+  }
+  if(!obj || typeof obj !== "object" || !obj.trip || !Array.isArray(obj.shop)){
+    msg.textContent = "Esse código não é de um planejador de viagem.";
+    msg.style.color = "var(--crit)"; return;
+  }
+  if(!confirm("Isso substitui os dados deste aparelho. Continuar?")) return;
+  const manter = {};
+  LOCAL_ONLY.forEach(k => manter[k] = S[k]);
+  S = Object.assign(seed(), obj, manter);
+  S.tab = "backup";
+  save(); render();
+  const m2 = document.getElementById("impMsg");
+  m2.textContent = "Dados importados."; m2.style.color = "var(--ok)";
+}
+
+/* ============================== 8b. AGENDA E CALENDÁRIO ==============================
+   Lembretes viram arquivo .ics e quem dispara é o Calendário do aparelho
+   (ADR 0009). Espelho de build/agenda.js, que roda os mesmos 13 asserts fora
+   do navegador. */
+
+const PARQUE = {
+  mk:"Magic Kingdom", ak:"Animal Kingdom", hs:"Hollywood Studios",
+  ue:"Epic Universe", ds:"Disney Springs", mia:"Miami",
+  off:"Estrada / compras", none:"Descanso"
+};
+
+const partes = (isoDia) => isoDia.split("-").map(Number);
+const ddmm = (isoDia) => { const [,m,dd] = partes(isoDia); return String(dd).padStart(2,"0")+"/"+String(m).padStart(2,"0"); };
+
+/* Dias da viagem, inclusive nas duas pontas. Teto de 60 pelo mesmo motivo do
+   daysRange do app: viagem digitada errada não vira loop infinito. */
+function diasDaViagem(trip){
+  const out = [];
+  if(!trip || !trip.start || !trip.end) return out;
+  const [ay,am,ad] = partes(trip.start);
+  const [by,bm,bd] = partes(trip.end);
+  const fim = new Date(by, bm-1, bd);
+  for(let cur = new Date(ay, am-1, ad); cur <= fim && out.length < 60; cur.setDate(cur.getDate()+1)){
+    out.push(cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0")+"-"+String(cur.getDate()).padStart(2,"0"));
+  }
+  return out;
+}
+
+function construirAgenda(S, agora){
+  const out = [];
+  const t = agora instanceof Date ? agora.getTime() : Number(agora);
+  const dining = (S && S.dining) || [];
+  const days = (S && S.days) || {};
+
+  /* 1 · briefing das 07h, um por dia de viagem. Dia sem parque não toca. */
+  diasDaViagem(S && S.trip).forEach(isoDia => {
+    const dia = days[isoDia];
+    if(!dia || dia.park === "none") return;
+    const [y,m,dd] = partes(isoDia);
+    const itens = (dia.items || []).length;
+    const reservas = dining.filter(r => r.dia === isoDia && r.hora)
+      .map(r => "Reserva " + r.hora + " " + r.nome);
+    const linha = [];
+    if(itens) linha.push(itens + (itens === 1 ? " programa" : " programas"));
+    linha.push(...reservas);
+    out.push({
+      id:"briefing:" + isoDia,
+      at:new Date(y, m-1, dd, 7, 0, 0, 0),
+      titulo:"Hoje: " + (PARQUE[dia.park] || "Dia livre"),
+      corpo:linha.length ? linha.join(" · ") : String(dia.notes || "").trim()
+    });
+  });
+
+  dining.forEach(r => {
+    if(!r.dia) return;
+    const [y,m,dd] = partes(r.dia);
+
+    /* 2 · abertura da janela de 60 dias, 06:50 — dez minutos antes da Disney
+       abrir. Só para o que ainda não está reservado, e só se ainda não passou:
+       a janela que abriu em junho não adianta lembrar. */
+    if(!r.done){
+      const at = new Date(y, m-1, dd-60, 6, 50, 0, 0);
+      if(at.getTime() > t) out.push({
+        id:"janela:" + r.id,
+        at,
+        titulo:"Abre hoje: " + r.nome,
+        corpo:"Reserva para " + ddmm(r.dia) + " libera às 7h. Abra o app da Disney."
+      });
+    }
+
+    /* 3 · uma hora antes da reserva, reservada ou não. Hora negativa cai no
+       dia anterior sozinha — é o que se quer para reserva às 00:30. */
+    if(r.hora){
+      const [hh,mi] = r.hora.split(":").map(Number);
+      out.push({
+        id:"antes:" + r.id,
+        at:new Date(y, m-1, dd, hh-1, mi, 0, 0),
+        titulo:"Em 1h: " + r.nome,
+        corpo:r.hora + (r.local ? " · " + r.local : "")
+      });
+    }
+  });
+
+  out.sort((a,b) => a.at - b.at || (a.id < b.id ? -1 : 1));
+  return out;
+}
+
+/* ---------- .ics (RFC 5545) ---------- */
+
+/* Ponto e vírgula, vírgula, barra e quebra de linha são estruturais no formato. */
+function icsEsc(t){
+  return String(t == null ? "" : t)
+    .replace(/\\/g, "\\\\").replace(/;/g, "\\;")
+    .replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+
+/* Hora FLUTUANTE de propósito: sem Z e sem TZID, o alarme toca às 7h de onde o
+   aparelho estiver. A viagem cruza BRT → EDT e é isso que se quer. */
+function icsData(dt){
+  const p = (n) => String(n).padStart(2, "0");
+  return dt.getFullYear() + p(dt.getMonth()+1) + p(dt.getDate())
+       + "T" + p(dt.getHours()) + p(dt.getMinutes()) + "00";
+}
+
+/* O formato limita a linha a 75 octetos; continuação começa com espaço. */
+function icsDobra(linha){
+  const b = [];
+  let atual = "";
+  for(const ch of linha){
+    const cand = atual + ch;
+    if(new TextEncoder().encode(cand).length > 73){ b.push(atual); atual = " " + ch; }
+    else atual = cand;
+  }
+  b.push(atual);
+  return b.join("\r\n");
+}
+
+function gerarIcs(){
+  const ag = construirAgenda(S, Date.now());
+  const carimbo = icsData(new Date());
+  const L = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Viagem Disney//PT",
+             "CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:Viagem Disney"];
+  ag.forEach(x => {
+    const fim = new Date(x.at.getTime() + 15*60000);
+    L.push("BEGIN:VEVENT");
+    /* UID estável: reimportar substitui em vez de duplicar. */
+    L.push(icsDobra("UID:" + x.id.replace(/[^a-zA-Z0-9:_-]/g, "-") + "@disneytrip"));
+    L.push("DTSTAMP:" + carimbo + "Z");
+    L.push("DTSTART:" + icsData(x.at));
+    L.push("DTEND:" + icsData(fim));
+    L.push(icsDobra("SUMMARY:" + icsEsc(x.titulo)));
+    if(x.corpo) L.push(icsDobra("DESCRIPTION:" + icsEsc(x.corpo)));
+    L.push("BEGIN:VALARM","TRIGGER:PT0S","ACTION:DISPLAY",
+           icsDobra("DESCRIPTION:" + icsEsc(x.titulo)),"END:VALARM");
+    L.push("END:VEVENT");
+  });
+  L.push("END:VCALENDAR");
+  return {texto: L.join("\r\n") + "\r\n", total: ag.length};
+}
+
+async function baixarIcs(){
+  const msg = document.getElementById("icsMsg");
+  const diz = (t,c) => { if(msg){ msg.textContent = t; msg.style.color = c; } };
+  const {texto, total} = gerarIcs();
+
+  if(!total){ diz("Nada para exportar ainda. Defina os dias do roteiro e o horário das reservas.", "var(--warn)"); return; }
+
+  const nome = "viagem-disney.ics";
+  const arq = new File([texto], nome, {type:"text/calendar"});
+
+  /* No iOS o compartilhamento é o caminho que chega ao Calendário; o link com
+     download só funciona bem no computador. Tenta o nativo e cai para o link. */
+  if(navigator.canShare && navigator.canShare({files:[arq]})){
+    try{
+      await navigator.share({files:[arq], title:"Viagem Disney"});
+      diz(total + " lembretes exportados. Escolha “Calendário” para importar.", "var(--ok)");
+      return;
+    }catch(e){ if(e && e.name === "AbortError"){ diz("Exportação cancelada.", "var(--fg-dim)"); return; } }
+  }
+  try{
+    const url = URL.createObjectURL(new Blob([texto], {type:"text/calendar"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = nome; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    diz(total + " lembretes salvos em " + nome + ". Abra o arquivo para importar no Calendário.", "var(--ok)");
+  }catch(e){ diz("Este navegador não deixou baixar o arquivo.", "var(--crit)"); }
+}
+
+/* ============================== 9. TEMA ============================== */
+
+function toggleTheme(){
+  const root = document.documentElement;
+  const cur = root.getAttribute("data-theme")
+    || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+}
+
+/* ============================== 10. AUTOTESTE ============================== */
+/* Uma checagem só, no lugar onde a lógica pode quebrar em silêncio:
+   contagem de dias, conversão de moeda e altura mínima. */
+(function selfTest(){
+  const bak = S;
+  try{
+    S = seed();
+    S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+    console.assert(tripDays().length === 10, "tripDays: esperado 10 dias, veio " + tripDays().length);
+    console.assert(tripDays()[0] === "2026-08-23" && tripDays()[9] === "2026-09-01", "tripDays: extremos errados");
+    console.assert(WD[d("2026-08-23").getDay()] === "domingo", "23/08/2026 deveria cair num domingo");
+
+    S.trip.rate = 5;
+    console.assert(toBRL(100,"USD") === 500, "toBRL USD");
+    console.assert(toBRL(100,"BRL") === 100, "toBRL BRL");
+
+    S.family = [{id:"a",nome:"Kid",tipo:"crianca",altura:104}];
+    const h = heightInfo(112);
+    console.assert(h && h[0].ok === false && h[0].falta === 8, "heightInfo: deveria faltar 8 cm");
+    console.assert(heightInfo(0) === null, "heightInfo: altura 0 = livre");
+    console.assert(heightInfo(102)[0].ok === true, "heightInfo: 104 cm passa em 102 cm");
+
+    S.checks = {}; S.checks["x"] = true;
+    console.assert(progress(["x","y"]).pct === 50, "progress: 1 de 2 = 50%");
+
+    /* roteiro real: voo 23/08, pouso+carro 24/08, Orlando, volta 30/08, Miami até o voo de 01/09 19h */
+    const plano10 = sugerirRoteiro({start:"2026-08-23", end:"2026-09-01"});
+    console.assert(plano10["2026-08-23"].park === "none", "23/08 é o voo, sem parque nem estrada");
+    console.assert(plano10["2026-08-24"].park === "off" && /Orlando/.test(plano10["2026-08-24"].notes), "24/08 é pouso 7h + carro + ida a Orlando no mesmo dia");
+    console.assert(plano10["2026-08-30"].park === "off" && /Miami/.test(plano10["2026-08-30"].notes), "30/08 é a volta a Miami");
+    console.assert(plano10["2026-08-31"].park === "mia", "31/08 é dia inteiro em Miami");
+    console.assert(plano10["2026-09-01"].park === "mia" && /19h/.test(plano10["2026-09-01"].notes), "01/09 lembra do voo às 19h");
+    const quatro = ["mk","ak","hs","ue"];
+    const feitos = quatro.filter(p => Object.values(plano10).some(x => x.park === p));
+    console.assert(feitos.length === 4, "os 4 parques precisam caber no roteiro de 10 dias, faltou: " + quatro.filter(p=>!feitos.includes(p)));
+    console.assert(Object.values(plano10).every(x => PARKS[x.park]), "o roteiro gerou um parque que não existe na lista");
+    console.assert(sugerirRoteiro({start:"2026-08-23", end:"2026-08-27"}) === null, "roteiro curto demais deve retornar null em vez de quebrar");
+
+    S.days = {};
+    aplicarSugestao();
+    const dias = tripDays();
+    console.assert(Object.keys(S.days).length === dias.length, "aplicarSugestao precisa preencher todos os " + dias.length + " dias");
+    console.assert(S.days["2026-08-24"].park === "off", "aplicarSugestao aplicou o mesmo roteiro que sugerirRoteiro");
+
+    /* ---- F2: carimbos, lápides e merge (ADR 0003) ---- */
+    console.assert(!LOCAL_ONLY.includes("u") && !LOCAL_ONLY.includes("del"),
+      "u e del TÊM que viajar no sync, senão o merge não existe entre aparelhos");
+    console.assert(LOCAL_ONLY.includes("photos") && LOCAL_ONLY.includes("version") && LOCAL_ONLY.includes("sync"),
+      "fotos, version e a config do servidor não podem viajar");
+    console.assert(payload().u !== undefined && payload().sync === undefined,
+      "payload leva u e não leva a chave do servidor");
+
+    {
+      const st = (o) => Object.assign({trip:{}, family:[], hotels:[], shop:[], budget:[],
+                                       dining:[], extraCheck:[], checks:{}, attrNotes:{},
+                                       days:{}, u:{}, del:{}}, o);
+      /* lados mexem em registros diferentes: nada se perde */
+      const A = st({shop:[{id:"s1",item:"A"}], u:{"shop:s1":200}});
+      const B = st({budget:[{id:"b1",label:"B"}], u:{"budget:b1":100}});
+      const m1 = merge(A, B);
+      console.assert(m1.shop.length === 1 && m1.budget.length === 1,
+        "merge de registros diferentes tem que manter os dois");
+
+      /* mesmo registro: vence o carimbo maior */
+      const m2 = merge(st({shop:[{id:"s1",item:"velho"}], u:{"shop:s1":100}}),
+                       st({shop:[{id:"s1",item:"novo"}],  u:{"shop:s1":300}}));
+      console.assert(m2.shop[0].item === "novo", "merge tem que ficar com o carimbo mais recente");
+
+      /* lápide não ressuscita */
+      const m3 = merge(st({shop:[], del:{"shop:s1":300}}),
+                       st({shop:[{id:"s1",item:"zumbi"}], u:{"shop:s1":100}}));
+      console.assert(m3.shop.length === 0, "registro apagado não pode voltar do outro aparelho");
+
+      /* chave de check com | e acento sobrevive ao merge */
+      const k = "at|mk4|Jungle Cruise";
+      const m4 = merge(st({checks:{[k]:true}, u:{["checks:"+k]:200}}), st({}));
+      console.assert(m4.checks[k] === true, "chave de check com | e acento não pode se perder no merge");
+    }
+
+    /* carimbar() marca o que mudou e enterra o que sumiu */
+    {
+      S.shop = [{id:"z1", item:"antes", cat:"x", loja:"", qtd:1, usd:0, prio:2, done:false}];
+      S.u = {}; S.del = {};
+      const antes = retrato();
+      S.shop[0].item = "depois";
+      carimbar(antes);
+      console.assert(S.u["shop:z1"] > 0, "editar um registro tem que carimbar o caminho dele");
+
+      const antes2 = retrato();
+      S.shop = [];
+      carimbar(antes2);
+      console.assert(S.del["shop:z1"] > 0 && S.u["shop:z1"] === undefined,
+        "apagar um registro tem que virar lápide, não sumiço silencioso");
+    }
+
+    /* nenhuma atração pode apontar para um parque removido */
+    Object.keys(ATTR).forEach(k => console.assert(PARKS[k], "ATTR tem parque fora de PARKS: " + k));
+    console.assert(!ATTR.ep && !ATTR.wp && !!ATTR.ue, "EPCOT e parque aquático saíram, Epic Universe entrou");
+    console.assert(parkOf("ep") === "none" && parkOf("mk") === "mk", "roteiro antigo com parque removido cai em 'none'");
+
+    /* a régua do Epic Universe: 104 cm passa em 102, não passa em 107 */
+    S.family = [{id:"k",nome:"Criança",tipo:"crianca",altura:104}];
+    console.assert(heightInfo(102)[0].ok && !heightInfo(107)[0].ok, "régua de 102/107 cm");
+
+    /* mapa: paradas do dia (voo=só itens, estrada=rota+itens, parque=hotel+parque+itens em ordem de horário) */
+    console.assert(dayStops("none","qualquer coisa",[]).length === 0, "dia de voo sem item nenhum não deveria gerar paradas");
+    console.assert(dayStops("none","",[{id:"1",hora:"22:00",nome:"Embarque GRU"}])[0] === "Embarque GRU", "dia de voo com item usa só o item, sem base fixa");
+
+    const stopsIda = dayStops("off","seguir direto para Orlando",[]);
+    console.assert(stopsIda[0]==="Miami International Airport, FL" && stopsIda[1]==="Orlando, FL", "chegada: rota Miami → Orlando");
+    const stopsVolta = dayStops("off","Orlando → Miami",[]);
+    console.assert(stopsVolta[0]==="Orlando, FL" && stopsVolta[1]==="Miami International Airport, FL", "volta: rota Orlando → Miami");
+    const stopsOffItem = dayStops("off","Orlando → Miami",[{id:"1",hora:"11:00",nome:"Sawgrass Mills"}]);
+    console.assert(stopsOffItem[2].indexOf("Sawgrass Mills")!==-1, "dia de estrada: item cadastrado vem depois da rota");
+
+    const bakHotels = S.hotels;
+    S.hotels = [{id:"h1",nome:"Test Hotel Orlando",cidade:"Orlando, FL",endereco:""}];
+    const itensMk = [
+      {id:"a",hora:"18:30",nome:"Chef Mickey's"},
+      {id:"b",hora:"09:00",nome:"Space Mountain"},
+      {id:"c",hora:"",nome:"Sem horário"}
+    ];
+    const stopsMk = dayStops("mk","",itensMk);
+    console.assert(stopsMk[0].indexOf("Test Hotel Orlando")!==-1, "mapa do dia começa no hotel da cidade certa");
+    console.assert(stopsMk[1].indexOf("Magic Kingdom")!==-1, "mapa do dia passa pelo parque");
+    console.assert(stopsMk[2].indexOf("Space Mountain")!==-1, "item das 09:00 vem antes do das 18:30 — alinhados por horário");
+    console.assert(stopsMk[3].indexOf("Chef Mickey's")!==-1, "item das 18:30 vem depois do das 09:00");
+    console.assert(stopsMk[4].indexOf("Sem horário")!==-1, "item sem horário vai para o fim, não quebra a ordenação");
+    console.assert(dayStops("mk","",[{id:"x",hora:"10:00",nome:"  "}]).length === 2, "item com nome só de espaços não vira parada");
+    S.hotels = bakHotels;
+
+    console.assert(mapEmbedUrl(["Orlando, FL"], "") === "", "sem chave configurada, mapEmbedUrl não deve tentar montar URL nenhuma");
+    console.assert(mapEmbedUrl(["Orlando, FL"], "FAKEKEY").indexOf("/place?key=FAKEKEY")!==-1, "1 parada = endpoint /place (pino único)");
+    console.assert(mapEmbedUrl(["A","B","C"], "FAKEKEY").indexOf("/directions?key=FAKEKEY")!==-1, "3+ paradas = endpoint /directions");
+    console.assert(mapEmbedUrl(["A","B","C"], "FAKEKEY").indexOf("waypoints=B")!==-1, "parada do meio vira waypoint");
+
+    const bakKey = S.mapsKey;
+    S.mapsKey = "";
+    console.assert(mapEmbedBlock(["Orlando, FL"],{}).indexOf("mapembed-empty")!==-1, "sem chave, mostra o aviso em vez de um iframe quebrado");
+    console.assert(mapEmbedBlock(["Orlando, FL"],{}).indexOf("abrir no Google Maps")!==-1, "sem chave, o link de abrir no Maps continua funcionando");
+    S.mapsKey = "FAKEKEY";
+    console.assert(mapEmbedBlock(["Orlando, FL"],{}).indexOf("<iframe")!==-1, "com chave, o iframe aparece");
+    const muitas = Array.from({length:12}, (_,i) => "Local " + i);
+    console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
+    console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
+    S.mapsKey = bakKey;
+
+    console.assert(LOCAL_ONLY.includes("mapsKey"), "a chave do Maps não pode viajar no sync nem no código de transferência");
+
+    console.assert(landId("mk","Main Street U.S.A.") === landId("mk","Main Street U.S.A."), "landId é determinístico");
+    console.assert(!/[^a-z0-9-]/.test(landId("mk","Main Street U.S.A.").replace("land-mk-","")), "landId vira um id de HTML válido mesmo com acento/pontuação");
+
+    /* restaurantes e hotéis viajam no sync — não são preferência de aparelho */
+    console.assert(Array.isArray(S.dining) && S.dining.length > 0, "seed() precisa vir com os restaurantes de largada");
+    console.assert(S.dining.every(r => r.dia === "" && r.hora === ""), "restaurantes de largada não devem vir com dia/hora chutados");
+    console.assert(Array.isArray(S.hotels) && S.hotels.length === 2, "seed() precisa vir com Miami e Orlando em Hospedagem");
+    console.assert(!LOCAL_ONLY.includes("dining") && !LOCAL_ONLY.includes("hotels"), "restaurantes e hotéis têm que sincronizar entre aparelhos");
+
+    /* Restaurantes ↔ Roteiro: reserva com dia vira item do dia sozinha, sem duplicar cadastro */
+    {
+      const bakDining = S.dining;
+      S.dining = [
+        {id:"r1", nome:"Chef Mickey's", local:"Contemporary", nota:"", done:false, dia:"2026-08-25", hora:"18:30"},
+        {id:"r2", nome:"Be Our Guest", local:"Magic Kingdom", nota:"", done:false, dia:"", hora:""},
+        {id:"r3", nome:"'Ohana", local:"Polynesian", nota:"", done:false, dia:"2026-08-26", hora:"08:00"}
+      ];
+      console.assert(diningForDay("2026-08-25").length === 1 && diningForDay("2026-08-25")[0].nome === "Chef Mickey's",
+        "só a reserva com dia == 25/08 deve aparecer no dia 25/08");
+      console.assert(diningForDay("2026-08-27").length === 0, "reserva sem dia (ou de outro dia) não vaza para dias que não são o dela");
+
+      const diaComItemManual = {items:[{id:"m1", hora:"09:00", nome:"Space Mountain"}]};
+      const merge = mergedDayItems("2026-08-25", diaComItemManual);
+      console.assert(merge.length === 2, "o dia junta item manual + reserva daquele dia, sem duplicar");
+      console.assert(merge[0].nome === "Space Mountain" && merge[1].nome === "Chef Mickey's", "junção fica ordenada por horário, não por origem");
+      console.assert(merge[1].fonte === "dining" && merge[0].fonte === "item", "cada item sabe de onde veio, pra tela decidir como desenhar");
+
+      S.dining = bakDining;
+    }
+
+    /* sync: as chaves e as preferências de tela nunca podem sair daqui */
+    S.sync = {provider:"jsonbin", url:"https://api.jsonbin.io/v3/b/abc", token:"SEGREDO", header:"X-Master-Key", auto:false};
+    S.mapsKey = "CHAVE-DO-MAPA";
+    S.tab = "compras"; S.device = "Celular";
+    const p = payload();
+    console.assert(p.sync === undefined, "payload NÃO pode carregar a chave do servidor");
+    console.assert(p.mapsKey === undefined, "payload NÃO pode carregar a chave do Maps");
+    console.assert(p.tab === undefined && p.parkFilter === undefined, "payload não deve carregar preferências de tela");
+    console.assert(p.updatedBy === "Celular" && p.checks && p.trip, "payload precisa levar os dados e a autoria");
+    console.assert(JSON.stringify(payload()).indexOf("SEGREDO") === -1, "a chave do sync vazou no payload");
+    console.assert(JSON.stringify(payload()).indexOf("CHAVE-DO-MAPA") === -1, "a chave do Maps vazou no payload");
+    console.assert(encodeState().indexOf("SEGREDO") === -1 && encodeState().indexOf("CHAVE-DO-MAPA") === -1 &&
+      atob(encodeState()).indexOf("SEGREDO") === -1 && atob(encodeState()).indexOf("CHAVE-DO-MAPA") === -1,
+      "alguma chave vazou no código de transferência");
+
+    const u = syncUrls();
+    console.assert(u.read.endsWith("/latest") && !u.write.endsWith("/latest"), "jsonbin: leitura usa /latest, escrita não");
+    console.assert(u.headers["X-Master-Key"] === "SEGREDO", "jsonbin: cabeçalho da chave");
+    /* endpoint próprio: o cliente concatena /trip (docs/API.md §3) */
+    S.sync.provider = "generic"; S.sync.header = "Authorization"; S.sync.url = "https://x.dev/v/";
+    const g = syncUrls();
+    console.assert(g.read === "https://x.dev/v/trip" && g.read === g.write,
+      "generic: mesma URL para ler e gravar, com /trip e sem barra final — veio " + g.read);
+    console.assert(g.headers.Authorization === "SEGREDO", "generic: cabeçalho configurável");
+    S.sync.url = "https://x.dev/v/trip";
+    console.assert(syncUrls().read === "https://x.dev/v/trip",
+      "URL já colada com /trip não pode virar /trip/trip");
+
+    /* ---- F3: os quatro estados visíveis, sempre com texto ---- */
+    {
+      const redeBak = comRede;
+      S.sync.url = "https://x.dev/v"; S.updatedAt = 10; S.lastSync = 10;
+      comRede = true;
+      console.assert(rotuloSalvo() === "salvo", "em dia e com rede = salvo");
+      S.updatedAt = 20;
+      console.assert(rotuloSalvo() === "salvo · sync pendente", "pendente com rede");
+      comRede = false;
+      console.assert(rotuloSalvo() === "salvo · offline", "pendente sem rede tem que dizer offline");
+      console.assert(rotuloBotao(false) === "Offline •" && rotuloBotao(true) === "Off •",
+        "o botão também precisa mostrar offline, não só o rótulo");
+      S.updatedAt = 10; S.lastSync = 10;
+      console.assert(rotuloBotao(false) === "Offline", "sem pendência offline não leva bolinha");
+      S.sync.url = "";
+      console.assert(rotuloBotao(false) === "Configurar sync", "sem servidor, o botão convida a configurar");
+      comRede = redeBak;
+    }
+
+    /* pendente() só liga com sync configurado e alteração posterior */
+    S.sync.url = ""; S.updatedAt = 10; S.lastSync = 5;
+    console.assert(pendente() === false, "sem servidor não existe pendência");
+    S.sync.url = "https://x.dev/v";
+    console.assert(pendente() === true, "alteração após o último sync = pendente");
+    S.lastSync = 10;
+    console.assert(pendente() === false, "sincronizado = sem pendência");
+  } finally { S = bak; }
+})();
+
+/* ============================== 11. INÍCIO ============================== */
+render();
+
+/* Service worker: offline completo (ADR 0008). Só sob http(s) — abrir o arquivo
+   direto do Finder (file://) não registra, e não precisa. */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .catch(e => console.warn("service worker não registrou:", e && e.message));
+  });
+}
+</script>
