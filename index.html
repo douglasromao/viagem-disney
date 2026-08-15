@@ -1688,7 +1688,7 @@ function blocoViagem(){
           <input type="checkbox" data-simular ${S.simularViagem ? "checked" : ""}>
           <span class="txt">
             <b>Ver como fica durante a viagem</b>
-            <p>Três telas só aparecem entre ${S.trip.start ? fmtDia(S.trip.start) : "a ida"} e ${S.trip.end ? fmtDia(S.trip.end) : "a volta"}: o dia de hoje na Home, o botão <b>+ Gasto</b> e o <b>Onde estacionei</b>. Ligue aqui para conferir agora — não muda dado nenhum, e não sincroniza.</p>
+            <p>Duas telas só aparecem entre ${S.trip.start ? fmtDia(S.trip.start) : "a ida"} e ${S.trip.end ? fmtDia(S.trip.end) : "a volta"}: o <b>dia de hoje</b> no topo da Home e o <b>Onde estacionei</b>. Ligue aqui para conferir agora — não muda dado nenhum, e não sincroniza. O botão <b>+ Gasto</b> fica sempre visível.</p>
           </span>
         </label>
       </div>
@@ -3594,9 +3594,11 @@ function removerGasto(id){
   render();
 }
 
-/* Botão flutuante: só durante a viagem, que é quando lançar gasto é rotina. */
+/* Botão flutuante, sempre visível.
+   Já esteve travado atrás de faseViagem()==="durante" e foi erro: passagem,
+   hotel e ingresso são gastos da viagem lançados meses antes, e a trava só
+   deixava a tela invisível justamente enquanto dava tempo de conferi-la. */
 function botaoGasto(){
-  if(faseViagem() !== "durante") return "";
   return `<button class="fab" type="button" data-act="gastoAbrir" aria-label="Lançar um gasto">
     <span>+</span> Gasto
   </button>`;
@@ -4354,14 +4356,14 @@ function toggleTheme(){
         "simulando com a viagem no futuro, mostra o primeiro dia em vez de nada");
       console.assert(blocoHojeNoRoteiro().indexOf("dia 1 de") !== -1,
         "e diz que é o dia 1, não finge ser hoje");
-      console.assert(botaoGasto() !== "", "simulando, o botão + Gasto aparece");
       console.assert(blocoCarro() !== "", "simulando, o Onde estacionei aparece");
       S.trip.start = mais(-1); S.trip.end = mais(8);
       console.assert(blocoHojeNoRoteiro() !== "", "simulando com datas válidas, o dia aparece");
       S.simularViagem = false;
       S.trip.start = mais(5); S.trip.end = mais(15);
-      console.assert(botaoGasto() === "" && blocoCarro() === "",
-        "desligado, volta a esconder");
+      console.assert(blocoCarro() === "", "desligado, o Onde estacionei volta a esconder");
+      console.assert(botaoGasto() !== "",
+        "o + Gasto NÃO depende da fase: passagem e hotel são lançados antes de embarcar");
       console.assert(LOCAL_ONLY.includes("simularViagem"),
         "pré-visualização é do aparelho: não pode ligar no celular de todo mundo");
 
