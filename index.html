@@ -85,7 +85,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 button[disabled]{opacity:.45;cursor:not-allowed}
 code{font-family:var(--font-data);font-size:.88em;background:var(--surface-3);padding:1px 5px;border-radius:4px;word-break:break-all}
 
-main{padding:26px 30px 90px;max-width:1120px;width:100%}
+main{padding:26px 30px 90px;max-width:1120px;width:100%;min-width:0}
 h1{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.6vw,36px);letter-spacing:.03em;text-transform:uppercase;margin:0 0 4px;text-wrap:balance}
 .sub{color:var(--fg-dim);margin:0 0 22px;font-size:14.5px;max-width:66ch}
 h2{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:.07em;text-transform:uppercase;margin:0}
@@ -223,7 +223,10 @@ table select:hover{border-color:var(--line-soft)}
 .day-bd select{font-family:var(--font-display);letter-spacing:.05em;text-transform:uppercase;font-size:13px;color:var(--c);font-weight:600}
 
 .dayitems{display:flex;flex-direction:column;gap:6px}
-.dayitem{display:grid;grid-template-columns:84px 1fr 26px;gap:6px;align-items:center}
+.dayitem{display:grid;grid-template-columns:22px 1fr 26px;gap:6px;align-items:center}
+.dayitem-dining{grid-template-columns:22px 84px 1fr 26px}
+/* item que veio de Parques: filete na lateral, sem gastar largura com etiqueta */
+.dayitem-attr input[type=text]{border-left:3px solid var(--accent)}
 .dayitem input[type=time]{font-family:var(--font-data);font-size:12.5px;padding:6px 5px;text-align:center}
 .dayitem input[type=text]{font-size:13px;padding:6px 8px}
 .dayitem-add{margin-top:2px}
@@ -282,6 +285,31 @@ table select:hover{border-color:var(--line-soft)}
 .nav button .lbl{display:flex;align-items:center;gap:9px}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
+
+/* ---------- abas de dia e períodos ---------- */
+.diasbar{display:flex;min-width:0;max-width:100%;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 10px;margin-bottom:4px;scroll-snap-type:x proximity}
+.diachip{display:flex;flex-direction:column;align-items:center;gap:1px;flex:0 0 auto;padding:8px 12px;border-radius:12px;scroll-snap-align:start;line-height:1.15;position:relative}
+.diachip .parkicon{margin-bottom:2px}
+.diachip-d{font-family:var(--font-display);font-size:14px;letter-spacing:0;text-transform:none}
+.diachip-w{font-size:10px;letter-spacing:.04em;opacity:.75;text-transform:none}
+.diachip-n{position:absolute;top:3px;right:4px;font-size:9.5px;font-family:var(--font-data);
+  background:var(--accent);color:var(--on-accent);border-radius:999px;padding:0 4px;min-width:14px;text-align:center}
+.diachip[aria-pressed="true"] .diachip-n{background:var(--paper);color:var(--fg)}
+
+.periodo{margin:0 0 12px}
+.periodo-hd{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-data);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--fg-faint);margin:0 0 5px;
+}
+.periodo-hd::after{content:"";flex:1;height:1px;background:var(--line-soft);order:3}
+.periodo-hd span{order:2;background:var(--surface-3);color:var(--fg-dim);border-radius:999px;padding:0 6px;font-size:10px}
+.dayitem .mv{display:flex;flex-direction:column;gap:1px;flex:0 0 auto;width:22px}
+.dayitem .mv button{
+  background:none;border:0;cursor:pointer;color:var(--fg-faint);
+  font-size:11px;line-height:1;padding:2px 0;border-radius:4px;
+}
+.dayitem .mv button:hover{color:var(--accent);background:var(--surface-3)}
 
 /* ---------- linha de reserva ---------- */
 .dinrow{display:grid;gap:6px;grid-template-columns:1fr 1fr;align-items:center}
@@ -875,7 +903,8 @@ function seed(){
     parkFilter:"mk",
     onlyPlan:false,
     onlyKid:false,
-    seg:{roteiro:"dias", listas:"checklist"}
+    seg:{roteiro:"dias", listas:"checklist"},
+    diaSel:""
   };
 }
 
@@ -1038,9 +1067,33 @@ function checkedStops(pk){
    horário, que é o "alinhados" que faz o mapa desenhar a rota do dia na
    sequência certa. Nos dias de estrada, os itens vêm depois da rota
    Miami↔Orlando; no dia de voo, só os itens contam (não há base fixa). */
+/* Períodos do dia. A ordem do array é a ordem em que aparecem. */
+const PERIODOS = [
+  {id:"madrugada", label:"Madrugada", ini:0,  fim:5},
+  {id:"manha",     label:"Manhã",     ini:6,  fim:11},
+  {id:"tarde",     label:"Tarde",     ini:12, fim:17},
+  {id:"noite",     label:"Noite",     ini:18, fim:23}
+];
+const PERIODO_PADRAO = "manha";
+const idxPeriodo = (p) => { const i = PERIODOS.findIndex(x => x.id === p); return i < 0 ? 1 : i; };
+
+/* Reserva tem hora de verdade e cai no período dela sozinha. */
+function periodoDaHora(hora){
+  const h = parseInt(String(hora||"").slice(0,2), 10);
+  if(isNaN(h)) return PERIODO_PADRAO;
+  return (PERIODOS.find(p => h >= p.ini && h <= p.fim) || {id:PERIODO_PADRAO}).id;
+}
+
+/* Item antigo só tem hora: o período sai dela. Sem nada, vai para a manhã. */
+const periodoDoItem = (it) => it && it.periodo ? it.periodo : periodoDaHora(it && it.hora);
+
+/* Período primeiro, depois a ordem escolhida à mão, e a hora só desempata. */
 function dayItemsSorted(items){
-  return (items||[]).filter(i => i.nome && i.nome.trim())
-    .slice().sort((a,b) => (a.hora||"99:99").localeCompare(b.hora||"99:99"));
+  return (items||[]).filter(i => i.nome && i.nome.trim()).slice().sort((a,b) =>
+       idxPeriodo(periodoDoItem(a)) - idxPeriodo(periodoDoItem(b))
+    || (a.ord ?? 999) - (b.ord ?? 999)
+    || (a.hora||"99:99").localeCompare(b.hora||"99:99")
+    || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
 }
 function dayStops(pk, notes, items){
   const nomes = dayItemsSorted(items);
@@ -1069,9 +1122,33 @@ function diningForDay(dt){
   return S.dining.filter(r => r.dia === dt && r.nome && r.nome.trim());
 }
 function mergedDayItems(dt, day){
-  const manuais = (day.items || []).map(it => ({id:it.id, hora:it.hora, nome:it.nome, fonte:"item"}));
-  const reservas = diningForDay(dt).map(r => ({id:r.id, hora:r.hora, nome:r.nome, fonte:"dining"}));
+  const manuais = (day.items || []).map(it => ({
+    id:it.id, hora:it.hora, nome:it.nome, attr:it.attr,
+    periodo:periodoDoItem(it), ord:it.ord ?? 999, fonte:"item"
+  }));
+  const reservas = diningForDay(dt).map(r => ({
+    id:r.id, hora:r.hora, nome:r.nome,
+    periodo:periodoDaHora(r.hora), ord:-1, fonte:"dining"   /* reserva encabeça o período */
+  }));
   return dayItemsSorted(manuais.concat(reservas));
+}
+
+/* Parque de um id de atração: "at|mk4|Jungle Cruise" → "mk" */
+function parqueDoAttr(id){
+  const m = /^at\|([a-z]+)\d+\|/.exec(String(id||""));
+  return m ? m[1] : null;
+}
+const nomeDoAttr = (id) => String(id||"").split("|").slice(2).join("|");
+
+/* Primeiro dia do roteiro marcado com aquele parque. */
+function diaDoParque(pk){
+  return tripDays().find(dt => (S.days[dt]||{}).park === pk) || null;
+}
+
+/* Próxima posição livre dentro do período, para o item novo entrar no fim. */
+function proximaOrd(dt, periodo){
+  const its = ((S.days[dt]||{}).items || []).filter(i => periodoDoItem(i) === periodo);
+  return its.reduce((m,i) => Math.max(m, i.ord ?? 0), -1) + 1;
 }
 
 function landId(pk, land){ return "land-" + pk + "-" + land.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-"); }
@@ -1547,70 +1624,104 @@ function viewRoteiro(){
 }
 
 function roteiroDias(days){
-
   const t = iso(today());
   const opts = Object.keys(PARKS);
+
+  /* Um dia por vez: 10 cards empilhados viravam uma rolagem enorme, e cada um
+     carregava o próprio mapa. Agora é uma aba por dia e um mapa só. */
+  const sel = days.includes(S.diaSel) ? S.diaSel : (days.includes(t) ? t : days[0]);
+  const idx = days.indexOf(sel);
+  const day = S.days[sel] || {};
+  const p = parkOf(day.park || "none");
+  const dd = d(sel);
+  const itens = mergedDayItems(sel, day);
+  const sugestoes = [...new Set([...(ATTR[p]||[]).map(a=>a[0]), ...S.dining.map(r=>r.nome)])].filter(Boolean);
+
+  const abas = days.map((dt,i) => {
+    const dia = S.days[dt] || {};
+    const pk = parkOf(dia.park || "none");
+    const n = mergedDayItems(dt, dia).length;
+    const x = d(dt);
+    return `<button class="chip diachip pk ${PARKS[pk].cls}" type="button" data-dia="${dt}"
+              aria-pressed="${dt===sel}" title="${esc(PARKS[pk].n)}">
+      <span class="parkicon xs">${parkIconSvg(pk)}</span>
+      <span class="diachip-d">${String(x.getDate()).padStart(2,"0")}/${String(x.getMonth()+1).padStart(2,"0")}</span>
+      <span class="diachip-w">${WD[x.getDay()].slice(0,3)}${dt===t?" · hoje":""}</span>
+      ${n ? `<span class="diachip-n">${n}</span>` : ""}
+    </button>`;
+  }).join("");
+
+  const linhaItem = (it) => it.fonte === "dining" ? `
+    <div class="dayitem dayitem-dining">
+      <span class="mv"></span>
+      <input type="time" data-din="${it.id}" data-k="hora" value="${esc(it.hora||"")}" aria-label="Horário da reserva">
+      <span class="dayitem-name"><span class="pill accent" style="margin-right:6px">restaurante</span>${esc(it.nome)}</span>
+      <button class="del" type="button" data-act="unassignDining" data-id="${it.id}" aria-label="Tirar deste dia" title="Tirar deste dia (continua em Restaurantes)">×</button>
+    </div>` : `
+    <div class="dayitem${it.attr ? " dayitem-attr" : ""}"${it.attr ? ` title="veio da aba Parques — desmarcar lá tira daqui"` : ""}>
+      <span class="mv">
+        <button type="button" data-act="mvItem" data-dt="${sel}" data-id="${it.id}" data-dir="-1" aria-label="Subir">↑</button>
+        <button type="button" data-act="mvItem" data-dt="${sel}" data-id="${it.id}" data-dir="1" aria-label="Descer">↓</button>
+      </span>
+      <input type="text" data-item="${sel}|${it.id}" data-k="nome" value="${esc(it.nome)}" list="sug-${sel}" aria-label="Programa">
+      <button class="del" type="button" data-act="delItem" data-dt="${sel}" data-id="${it.id}" aria-label="Remover">×</button>
+    </div>`;
+
+  const blocos = PERIODOS.map(per => {
+    const doPeriodo = itens.filter(i => i.periodo === per.id);
+    if(!doPeriodo.length) return "";        /* bloco vazio não vira ruído */
+    return `<div class="periodo">
+      <div class="periodo-hd">${per.label}<span>${doPeriodo.length}</span></div>
+      ${doPeriodo.map(linhaItem).join("")}
+    </div>`;
+  }).join("");
+
   return `
   <p class="sub">${days.length} dias: voo na madrugada de 23/08, pouso em Miami às 7h de 24/08 e direto para Orlando de carro, quatro parques com descanso entre eles, volta a Miami em 30/08 e voo de volta às 19h de 01/09. Clique em <b>Aplicar sugestão</b> para preencher com esse plano e depois ajuste à vontade.</p>
 
-  <div class="row" style="margin-bottom:16px">
+  <div class="row" style="margin-bottom:14px">
     <button class="btn" type="button" data-act="sugestao">Aplicar sugestão</button>
     <button class="btn ghost" type="button" data-act="limparRoteiro">Limpar roteiro</button>
   </div>
 
-  <div class="days">
-    ${days.map((dt,idx) => {
-      const day = S.days[dt] || {};
-      const p = parkOf(day.park || "none");
-      const dd = d(dt);
-      const itens = mergedDayItems(dt, day);
-      const sugestoes = [...new Set([...(ATTR[p]||[]).map(a=>a[0]), ...S.dining.map(r=>r.nome)])].filter(Boolean);
-      return `
-      <div class="day pk ${PARKS[p].cls} ${dt===t?"today":""}">
-        <div class="parkbar"></div>
-        <div class="day-hd">
-          <span class="row" style="gap:9px">
-            <span class="parkicon sm">${parkIconSvg(p)}</span>
-            <span><span class="dt" style="display:block">${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]}</span>
-            <span class="wd">${WD[dd.getDay()]}${dt===t?" · hoje":""} · d${idx+1}</span></span>
-          </span>
-        </div>
-        <div class="day-bd">
-          <select data-day="${dt}" data-k="park" aria-label="Parque do dia ${dt}">
-            ${opts.map(o => `<option value="${o}" ${p===o?"selected":""}>${PARKS[o].n}</option>`).join("")}
-          </select>
+  <div class="diasbar">${abas}</div>
 
-          <div class="f"><span>Programação do dia</span>
-            <datalist id="sug-${dt}">${sugestoes.map(s => `<option value="${esc(s)}">`).join("")}</datalist>
-            <div class="dayitems">
-              ${itens.map(it => it.fonte === "dining" ? `
-                <div class="dayitem dayitem-dining">
-                  <input type="time" data-din="${it.id}" data-k="hora" value="${esc(it.hora||"")}" aria-label="Horário da reserva">
-                  <span class="dayitem-name"><span class="pill accent" style="margin-right:6px">restaurante</span>${esc(it.nome)}</span>
-                  <button class="del" type="button" data-act="unassignDining" data-id="${it.id}" aria-label="Tirar deste dia" title="Tirar deste dia (continua em Restaurantes)">×</button>
-                </div>` : `
-                <div class="dayitem">
-                  <input type="time" data-item="${dt}|${it.id}" data-k="hora" value="${esc(it.hora||"")}" aria-label="Horário">
-                  <input type="text" data-item="${dt}|${it.id}" data-k="nome" value="${esc(it.nome)}" list="sug-${dt}" aria-label="Programa">
-                  <button class="del" type="button" data-act="delItem" data-dt="${dt}" data-id="${it.id}" aria-label="Remover">×</button>
-                </div>`).join("")}
-              <div class="dayitem dayitem-add">
-                <input type="time" data-newitemtime="${dt}" aria-label="Horário do novo item">
-                <input type="text" data-newitemname="${dt}" list="sug-${dt}" placeholder="parque, atração, passeio…" aria-label="Nome do novo item">
-                <button class="btn ghost sm" type="button" data-act="addItem" data-dt="${dt}">+</button>
-              </div>
-            </div>
-            <p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">Restaurantes com dia marcado em <b>Roteiro › Reservas</b> entram aqui sozinhos.</p>
+  <div class="day pk ${PARKS[p].cls} ${sel===t?"today":""}">
+    <div class="parkbar"></div>
+    <div class="day-hd">
+      <span class="row" style="gap:9px">
+        <span class="parkicon sm">${parkIconSvg(p)}</span>
+        <span><span class="dt" style="display:block">${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]}</span>
+        <span class="wd">${WD[dd.getDay()]}${sel===t?" · hoje":""} · d${idx+1} de ${days.length}</span></span>
+      </span>
+    </div>
+    <div class="day-bd">
+      <select data-day="${sel}" data-k="park" aria-label="Parque do dia">
+        ${opts.map(o => `<option value="${o}" ${p===o?"selected":""}>${PARKS[o].n}</option>`).join("")}
+      </select>
+
+      <div class="f"><span>Programação do dia</span>
+        <datalist id="sug-${sel}">${sugestoes.map(x => `<option value="${esc(x)}">`).join("")}</datalist>
+        <div class="dayitems">
+          ${blocos || `<p style="font-size:13px;color:var(--fg-dim);margin:2px 0 10px">Nada marcado ainda. Marque atrações na aba <b>Parques</b> e elas entram aqui sozinhas, ou escreva abaixo.</p>`}
+          <div class="dayitem dayitem-add" style="grid-template-columns:22px 92px 1fr 26px">
+            <span class="mv"></span>
+            <select data-newitemper="${sel}" aria-label="Período do novo item">
+              ${PERIODOS.map(x => `<option value="${x.id}" ${x.id===PERIODO_PADRAO?"selected":""}>${x.label}</option>`).join("")}
+            </select>
+            <input type="text" data-newitemname="${sel}" list="sug-${sel}" placeholder="atração, passeio, descanso…" aria-label="Nome do novo item">
+            <input type="hidden" data-newitemtime="${sel}">
+            <button class="btn ghost sm" type="button" data-act="addItem" data-dt="${sel}">+</button>
           </div>
-
-          <label class="f"><span>Notas do dia</span>
-            <textarea rows="2" data-day="${dt}" data-k="notes" placeholder="rope drop, o que levar, hora de sair…">${esc(day.notes||"")}</textarea></label>
-          ${mapEmbedBlock(dayStops(p, day.notes||"", itens), {height:190, label:"Mapa do dia " + (idx+1)})}
         </div>
-      </div>`;
-    }).join("")}
-  </div>
+        <p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">Reservas com dia marcado em <b>Roteiro › Reservas</b> entram aqui sozinhas, com a hora exata. As setas mudam a ordem dentro do período.</p>
+      </div>
 
+      <label class="f"><span>Notas do dia</span>
+        <textarea rows="2" data-day="${sel}" data-k="notes" placeholder="rope drop, o que levar, hora de sair…">${esc(day.notes||"")}</textarea></label>
+      ${mapEmbedBlock(dayStops(p, day.notes||"", itens), {height:190, label:"Mapa do dia " + (idx+1)})}
+    </div>
+  </div>
   `;
 }
 
@@ -1690,6 +1801,11 @@ function viewParques(){
       `<button class="chip pkchip pk ${PARKS[k].cls}" type="button" data-park="${k}" aria-pressed="${pk===k}">
         <span class="parkicon xs">${parkIconSvg(k)}</span>${PARKS[k].n}</button>`).join("")}
   </div>
+  ${!diaDoParque(pk) ? `<div class="warnbox" style="margin-bottom:14px">
+    <b>Nenhum dia do roteiro está marcado como ${esc(PARKS[pk].n)}</b>
+    <p style="margin:6px 0 0">Marcar aqui continua valendo como “a família quer fazer”, mas nada entra no roteiro enquanto não existir um dia com esse parque. Defina o parque de algum dia em <b>Roteiro › Dias</b> e as marcadas entram sozinhas.</p>
+  </div>` : ""}
+
   <div class="filters">
     <button class="chip" type="button" data-act="tgPlan" aria-pressed="${S.onlyPlan}">Só o que precisa planejar</button>
     <button class="chip" type="button" data-act="tgKid" aria-pressed="${S.onlyKid}">Só o que as crianças pegam</button>
@@ -2117,6 +2233,9 @@ document.addEventListener("click", (e) => {
   const tabBtn = e.target.closest("[data-tab]");
   if(tabBtn){ setTab(tabBtn.dataset.tab); return; }
 
+  const diaBtn = e.target.closest("[data-dia]");
+  if(diaBtn){ S.diaSel = diaBtn.dataset.dia; save(false); render(); return; }
+
   const segBtn = e.target.closest("[data-seg]");
   if(segBtn){
     S.seg = S.seg || {};
@@ -2208,9 +2327,18 @@ document.addEventListener("click", (e) => {
     const horaInp = document.querySelector(`[data-newitemtime="${CSS.escape(dt)}"]`);
     const nome = nomeInp && nomeInp.value.trim();
     if(!nome) return;
+    const perInp = document.querySelector(`[data-newitemper="${CSS.escape(dt)}"]`);
+    const per = (perInp && perInp.value) || PERIODO_PADRAO;
     S.days[dt] = S.days[dt] || {};
     S.days[dt].items = S.days[dt].items || [];
-    S.days[dt].items.push({id:uid("it"), hora:(horaInp && horaInp.value) || "", nome});
+    S.days[dt].items.push({
+      id:uid("it"), nome, attr:null,
+      hora:(horaInp && horaInp.value) || "",
+      periodo:per, ord:proximaOrd(dt, per)
+    });
+  }
+  else if(a === "mvItem"){
+    moverItem(act.dataset.dt, act.dataset.id, Number(act.dataset.dir));
   }
   else if(a === "delItem"){
     const dt = act.dataset.dt;
@@ -2250,6 +2378,7 @@ document.addEventListener("change", (e) => {
 
   if(t.dataset.check !== undefined){
     if(t.checked) S.checks[t.dataset.check] = true; else delete S.checks[t.dataset.check];
+    espelharNoRoteiro(t.dataset.check, t.checked);
     save(); renderNav();
     const wrap = t.closest(".item, .attr");
     if(wrap) wrap.classList.toggle("done", t.checked);
@@ -2339,6 +2468,63 @@ document.addEventListener("keydown", (e) => {
 /* sugerirRoteiro() e ROTEIRO_NOTAS ficam na seção 1 — o seed() precisa deles
    antes de S existir, e const não é hoisted como function declaration. */
 
+/* Marcar uma atração em Parques cria o item no dia daquele parque; desmarcar
+   tira. Só atrações (id "at|…") — item de checklist não vira programa de dia.
+   Sem dia marcado com aquele parque, não inventa dia: a tela de Parques avisa. */
+function espelharNoRoteiro(id, marcado){
+  const pk = parqueDoAttr(id);
+  if(!pk) return;
+
+  if(!marcado){
+    tripDays().forEach(dt => {
+      const day = S.days[dt];
+      if(day && day.items) day.items = day.items.filter(it => it.attr !== id);
+    });
+    return;
+  }
+
+  const dt = diaDoParque(pk);
+  if(!dt) return;                               /* avisado na tela de Parques */
+  S.days[dt] = S.days[dt] || {};
+  S.days[dt].items = S.days[dt].items || [];
+  if(S.days[dt].items.some(it => it.attr === id)) return;   /* já está lá */
+  S.days[dt].items.push({
+    id: uid("it"), nome: nomeDoAttr(id), attr: id,
+    hora: "", periodo: PERIODO_PADRAO, ord: proximaOrd(dt, PERIODO_PADRAO)
+  });
+}
+
+/* Sobe ou desce um item. Dentro do período, troca com o vizinho; na borda do
+   bloco, pula para o período de cima ou de baixo. Assim uma seta só resolve
+   ordem e faixa do dia, e a linha não precisa de um seletor de período. */
+function moverItem(dt, id, dir){
+  const day = S.days[dt];
+  if(!day || !day.items) return;
+  const alvo = day.items.find(i => i.id === id);
+  if(!alvo) return;
+
+  const porOrd = (a,b) => (a.ord ?? 999) - (b.ord ?? 999);
+  const doPeriodo = (p) => day.items.filter(i => i !== alvo && periodoDoItem(i) === p).sort(porOrd);
+
+  const per = periodoDoItem(alvo);
+  const grupo = day.items.filter(i => periodoDoItem(i) === per).sort(porOrd);
+  const i = grupo.indexOf(alvo), j = i + dir;
+
+  if(j >= 0 && j < grupo.length){                      /* troca com o vizinho */
+    grupo[i] = grupo[j]; grupo[j] = alvo;
+    grupo.forEach((it,k) => it.ord = k);               /* renumera: sem buracos */
+    return;
+  }
+
+  const pi = idxPeriodo(per) + dir;                    /* na borda: muda de faixa */
+  if(pi < 0 || pi >= PERIODOS.length) return;          /* topo da madrugada, fim da noite */
+  const destino = doPeriodo(PERIODOS[pi].id);
+  alvo.periodo = PERIODOS[pi].id;
+  if(dir < 0) destino.push(alvo); else destino.unshift(alvo);
+  destino.forEach((it,k) => it.ord = k);
+  doPeriodo(per).forEach((it,k) => it.ord = k);        /* fecha o buraco na origem */
+}
+
 function aplicarSugestao(){
   const plano = sugerirRoteiro(S.trip);
   if(!plano){ alert("O roteiro sugerido precisa de pelo menos 6 dias. Ajuste as datas na aba Início."); return; }
@@ -2360,7 +2546,7 @@ const MAPS = ["checks","attrNotes"];
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -3145,9 +3331,18 @@ function toggleTheme(){
     const stopsMk = dayStops("mk","",itensMk);
     console.assert(stopsMk[0].indexOf("Test Hotel Orlando")!==-1, "mapa do dia começa no hotel da cidade certa");
     console.assert(stopsMk[1].indexOf("Magic Kingdom")!==-1, "mapa do dia passa pelo parque");
-    console.assert(stopsMk[2].indexOf("Space Mountain")!==-1, "item das 09:00 vem antes do das 18:30 — alinhados por horário");
-    console.assert(stopsMk[3].indexOf("Chef Mickey's")!==-1, "item das 18:30 vem depois do das 09:00");
-    console.assert(stopsMk[4].indexOf("Sem horário")!==-1, "item sem horário vai para o fim, não quebra a ordenação");
+    /* A rota segue a ordem do dia, que agora é por período: manhã antes de noite.
+       Item sem hora cai no período padrão (manhã), não no fim do dia. */
+    console.assert(stopsMk[2].indexOf("Space Mountain")!==-1, "09:00 é de manhã e abre a rota");
+    console.assert(stopsMk[3].indexOf("Sem horário")!==-1, "item sem hora fica na manhã, junto do das 09:00");
+    console.assert(stopsMk[4].indexOf("Chef Mickey's")!==-1, "18:30 é noite e fecha a rota");
+    console.assert(dayStops("mk","",[
+      {id:"a",periodo:"noite",ord:0,nome:"Fogos"},
+      {id:"b",periodo:"manha",ord:0,nome:"Rope drop"}
+    ]).slice(2).join("|").indexOf("Rope drop") < dayStops("mk","",[
+      {id:"a",periodo:"noite",ord:0,nome:"Fogos"},
+      {id:"b",periodo:"manha",ord:0,nome:"Rope drop"}
+    ]).slice(2).join("|").indexOf("Fogos"), "período manda na rota mesmo sem hora nenhuma");
     console.assert(dayStops("mk","",[{id:"x",hora:"10:00",nome:"  "}]).length === 2, "item com nome só de espaços não vira parada");
     S.hotels = bakHotels;
 
@@ -3166,6 +3361,66 @@ function toggleTheme(){
     console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
+
+    /* ---- Períodos, espelho de Parques e reordenação ---- */
+    console.assert(periodoDaHora("03:00")==="madrugada" && periodoDaHora("07:30")==="manha"
+      && periodoDaHora("12:00")==="tarde" && periodoDaHora("18:00")==="noite",
+      "os quatro limites de período têm que bater");
+    console.assert(periodoDaHora("")===PERIODO_PADRAO && periodoDaHora(null)===PERIODO_PADRAO,
+      "sem hora, cai no período padrão em vez de quebrar");
+    console.assert(periodoDoItem({hora:"20:00"})==="noite", "item antigo deriva o período da hora");
+    console.assert(periodoDoItem({hora:"20:00", periodo:"manha"})==="manha",
+      "período escolhido à mão vence a hora");
+
+    console.assert(parqueDoAttr("at|mk4|Jungle Cruise")==="mk", "parque sai do id da atração");
+    console.assert(parqueDoAttr("at|ue10|Mario Kart")==="ue", "parque de dois dígitos");
+    console.assert(parqueDoAttr("ck|3|Passaporte")===null, "item de checklist não é atração");
+    console.assert(nomeDoAttr("at|mk4|Pirates of the Caribbean")==="Pirates of the Caribbean",
+      "o nome é tudo depois do segundo pipe");
+
+    {
+      S.days = {}; S.trip.start="2026-08-23"; S.trip.end="2026-09-01";
+      const dias = tripDays();
+      S.days[dias[2]] = {park:"mk", items:[]};
+      const id = "at|mk4|Jungle Cruise";
+
+      espelharNoRoteiro(id, true);
+      console.assert(S.days[dias[2]].items.length===1, "marcar cria o item no dia daquele parque");
+      console.assert(S.days[dias[2]].items[0].attr===id, "o item lembra de qual atração veio");
+      espelharNoRoteiro(id, true);
+      console.assert(S.days[dias[2]].items.length===1, "marcar de novo não duplica");
+      espelharNoRoteiro(id, false);
+      console.assert(S.days[dias[2]].items.length===0, "desmarcar tira do roteiro");
+
+      /* sem dia daquele parque, não inventa dia nem quebra */
+      const antes = JSON.stringify(S.days);
+      espelharNoRoteiro("at|hs2|Tower of Terror", true);
+      console.assert(JSON.stringify(S.days)===antes, "sem dia de Hollywood Studios, nada é criado");
+
+      /* setas: troca com o vizinho e renumera sem buracos */
+      const dt = dias[2];
+      S.days[dt].items = [
+        {id:"a", nome:"A", periodo:"manha", ord:0},
+        {id:"b", nome:"B", periodo:"manha", ord:1},
+        {id:"c", nome:"C", periodo:"noite", ord:0}
+      ];
+      moverItem(dt,"b",-1);
+      const ordem = () => dayItemsSorted(S.days[dt].items).map(i=>i.id).join("");
+      console.assert(ordem()==="bac", "seta para cima troca com o vizinho de cima, veio " + ordem());
+      moverItem(dt,"b",-1);
+      console.assert(ordem()==="bac", "no topo do período a seta não faz nada");
+      /* na borda do bloco, a seta muda de período em vez de não fazer nada */
+      moverItem(dt,"a",-1);
+      console.assert(periodoDoItem(S.days[dt].items.find(i=>i.id==="a"))==="madrugada",
+        "subir no topo da manhã joga para a madrugada");
+      moverItem(dt,"c",1);
+      console.assert(periodoDoItem(S.days[dt].items.find(i=>i.id==="c"))==="noite",
+        "descer no fim da noite não passa da noite — não existe período depois");
+      S.days[dt].items.find(i=>i.id==="a").periodo="manha";
+      S.days[dt].items.find(i=>i.id==="a").ord=0;
+      console.assert(S.days[dt].items.every(i => Number.isInteger(i.ord)), "ord tem que ficar inteiro");
+    }
+    console.assert(LOCAL_ONLY.includes("diaSel"), "o dia aberto é preferência de tela, não sincroniza");
 
     /* ---- F7: localização ---- */
     console.assert(Math.abs(distancia(40.6413,-73.7781,33.9416,-118.4085) - 3983000)/3983000 < 0.01,
