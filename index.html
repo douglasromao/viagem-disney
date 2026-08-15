@@ -11,53 +11,53 @@
 
 <style>
 :root{
-  --paper:#EEF1EE; --surface:#FFFFFF; --surface-2:#F6F9F7; --surface-3:#E7ECE9;
-  --fg:#12232E; --fg-dim:#54666E; --fg-faint:#8496 9C; --fg-faint:#849 69C; --fg-faint:#84969C;
-  --line:#CFD8D4; --line-soft:#E2E8E5;
-  --accent:#0E7C86; --accent-soft:#D6EBEC; --on-accent:#FFFFFF;
-  --ok:#2E7D4F; --warn:#9C6B12; --crit:#B33A2B;
-  --ok-bg:#DEEFE4; --warn-bg:#F5E9CE; --crit-bg:#F6DFDA;
-  --mk:#B4356B; --ak:#3F7A3A; --hs:#BE5A18; --ue:#4F46C4; --ds:#8A6D2F; --mia:#3D5AB5; --gen:#546A72;
-  --shadow:0 1px 2px rgba(15,31,41,.06), 0 6px 18px -12px rgba(15,31,41,.28);
+  --paper:#FFF3E0; --surface:#FFFCF7; --surface-2:#FBF0DC; --surface-3:#F0E2C6;
+  --fg:#1B2141; --fg-dim:#4C5375; --fg-faint:#5E6486;
+  --line:#E4D2B2; --line-soft:#F2E6D0;
+  --accent:#1064C8; --accent-soft:#D7E8FF; --on-accent:#FFFFFF;
+  --ok:#1C7A46; --warn:#8A5300; --crit:#C42132;
+  --ok-bg:#E2F6E7; --warn-bg:#FBE8C0; --crit-bg:#FCDCDC;
+  --mk:#B4356B; --ak:#3F7A3A; --hs:#AE5114; --ue:#4F46C4; --ds:#82662A; --mia:#3D5AB5; --gen:#546A72;
+  /* sombra sólida: um degrau de cor, não borrão */
+  --shadow:0 2px 0 #E8D6B6, 0 10px 18px -14px rgba(27,33,65,.45);
 
-  --font-display:"Oswald","Avenir Next Condensed","Roboto Condensed","Arial Narrow","Helvetica Neue",Helvetica,sans-serif;
+  --font-display:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Avenir Next Rounded",Avenir,system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-ui:"Seravek","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
   --font-data:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 
-  --r:10px;
+  --r:14px;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#0F1F29; --surface:#162B36; --surface-2:#1A3240; --surface-3:#23404E;
-    --fg:#E3EDEA; --fg-dim:#9EB1B6; --fg-faint:#6E8288;
-    --line:#2A4插; --line:#2A4插;
-    --line:#2A4452; --line-soft:#223846;
-    --accent:#43C2CB; --accent-soft:#123E45; --on-accent:#06232A;
-    --ok:#63C68C; --warn:#DCAA45; --crit:#E87764;
-    --ok-bg:#123528; --warn-bg:#3A2E12; --crit-bg:#3B211C;
+    --paper:#101A33; --surface:#1A2444; --surface-2:#232E54; --surface-3:#2E3A66;
+    --fg:#F3EEE3; --fg-dim:#BCC4DF; --fg-faint:#A6AFCF;
+    --line:#39456F; --line-soft:#2A3560;
+    --accent:#7BB8FF; --accent-soft:#1B2F5C; --on-accent:#08152E;
+    --ok:#5FD08C; --warn:#F0BC4A; --crit:#FF8E7C;
+    --ok-bg:#123A28; --warn-bg:#3A2E10; --crit-bg:#3C201E;
     --mk:#EE7BA6; --ak:#79BE6F; --hs:#EE9A5C; --ue:#9A93F0; --ds:#D4B267; --mia:#8B9FEE; --gen:#8FA5AC;
-    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 22px -14px rgba(0,0,0,.7);
+    --shadow:0 2px 0 #0B1226, 0 12px 22px -16px rgba(0,0,0,.85);
   }
 }
 :root[data-theme="dark"]{
-  --paper:#0F1F29; --surface:#162B36; --surface-2:#1A3240; --surface-3:#23404E;
-  --fg:#E3EDEA; --fg-dim:#9EB1B6; --fg-faint:#6E8288;
-  --line:#2A4452; --line-soft:#223846;
-  --accent:#43C2CB; --accent-soft:#123E45; --on-accent:#06232A;
-  --ok:#63C68C; --warn:#DCAA45; --crit:#E87764;
-  --ok-bg:#123528; --warn-bg:#3A2E12; --crit-bg:#3B211C;
+  --paper:#101A33; --surface:#1A2444; --surface-2:#232E54; --surface-3:#2E3A66;
+  --fg:#F3EEE3; --fg-dim:#BCC4DF; --fg-faint:#A6AFCF;
+  --line:#39456F; --line-soft:#2A3560;
+  --accent:#7BB8FF; --accent-soft:#1B2F5C; --on-accent:#08152E;
+  --ok:#5FD08C; --warn:#F0BC4A; --crit:#FF8E7C;
+  --ok-bg:#123A28; --warn-bg:#3A2E10; --crit-bg:#3C201E;
   --mk:#EE7BA6; --ak:#79BE6F; --hs:#EE9A5C; --ue:#9A93F0; --ds:#D4B267; --mia:#8B9FEE; --gen:#8FA5AC;
-  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 22px -14px rgba(0,0,0,.7);
+  --shadow:0 2px 0 #0B1226, 0 12px 22px -16px rgba(0,0,0,.85);
 }
 :root[data-theme="light"]{
-  --paper:#EEF1EE; --surface:#FFFFFF; --surface-2:#F6F9F7; --surface-3:#E7ECE9;
-  --fg:#12232E; --fg-dim:#54666E; --fg-faint:#84969C;
-  --line:#CFD8D4; --line-soft:#E2E8E5;
-  --accent:#0E7C86; --accent-soft:#D6EBEC; --on-accent:#FFFFFF;
-  --ok:#2E7D4F; --warn:#9C6B12; --crit:#B33A2B;
-  --ok-bg:#DEEFE4; --warn-bg:#F5E9CE; --crit-bg:#F6DFDA;
-  --mk:#B4356B; --ak:#3F7A3A; --hs:#BE5A18; --ue:#4F46C4; --ds:#8A6D2F; --mia:#3D5AB5; --gen:#546A72;
-  --shadow:0 1px 2px rgba(15,31,41,.06), 0 6px 18px -12px rgba(15,31,41,.28);
+  --paper:#FFF3E0; --surface:#FFFCF7; --surface-2:#FBF0DC; --surface-3:#F0E2C6;
+  --fg:#1B2141; --fg-dim:#4C5375; --fg-faint:#5E6486;
+  --line:#E4D2B2; --line-soft:#F2E6D0;
+  --accent:#1064C8; --accent-soft:#D7E8FF; --on-accent:#FFFFFF;
+  --ok:#1C7A46; --warn:#8A5300; --crit:#C42132;
+  --ok-bg:#E2F6E7; --warn-bg:#FBE8C0; --crit-bg:#FCDCDC;
+  --mk:#B4356B; --ak:#3F7A3A; --hs:#AE5114; --ue:#4F46C4; --ds:#82662A; --mia:#3D5AB5; --gen:#546A72;
+  --shadow:0 2px 0 #E8D6B6, 0 10px 18px -14px rgba(27,33,65,.45);
 }
 
 *{box-sizing:border-box}
@@ -251,6 +251,31 @@ table select:hover{border-color:var(--line-soft)}
 
 .bottomnav{display:none}
 
+/* ---------- capa ---------- */
+.capa{position:relative;border-radius:var(--r);overflow:hidden;margin:0 0 18px;box-shadow:var(--shadow)}
+.capa svg{display:block;width:100%;height:clamp(196px,48vw,290px)}
+/* Degradê atrás da contagem: sem ele o texto claro cai em cima do gramado
+   claro e some. A ilustração mantém as cores próprias nos dois temas. */
+.capa::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:58%;pointer-events:none;
+  background:linear-gradient(to top, rgba(18,12,38,.82) 0%, rgba(18,12,38,.45) 45%, rgba(18,12,38,0) 100%);
+}
+/* Alinhado à direita de propósito: à esquerda a contagem cobria a família,
+   que é justamente a parte da ilustração que interessa. */
+.capa-txt{
+  position:absolute;left:18px;right:18px;bottom:15px;z-index:1;
+  display:flex;flex-direction:column;align-items:flex-end;text-align:right;
+  line-height:1;color:#FFF6E8;text-shadow:0 1px 6px rgba(20,15,40,.5);
+}
+.capa-n{font-family:var(--font-display);font-size:clamp(40px,11vw,60px);font-weight:700;letter-spacing:-.02em}
+.capa-l{font-size:13px;font-weight:600;margin-top:5px;opacity:.95}
+
+/* ---------- ícones das abas ---------- */
+.ico{width:20px;height:20px;flex:0 0 auto;fill:currentColor}
+.nav button .lbl{display:flex;align-items:center;gap:9px}
+.bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
+.bottomnav .ico{width:22px;height:22px}
+
 /* ---------- linha de reserva ---------- */
 .dinrow{display:grid;gap:6px;grid-template-columns:1fr 1fr;align-items:center}
 .dinrow .wide{grid-column:1/-1}
@@ -314,6 +339,75 @@ table select:hover{border-color:var(--line-soft)}
 }
 @media (min-width:861px){.mobhd{display:none}}
 </style>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <!-- Ícones das 5 abas, no mesmo traço das silhuetas de PARK_ICON:
+       viewBox 0 0 64 64, monocromáticos, tudo em currentColor — herdam a cor
+       de quem envolve o ícone (nav, chip, bottomnav). Sem knockout pintado
+       com a cor da superfície: os vazios são buraco de verdade (fill-rule
+       ou traço), então funcionam sobre qualquer fundo dos dois temas.
+
+       Uso: <svg class="tabicon"><use href="#ico-hoje"/></svg>
+       ou cole os <symbol> dentro do <svg hidden> do index.html. -->
+
+  <!-- HOJE — folha de calendário com o dia de hoje em bloco cheio -->
+  <symbol id="ico-hoje" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round">
+      <rect x="8" y="14" width="48" height="42" rx="7"/>
+      <path d="M8 27h48M20 8v10M44 8v10"/>
+    </g>
+    <g fill="currentColor">
+      <rect x="17" y="34" width="15" height="13" rx="4"/>
+      <rect x="38" y="36" width="9" height="4" rx="2"/>
+      <rect x="38" y="43" width="9" height="4" rx="2"/>
+    </g>
+  </symbol>
+
+  <!-- ROTEIRO — trilha do dia com o destino fincado no fim -->
+  <symbol id="ico-roteiro" viewBox="0 0 64 64">
+    <path d="M12 56c14 0 20-6 20-13s-8-11-8-18 6-11 14-11"
+          fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.1 9"/>
+    <circle cx="12" cy="56" r="4.5" fill="currentColor"/>
+    <path fill="currentColor" fill-rule="evenodd"
+          d="M46 4c-7 0-12 5-12 12 0 9 12 22 12 22s12-13 12-22c0-7-5-12-12-12Zm0 8a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z"/>
+  </symbol>
+
+  <!-- PARQUES — tenda de parque com bandeirinha (castelo já é o ícone do MK) -->
+  <symbol id="ico-parques" viewBox="0 0 64 64">
+    <path d="M10 30a22 22 0 0 1 44 0Z" fill="currentColor"/>
+    <path d="M10 30q5.5 8 11 0t11 0 11 0 11 0" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+    <g fill="currentColor">
+      <rect x="13" y="34" width="5" height="18" rx="2"/>
+      <rect x="29.5" y="34" width="5" height="18" rx="2"/>
+      <rect x="46" y="34" width="5" height="18" rx="2"/>
+      <rect x="7" y="51" width="50" height="8" rx="4"/>
+      <rect x="30" y="2" width="4" height="10" rx="2"/>
+      <polygon points="34,3 48,6.5 34,10"/>
+    </g>
+  </symbol>
+
+  <!-- LISTAS — prancheta com o primeiro item já marcado -->
+  <symbol id="ico-listas" viewBox="0 0 64 64">
+    <rect x="11" y="13" width="42" height="47" rx="7" fill="none" stroke="currentColor" stroke-width="4"/>
+    <rect x="23" y="4" width="18" height="12" rx="5" fill="currentColor"/>
+    <path d="M21 33.5l7 7 13-14M22 51h20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- AJUSTES — engrenagem chapada, miolo vazado -->
+  <symbol id="ico-ajustes" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="9"/>
+    <g fill="currentColor">
+      <rect x="28.5" y="2" width="7" height="13" rx="3.5"/>
+      <rect x="28.5" y="49" width="7" height="13" rx="3.5"/>
+      <rect x="28.5" y="2" width="7" height="13" rx="3.5" transform="rotate(90 32 32)"/>
+      <rect x="28.5" y="49" width="7" height="13" rx="3.5" transform="rotate(90 32 32)"/>
+      <rect x="28.5" y="2" width="7" height="13" rx="3.5" transform="rotate(45 32 32)"/>
+      <rect x="28.5" y="49" width="7" height="13" rx="3.5" transform="rotate(45 32 32)"/>
+      <rect x="28.5" y="2" width="7" height="13" rx="3.5" transform="rotate(-45 32 32)"/>
+      <rect x="28.5" y="49" width="7" height="13" rx="3.5" transform="rotate(-45 32 32)"/>
+    </g>
+  </symbol>
+</svg>
 
 <div class="shell">
   <aside class="rail">
@@ -1057,13 +1151,17 @@ function renderNav(){
   const shopDone = S.shop.filter(s => s.done).length;
   const counts = {listas: ck.done + "/" + ck.total};
 
+  const ico = (id) => `<svg class="ico" aria-hidden="true"><use href="#ico-${id}"/></svg>`;
+
   document.getElementById("nav").innerHTML = TABS.map(t =>
     `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">
-       <span>${t.label}</span>${counts[t.id] ? `<span class="cnt">${counts[t.id]}</span>` : ""}
+       <span class="lbl">${ico(t.id)}${t.label}</span>${counts[t.id] ? `<span class="cnt">${counts[t.id]}</span>` : ""}
      </button>`).join("");
 
   document.getElementById("navMob").innerHTML = TABS.map(t =>
-    `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">${t.short}</button>`).join("");
+    `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">
+       ${ico(t.id)}<span>${t.short}</span>
+     </button>`).join("");
 
   const a = d(S.trip.start), b = d(S.trip.end);
   document.getElementById("railDates").textContent =
@@ -1110,17 +1208,206 @@ function viewHoje(){
   const urgente = falta !== null && falta >= 0 && falta <= 14 && (planNow.length || docNow.length);
 
   return `
+  <div class="capa">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-labelledby="capa-titulo" preserveAspectRatio="xMidYMax slice">
+      <title id="capa-titulo">A família em frente ao castelo, com balões e fogos ao fim da tarde</title>
+    
+      <!-- Capa da viagem. Formas chapadas, sem <image>, sem fonte externa.
+           Nenhum personagem registrado (ADR 0007): castelo genérico, monotrilho
+           genérico, e a família da casa no lugar da turma do Mickey.
+           A contagem regressiva é HTML por cima — aqui não entra texto. -->
+    
+      <defs>
+        <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="#241F52"/>
+          <stop offset=".38" stop-color="#6B3D86"/>
+          <stop offset=".68" stop-color="#D95F55"/>
+          <stop offset="1"   stop-color="#F7B85C"/>
+        </linearGradient>
+    
+        <!-- um fogo só, reusado com <use> e recolorido por currentColor -->
+        <g id="fogo" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round">
+          <path d="M10 0 34 0M8.7 5 29.4 17M5 8.7 17 29.4M0 10 0 34M-5 8.7-17 29.4M-8.7 5-29.4 17"/>
+          <path d="M-10 0-34 0M-8.7-5-29.4-17M-5-8.7-17-29.4M0-10 0-34M5-8.7 17-29.4M8.7-5 29.4-17"/>
+          <g fill="currentColor" stroke="none">
+            <circle cx="42" cy="0" r="2.6"/><circle cx="21" cy="36" r="2.6"/><circle cx="-21" cy="36" r="2.6"/>
+            <circle cx="-42" cy="0" r="2.6"/><circle cx="-21" cy="-36" r="2.6"/><circle cx="21" cy="-36" r="2.6"/>
+          </g>
+        </g>
+    
+        <!-- balão: corpo + nó + barbante -->
+        <g id="balao">
+          <ellipse cx="0" cy="0" rx="17" ry="21" fill="currentColor"/>
+          <polygon points="-4,20 4,20 0,27" fill="currentColor"/>
+          <path d="M0 27 Q6 44 0 60 Q-5 74 1 86" fill="none" stroke="#FFF3E0" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
+        </g>
+      </defs>
+    
+      <!-- === céu de fim de tarde === -->
+      <rect width="800" height="520" fill="url(#ceu)"/>
+      <circle cx="640" cy="352" r="62" fill="#FBD07A" opacity=".55"/>
+      <circle cx="640" cy="352" r="34" fill="#FFE9B0" opacity=".9"/>
+    
+      <g fill="#FFFFFF" opacity=".13">
+        <circle cx="70" cy="40" r="2.4"/><circle cx="180" cy="24" r="1.8"/><circle cx="300" cy="52" r="2"/>
+        <circle cx="520" cy="30" r="2.2"/><circle cx="700" cy="46" r="1.8"/><circle cx="760" cy="96" r="2.4"/>
+      </g>
+    
+      <!-- fogos -->
+      <use href="#fogo" x="0" y="0" transform="translate(150 96)"   color="#F7B85C" opacity=".95"/>
+      <use href="#fogo" x="0" y="0" transform="translate(402 62) scale(1.25)" color="#FF9FC4" opacity=".9"/>
+      <use href="#fogo" x="0" y="0" transform="translate(662 112) scale(.85)"  color="#8FD7FF" opacity=".9"/>
+    
+      <!-- nuvens chapadas -->
+      <g fill="#F3A6A0" opacity=".55">
+        <path d="M60 250q0-22 24-22 8-18 30-14 16-12 32 4 22-2 22 20 0 12-14 12H74q-14 0-14-12Z"/>
+        <path d="M640 208q0-18 20-18 7-15 25-11 13-10 27 4 18-2 18 17 0 10-12 10h-66q-12 0-12-10Z"/>
+      </g>
+    
+      <!-- === monotrilho ao fundo === -->
+      <g opacity=".85">
+        <rect x="0" y="336" width="800" height="11" rx="5.5" fill="#C7B4DE"/>
+        <rect x="120" y="347" width="14" height="90" rx="7" fill="#B7A2D2"/>
+        <rect x="690" y="347" width="14" height="90" rx="7" fill="#B7A2D2"/>
+        <g>
+          <rect x="120" y="298" width="168" height="40" rx="19" fill="#FDF4E6"/>
+          <rect x="134" y="308" width="140" height="15" rx="7" fill="#4F46C4"/>
+          <rect x="120" y="326" width="168" height="6" rx="3" fill="#C42132"/>
+        </g>
+      </g>
+    
+      <!-- === castelo genérico === -->
+      <g id="castelo">
+        <!-- torres externas -->
+        <rect x="392" y="366" width="34" height="70" fill="#EDE7F8"/>
+        <polygon points="388,366 409,308 430,366" fill="#4F46C4"/>
+        <rect x="594" y="366" width="34" height="70" fill="#EDE7F8"/>
+        <polygon points="590,366 611,308 632,366" fill="#4F46C4"/>
+    
+        <!-- torres médias -->
+        <rect x="443" y="330" width="42" height="106" fill="#F6F1FE"/>
+        <polygon points="438,330 464,258 490,330" fill="#5F55DA"/>
+        <rect x="535" y="330" width="42" height="106" fill="#F6F1FE"/>
+        <polygon points="530,330 556,258 582,330" fill="#5F55DA"/>
+    
+        <!-- muralha -->
+        <rect x="426" y="396" width="168" height="40" fill="#E4DCF5"/>
+        <g fill="#E4DCF5">
+          <rect x="428" y="386" width="14" height="12"/><rect x="452" y="386" width="14" height="12"/>
+          <rect x="476" y="386" width="14" height="12"/><rect x="530" y="386" width="14" height="12"/>
+          <rect x="554" y="386" width="14" height="12"/><rect x="578" y="386" width="14" height="12"/>
+        </g>
+    
+        <!-- torre central -->
+        <rect x="481" y="296" width="58" height="140" fill="#FBF7FF"/>
+        <polygon points="474,296 510,196 546,296" fill="#7B72E0"/>
+        <circle cx="510" cy="196" r="6" fill="#F7B85C"/>
+    
+        <!-- bandeirinhas -->
+        <g stroke="#FFF3E0" stroke-width="2.5" stroke-linecap="round" fill="#FF9FC4">
+          <path d="M510 196v-30" fill="none"/><polygon points="511,166 538,175 511,184" stroke="none"/>
+          <path d="M464 258v-22" fill="none"/><polygon points="465,236 486,243 465,250" stroke="none"/>
+          <path d="M556 258v-22" fill="none"/><polygon points="557,236 578,243 557,250" stroke="none"/>
+        </g>
+    
+        <!-- portão e janelas acesas -->
+        <path d="M488 436v-34a22 22 0 0 1 44 0v34Z" fill="#2A2350"/>
+        <path d="M494 436v-30a16 16 0 0 1 32 0v30Z" fill="#F7B85C" opacity=".85"/>
+        <g fill="#F7B85C">
+          <path d="M497 348v-14a13 13 0 0 1 26 0v14Z"/>
+          <path d="M455 372v-10a9 9 0 0 1 18 0v10Z"/>
+          <path d="M547 372v-10a9 9 0 0 1 18 0v10Z"/>
+          <path d="M402 400v-9a8 8 0 0 1 16 0v9Z"/>
+          <path d="M602 400v-9a8 8 0 0 1 16 0v9Z"/>
+        </g>
+      </g>
+    
+      <!-- === chão === -->
+      <path d="M0 436q210-26 400-8t400-6v98H0Z" fill="#2E7D4E"/>
+      <path d="M0 470q230-22 400-6t400-10v66H0Z" fill="#41A26D"/>
+      <path d="M120 500q120-14 260-6t300-8" fill="none" stroke="#F3E3C2" stroke-width="9" stroke-linecap="round" opacity=".7"/>
+    
+      <!-- balões -->
+      <use href="#balao" transform="translate(88 176)"  color="#C42132"/>
+      <use href="#balao" transform="translate(133 214) scale(.8)" color="#F7B85C"/>
+      <use href="#balao" transform="translate(722 200)" color="#FF9FC4"/>
+      <use href="#balao" transform="translate(682 246) scale(.78)" color="#41A26D"/>
+    
+      <!-- ============================================================
+           SLOT DE TROCA — tudo o que é a família vive dentro deste <g>.
+           Para trocar por outra arte, substitua o conteúdo daqui e nada
+           mais no arquivo se mexe. Chão em y=490; escala 0,80 px por cm
+           das alturas de S.family: 175→140px, 165→132, 104→83, 85→68.
+           ============================================================ -->
+      <g id="familia">
+    
+        <!-- Adulto 1 — 175 cm → 140 px (topo y=350) -->
+        <g id="fam-adulto1">
+          <path d="M130 425l-24 26" stroke="#EFC29B" stroke-width="11" stroke-linecap="round" fill="none"/>
+          <path d="M130 425l26 22" stroke="#EFC29B" stroke-width="11" stroke-linecap="round" fill="none"/>
+          <rect x="116" y="438" width="12" height="52" rx="6" fill="#2A3560"/>
+          <rect x="132" y="438" width="12" height="52" rx="6" fill="#2A3560"/>
+          <ellipse cx="120" cy="491" rx="11" ry="6" fill="#1B2141"/>
+          <ellipse cx="140" cy="491" rx="11" ry="6" fill="#1B2141"/>
+          <rect x="114" y="380" width="32" height="64" rx="14" fill="#1064C8"/>
+          <circle cx="130" cy="365" r="15" fill="#EFC29B"/>
+          <path d="M115 362a15 15 0 0 1 30 0q-8-7-15-3-8 4-15 3Z" fill="#3B2A22"/>
+        </g>
+    
+        <!-- Criança 4 anos — 104 cm → 83 px (topo y=407) -->
+        <g id="fam-crianca">
+          <path d="M186 445l-17 8" stroke="#F2CDA8" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <path d="M186 445l18 8" stroke="#F2CDA8" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <rect x="177" y="459" width="9" height="32" rx="4.5" fill="#4F46C4"/>
+          <rect x="188" y="459" width="9" height="32" rx="4.5" fill="#4F46C4"/>
+          <ellipse cx="181" cy="491" rx="8" ry="5" fill="#1B2141"/>
+          <ellipse cx="193" cy="491" rx="8" ry="5" fill="#1B2141"/>
+          <rect x="174" y="431" width="26" height="34" rx="12" fill="#F0B93C"/>
+          <circle cx="187" cy="419" r="12" fill="#F2CDA8"/>
+          <path d="M175 417a12 12 0 0 1 24 0q-6-6-12-3-6 3-12 3Z" fill="#6B4A2F"/>
+          <path d="M199 414q10-4 9 8" fill="none" stroke="#6B4A2F" stroke-width="5" stroke-linecap="round"/>
+        </g>
+    
+        <!-- Bebê 1a10m — 85 cm → 68 px (topo y=422) -->
+        <g id="fam-bebe">
+          <path d="M232 456l-14 6" stroke="#F5D3B2" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <path d="M232 456l15 5" stroke="#F5D3B2" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <rect x="224" y="466" width="8" height="25" rx="4" fill="#2E7D4E"/>
+          <rect x="234" y="466" width="8" height="25" rx="4" fill="#2E7D4E"/>
+          <ellipse cx="228" cy="491" rx="7" ry="4.5" fill="#1B2141"/>
+          <ellipse cx="238" cy="491" rx="7" ry="4.5" fill="#1B2141"/>
+          <rect x="221" y="444" width="24" height="28" rx="11" fill="#5FD08C"/>
+          <circle cx="233" cy="433" r="11" fill="#F5D3B2"/>
+          <path d="M226 424q7-5 13 1" fill="none" stroke="#3B2A22" stroke-width="4" stroke-linecap="round"/>
+        </g>
+    
+        <!-- Adulto 2 — 165 cm → 132 px (topo y=358) -->
+        <g id="fam-adulto2">
+          <path d="M278 430l-24 24" stroke="#E8B489" stroke-width="10" stroke-linecap="round" fill="none"/>
+          <path d="M278 430l24 20" stroke="#E8B489" stroke-width="10" stroke-linecap="round" fill="none"/>
+          <rect x="266" y="450" width="11" height="40" rx="5.5" fill="#E8B489"/>
+          <rect x="281" y="450" width="11" height="40" rx="5.5" fill="#E8B489"/>
+          <ellipse cx="271" cy="491" rx="10" ry="5.5" fill="#1B2141"/>
+          <ellipse cx="287" cy="491" rx="10" ry="5.5" fill="#1B2141"/>
+          <path d="M264 388h30l12 66q-27 8-54 0Z" fill="#C42132"/>
+          <circle cx="279" cy="372" r="14" fill="#E8B489"/>
+          <path d="M265 372a14 14 0 0 1 28 0q0 20-6 22 3-14-8-16-11-2-14 16-0-8 0-22Z" fill="#2F211B"/>
+        </g>
+    
+      </g>
+    </svg>
+    <div class="capa-txt">
+      <span class="capa-n">${countdown}</span>
+      <span class="capa-l">${cdNote}</span>
+    </div>
+  </div>
+
   <h1>Miami · Orlando</h1>
   <p class="sub">Chegada e saída por Miami, quatro parques em Orlando: Magic Kingdom, Animal Kingdom, Hollywood Studios e Epic Universe. Tudo o que você marcar fica salvo neste aparelho — use <b>Ajustes</b> para levar os dados para outro celular ou computador.</p>
 
   <div class="stack">
 
     <div class="stats">
-      <div class="stat">
-        <div class="k">Contagem regressiva</div>
-        <div class="v">${countdown}</div>
-        <div class="n">${cdNote}</div>
-      </div>
       <div class="stat">
         <div class="k">Checklist</div>
         <div class="v">${ck.pct}<span style="font-size:18px">%</span></div>
@@ -2766,6 +3053,33 @@ function toggleTheme(){
     console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
+
+    /* ---- F6: tema cartoon ---- */
+    {
+      /* Olha as folhas de estilo, não o innerHTML: varrer o próprio código-fonte
+         faz o teste casar com o regex dele mesmo e falhar sempre. */
+      const externos = [...document.querySelectorAll("link[rel=stylesheet], link[as=font], link[rel=preload]")]
+        .map(l => l.href).filter(h => /^https?:/i.test(h));
+      let importa = false;
+      for(const ss of document.styleSheets){
+        try{ if([...ss.cssRules].some(r => r.type === 3)) importa = true; }catch(e){}
+      }
+      console.assert(!externos.length && !importa,
+        "nenhuma fonte ou CSS pode vir da rede — offline é requisito. Achei: " + externos.join(", "));
+    }
+    console.assert(!!document.getElementById("ico-hoje") && !!document.getElementById("ico-ajustes"),
+      "o sprite dos ícones das abas precisa estar embutido");
+    {
+      /* o tema escuro do sistema não pode vencer a escolha manual de claro */
+      const raiz = document.documentElement, antes = raiz.getAttribute("data-theme");
+      raiz.setAttribute("data-theme", "light");
+      const claro = getComputedStyle(raiz).getPropertyValue("--paper").trim();
+      raiz.setAttribute("data-theme", "dark");
+      const escuro = getComputedStyle(raiz).getPropertyValue("--paper").trim();
+      console.assert(claro && escuro && claro !== escuro,
+        "claro e escuro têm que dar fundos diferentes, veio " + claro + " e " + escuro);
+      if(antes) raiz.setAttribute("data-theme", antes); else raiz.removeAttribute("data-theme");
+    }
 
     /* ---- F5: cinco abas e os segmentos ---- */
     console.assert(TABS.length === 5, "a Tab Bar do iOS comporta 5, veio " + TABS.length);
