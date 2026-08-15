@@ -281,6 +281,12 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- pré-visualização da viagem ---------- */
+.simbar{background:var(--warn-bg);color:var(--fg);border:1px solid var(--warn);
+  border-radius:9px;padding:7px 11px;margin:0 0 12px;font-size:12.5px}
+.simbar button{background:none;border:0;padding:0;color:var(--accent);
+  cursor:pointer;font:inherit;text-decoration:underline}
+
 /* ---------- tempo de fila ---------- */
 .filabar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;
   background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;
@@ -986,7 +992,8 @@ function seed(){
     docs:[],
     gastos:[],
     gastoAberto:false,
-    carro:{}
+    carro:{},
+    simularViagem:false
   };
 }
 
@@ -1330,6 +1337,10 @@ function renderNav(){
 /* Antes de embarcar a tela é de preparo; durante, é o dia de hoje; depois,
    é o fechamento de contas. A spec F5 pedia isso e ficou faltando. */
 function faseViagem(){
+  /* Três telas só existem durante a viagem — e isso as deixava impossíveis de
+     conferir antes de embarcar, que é justamente quando dá tempo de consertar.
+     O interruptor em Ajustes força a fase para poder testar. */
+  if(S.simularViagem) return "durante";
   const a = d(S.trip.start), b = d(S.trip.end);
   if(isNaN(a) || isNaN(b)) return "antes";
   const h = today();
@@ -1340,9 +1351,14 @@ function faseViagem(){
 /* O dia de hoje, do jeito que interessa dentro do parque: onde é, que tempo
    faz, o que está planejado e o que vem a seguir. Editar continua no Roteiro. */
 function blocoHojeNoRoteiro(){
-  const hj = iso(today());
   const dias = tripDays();
-  if(!dias.includes(hj)) return "";
+  let hj = iso(today());
+  /* Pré-visualizando antes de embarcar, hoje não é um dia do roteiro: mostra o
+     primeiro dia para dar para conferir a tela. */
+  if(!dias.includes(hj)){
+    if(!S.simularViagem || !dias.length) return "";
+    hj = dias[0];
+  }
 
   const day = S.days[hj] || {};
   const pk = parkOf(day.park || "none");
@@ -1372,7 +1388,7 @@ function blocoHojeNoRoteiro(){
       <span class="row" style="gap:10px">
         <span class="parkicon sm">${parkIconSvg(pk)}</span>
         <span><h2 style="margin:0">${esc(PARKS[pk].n)}</h2>
-        <span class="eyebrow">hoje · dia ${idx} de ${dias.length}</span></span>
+        <span class="eyebrow">${hj === iso(today()) ? "hoje" : fmtDia(hj)} · dia ${idx} de ${dias.length}</span></span>
       </span>
       <button class="btn ghost sm" type="button" data-act="verDiaHoje">Abrir no roteiro</button>
     </div>
@@ -1663,6 +1679,14 @@ function blocoViagem(){
           <label class="f"><span>Cotação do dólar</span><input type="number" step="0.01" min="0" data-trip="rate" value="${S.trip.rate}"></label>
         </div>
         <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Use a cotação real do seu cartão, já com IOF — é ela que vale no orçamento, não a do noticiário.</p>
+
+        <label class="item" style="margin-top:14px;align-items:flex-start">
+          <input type="checkbox" data-simular ${S.simularViagem ? "checked" : ""}>
+          <span class="txt">
+            <b>Ver como fica durante a viagem</b>
+            <p>Três telas só aparecem entre ${S.trip.start ? fmtDia(S.trip.start) : "a ida"} e ${S.trip.end ? fmtDia(S.trip.end) : "a volta"}: o dia de hoje na Home, o botão <b>+ Gasto</b> e o <b>Onde estacionei</b>. Ligue aqui para conferir agora — não muda dado nenhum, e não sincroniza.</p>
+          </span>
+        </label>
       </div>
     </div>
 
@@ -2200,6 +2224,8 @@ function viewOrcamento(){
   </div>`;
 }
 
+const fmtDia = (i) => { const x = d(i); return isNaN(x) ? i : String(x.getDate()).padStart(2,"0") + "/" + String(x.getMonth()+1).padStart(2,"0"); };
+
 function fmtWhen(ms){
   if(!ms) return "nunca";
   const dt = new Date(ms);
@@ -2430,7 +2456,10 @@ const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, listas:viewListas,
 function render(){
   renderNav();
   const main = document.getElementById("view");
-  const mob = `<div class="mobhd"><div class="brand"><b>Viagem Disney</b><span>${document.getElementById("railDates").textContent}</span></div>
+  const aviso = S.simularViagem
+    ? `<div class="simbar">Pré-visualização da viagem ligada — <button type="button" data-act="simularOff">desligar</button></div>`
+    : "";
+  const mob = aviso + `<div class="mobhd"><div class="brand"><b>Viagem Disney</b><span>${document.getElementById("railDates").textContent}</span></div>
     <div class="row" style="gap:6px;flex-wrap:nowrap">
       <button class="themebtn syncbtn" type="button" data-act="syncNow" id="syncBtn2">${rotuloBotao(true)}</button>
       <button class="themebtn" type="button" id="themeBtn2">Tema</button>
@@ -2499,6 +2528,7 @@ document.addEventListener("click", (e) => {
   else if(a === "docShare"){ compartilharDoc(act.dataset.id); return; }
   else if(a === "docDel"){ removerDoc(act.dataset.id); return; }
   else if(a === "irAjustes"){ setTab("ajustes"); return; }
+  else if(a === "simularOff"){ S.simularViagem = false; save(false); render(); return; }
   else if(a === "carroMarcar"){ marcarCarro(); return; }
   else if(a === "carroEsquecer"){ esquecerCarro(); return; }
   else if(a === "carroFotoVer"){ abrirDocId(CARRO_FOTO); return; }
@@ -2597,6 +2627,9 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.simular !== undefined){
+    S.simularViagem = t.checked; save(false); render(); return;
+  }
   if(t.dataset.carrofoto !== undefined){
     fotoCarro(t.files && t.files[0]); t.value = ""; return;
   }
@@ -2781,7 +2814,8 @@ const OBJS = ["trip","carro"];
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
+                    "simularViagem","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -4215,6 +4249,25 @@ function toggleTheme(){
       console.assert(faseViagem() === "depois", "passou a data de volta = depois");
       S.trip.start = "";       S.trip.end = "";
       console.assert(faseViagem() === "antes", "sem datas não quebra: cai em antes");
+
+      /* o interruptor de pré-visualização força a fase, para dar para conferir
+         antes de embarcar as três telas que só existem durante a viagem */
+      S.simularViagem = true;
+      console.assert(faseViagem() === "durante", "simulando, a fase é durante");
+      console.assert(blocoHojeNoRoteiro() !== "",
+        "simulando com a viagem no futuro, mostra o primeiro dia em vez de nada");
+      console.assert(blocoHojeNoRoteiro().indexOf("dia 1 de") !== -1,
+        "e diz que é o dia 1, não finge ser hoje");
+      console.assert(botaoGasto() !== "", "simulando, o botão + Gasto aparece");
+      console.assert(blocoCarro() !== "", "simulando, o Onde estacionei aparece");
+      S.trip.start = mais(-1); S.trip.end = mais(8);
+      console.assert(blocoHojeNoRoteiro() !== "", "simulando com datas válidas, o dia aparece");
+      S.simularViagem = false;
+      S.trip.start = mais(5); S.trip.end = mais(15);
+      console.assert(botaoGasto() === "" && blocoCarro() === "",
+        "desligado, volta a esconder");
+      console.assert(LOCAL_ONLY.includes("simularViagem"),
+        "pré-visualização é do aparelho: não pode ligar no celular de todo mundo");
 
       /* fora do intervalo o bloco não aparece em vez de inventar um dia */
       S.trip.start = mais(5); S.trip.end = mais(15);
