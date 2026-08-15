@@ -286,6 +286,21 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- previsão do tempo ---------- */
+.clima{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;
+  padding:8px 10px;margin:0 0 12px;font-size:13px;
+}
+.clima-i{font-size:19px;line-height:1}
+.clima-t b{font-family:var(--font-display);font-size:19px}
+.clima-min{color:var(--fg-dim)}
+.clima-d{color:var(--fg-dim)}
+.clima-upd{margin-left:auto;background:none;border:0;cursor:pointer;color:var(--fg-faint);font-size:14px;padding:2px 4px;border-radius:6px}
+.clima-upd:hover{color:var(--accent);background:var(--surface-3)}
+.clima-vazio{color:var(--fg-dim);font-size:12.5px}
+.diachip-c{font-size:10px;opacity:.9;margin-top:1px;white-space:nowrap}
+
 /* ---------- abas de dia e períodos ---------- */
 .diasbar{display:flex;min-width:0;max-width:100%;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 10px;margin-bottom:4px;scroll-snap-type:x proximity}
 .diachip{display:flex;flex-direction:column;align-items:center;gap:1px;flex:0 0 auto;padding:8px 12px;border-radius:12px;scroll-snap-align:start;line-height:1.15;position:relative}
@@ -904,7 +919,8 @@ function seed(){
     onlyPlan:false,
     onlyKid:false,
     seg:{roteiro:"dias", listas:"checklist"},
-    diaSel:""
+    diaSel:"",
+    clima:{at:0, dias:{}}
   };
 }
 
@@ -1647,6 +1663,7 @@ function roteiroDias(days){
       <span class="parkicon xs">${parkIconSvg(pk)}</span>
       <span class="diachip-d">${String(x.getDate()).padStart(2,"0")}/${String(x.getMonth()+1).padStart(2,"0")}</span>
       <span class="diachip-w">${WD[x.getDay()].slice(0,3)}${dt===t?" · hoje":""}</span>
+      ${(() => { const c = climaDoDia(dt, pk); return c ? `<span class="diachip-c">${climaCod(c.cod).i}${c.max}°</span>` : ""; })()}
       ${n ? `<span class="diachip-n">${n}</span>` : ""}
     </button>`;
   }).join("");
@@ -1699,6 +1716,7 @@ function roteiroDias(days){
       <select data-day="${sel}" data-k="park" aria-label="Parque do dia">
         ${opts.map(o => `<option value="${o}" ${p===o?"selected":""}>${PARKS[o].n}</option>`).join("")}
       </select>
+      ${blocoClima(sel, p)}
 
       <div class="f"><span>Programação do dia</span>
         <datalist id="sug-${sel}">${sugestoes.map(x => `<option value="${esc(x)}">`).join("")}</datalist>
@@ -2289,6 +2307,7 @@ document.addEventListener("click", (e) => {
   else if(a === "baixarJson"){ baixarJson(); return; }
   else if(a === "baixarIcs"){ baixarIcs(); return; }
   else if(a === "ondeEstou"){ pedirLocal(); return; }
+  else if(a === "clima"){ buscarClima(true); return; }
 
   else if(a === "addCheck"){
     const g = act.dataset.grupo;
@@ -2546,7 +2565,7 @@ const MAPS = ["checks","attrNotes"];
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","clima","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -2827,7 +2846,7 @@ function marcarRede(ligada){
   const mudou = comRede !== ligada;
   comRede = ligada;
   if(mudou) renderNav();
-  if(ligada) agendarSync();
+  if(ligada){ agendarSync(); buscarClima(false); }
 }
 
 if(NATIVE && Capacitor.Plugins && Capacitor.Plugins.Network){
@@ -3026,6 +3045,114 @@ function blocoLocal(){
       </span>
       <button class="btn ghost sm" type="button" data-act="ondeEstou">Atualizar</button>
     </div>
+  </div>`;
+}
+
+/* ============================== 8a2. PREVISÃO DO TEMPO ==============================
+   Open-Meteo: sem chave, com CORS e HTTPS. Chave embutida num app público seria
+   chave exposta — por isso não uso serviço que exige uma.
+
+   O que a previsão alcança tem limite: ~16 dias à frente. Dia além disso não
+   tem dado, e a tela diz isso em vez de inventar. */
+
+const CLIMA_URL = "https://api.open-meteo.com/v1/forecast";
+/* Todos os parques de Orlando ficam a poucos km: um ponto serve para os cinco.
+   Miami é o outro. */
+const CLIMA_LOCAIS = [
+  {id:"orl", lat:28.4177, lng:-81.5812},
+  {id:"mia", lat:25.7907, lng:-80.1300}
+];
+const localDoParque = (pk) => pk === "mia" ? "mia" : "orl";
+
+/* Códigos WMO agrupados no que muda a decisão da família: dá para ficar na fila
+   ou não. Detalhe além disso é ruído. */
+function climaCod(c){
+  if(c === 0) return {i:"☀️", t:"Sol"};
+  if(c <= 2)  return {i:"🌤️", t:"Sol entre nuvens"};
+  if(c === 3) return {i:"☁️", t:"Nublado"};
+  if(c <= 48) return {i:"🌫️", t:"Névoa"};
+  if(c <= 57) return {i:"🌦️", t:"Garoa"};
+  if(c <= 67) return {i:"🌧️", t:"Chuva"};
+  if(c <= 77) return {i:"🌨️", t:"Neve"};
+  if(c <= 82) return {i:"🌧️", t:"Pancadas"};
+  if(c <= 86) return {i:"🌨️", t:"Neve"};
+  return {i:"⛈️", t:"Trovoada"};
+}
+
+let buscandoClima = false;
+
+/* Guardado em LOCAL_ONLY: previsão é dado de fora, envelhece em horas e não faz
+   sentido viajar no sync nem inchar o payload. */
+async function buscarClima(forcar){
+  if(buscandoClima || !comRede) return;
+  const c = S.clima || {};
+  const idade = Date.now() - (c.at || 0);
+  if(!forcar && c.at && idade < 3*3600*1000) return;   /* 3h basta */
+
+  buscandoClima = true;
+  try{
+    const q = new URLSearchParams({
+      latitude:  CLIMA_LOCAIS.map(l => l.lat).join(","),
+      longitude: CLIMA_LOCAIS.map(l => l.lng).join(","),
+      daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+      timezone: "America/New_York",
+      forecast_days: "16"
+    });
+    const res = await fetch(CLIMA_URL + "?" + q, {cache:"no-store"});
+    if(!res.ok) throw new Error("http " + res.status);
+    const body = await res.json();
+    const lista = Array.isArray(body) ? body : [body];
+
+    const dias = {};
+    lista.forEach((loc, i) => {
+      const id = (CLIMA_LOCAIS[i] || {}).id;
+      const d = loc && loc.daily;
+      if(!id || !d) return;
+      d.time.forEach((iso, k) => {
+        /* a borda do alcance vem com null: não guarda meia previsão */
+        if(d.temperature_2m_max[k] == null) return;
+        (dias[iso] = dias[iso] || {})[id] = {
+          max: Math.round(d.temperature_2m_max[k]),
+          min: Math.round(d.temperature_2m_min[k]),
+          chuva: d.precipitation_probability_max[k] ?? null,
+          cod: d.weather_code[k]
+        };
+      });
+    });
+    S.clima = {at: Date.now(), dias};
+    save(false);
+    render();
+  }catch(e){
+    /* Sem previsão o app inteiro continua funcionando: não vale mostrar erro. */
+    console.warn("clima:", e && e.message);
+  }finally{
+    buscandoClima = false;
+  }
+}
+
+function climaDoDia(iso, pk){
+  const d = ((S.clima || {}).dias || {})[iso];
+  return d ? d[localDoParque(pk)] || null : null;
+}
+
+/* Faixa da previsão no card do dia. Sem dado, diz por quê. */
+function blocoClima(iso, pk){
+  const c = climaDoDia(iso, pk);
+  if(!c){
+    const temAlgo = Object.keys((S.clima || {}).dias || {}).length;
+    return `<div class="clima clima-vazio">${temAlgo
+      ? "Previsão ainda não alcança este dia — ela vai até uns 16 dias à frente."
+      : `<button class="btn ghost sm" type="button" data-act="clima">Ver previsão</button>`}</div>`;
+  }
+  const k = climaCod(c.cod);
+  const quente = c.max >= 34;
+  return `<div class="clima">
+    <span class="clima-i" aria-hidden="true">${k.i}</span>
+    <span class="clima-t"><b>${c.max}°</b> <span class="clima-min">${c.min}°</span></span>
+    <span class="clima-d">${k.t}</span>
+    ${c.chuva != null ? `<span class="pill ${c.chuva >= 50 ? "warn" : "neutral"}">${c.chuva}% chuva</span>` : ""}
+    ${quente ? `<span class="pill crit">calor forte</span>` : ""}
+    <button class="clima-upd" type="button" data-act="clima" title="Atualizar previsão" aria-label="Atualizar previsão">↻</button>
   </div>`;
 }
 
@@ -3362,6 +3489,30 @@ function toggleTheme(){
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
 
+    /* ---- Previsão do tempo ---- */
+    console.assert(climaCod(0).t==="Sol" && climaCod(3).t==="Nublado"
+      && climaCod(95).t==="Trovoada" && climaCod(81).t==="Pancadas",
+      "os códigos WMO que a Flórida usa em agosto têm que mapear certo");
+    console.assert(climaCod(999).t==="Trovoada", "código desconhecido cai no pior caso, não quebra");
+    console.assert(localDoParque("mia")==="mia" && localDoParque("mk")==="orl"
+      && localDoParque("ue")==="orl" && localDoParque("none")==="orl",
+      "só Miami usa o ponto de Miami; o resto é Orlando");
+    console.assert(LOCAL_ONLY.includes("clima"),
+      "previsão envelhece em horas e vem de fora: não pode viajar no sync");
+    console.assert(payload().clima === undefined, "clima não pode entrar no payload");
+    {
+      const bak = S.clima;
+      S.clima = {at:Date.now(), dias:{"2026-08-25":{orl:{max:36,min:26,chuva:60,cod:95}}}};
+      const c = climaDoDia("2026-08-25","mk");
+      console.assert(c && c.max===36 && c.chuva===60, "dia de parque lê o ponto de Orlando");
+      console.assert(climaDoDia("2026-08-25","mia")===null, "sem dado de Miami naquele dia, devolve null");
+      console.assert(climaDoDia("2026-09-01","mk")===null, "dia fora do alcance devolve null em vez de quebrar");
+      console.assert(/16 dias/.test(blocoClima("2026-09-01","mk")), "dia sem previsão explica o porquê");
+      console.assert(/36°/.test(blocoClima("2026-08-25","mk")), "dia com previsão mostra a máxima");
+      console.assert(/calor forte/.test(blocoClima("2026-08-25","mk")), "36° dispara o aviso de calor");
+      S.clima = bak;
+    }
+
     /* ---- Períodos, espelho de Parques e reordenação ---- */
     console.assert(periodoDaHora("03:00")==="madrugada" && periodoDaHora("07:30")==="manha"
       && periodoDaHora("12:00")==="tarde" && periodoDaHora("18:00")==="noite",
@@ -3572,6 +3723,7 @@ function toggleTheme(){
 
 /* ============================== 11. INÍCIO ============================== */
 render();
+buscarClima(false);
 
 /* Service worker: offline completo (ADR 0008). Só sob http(s) — abrir o arquivo
    direto do Finder (file://) não registra, e não precisa. */
