@@ -270,7 +270,7 @@ table select:hover{border-color:var(--line-soft)}
 /* Alinhado à direita de propósito: à esquerda a contagem cobria a família,
    que é justamente a parte da ilustração que interessa. */
 .capa-txt{
-  position:absolute;left:18px;right:18px;bottom:15px;z-index:1;
+  position:absolute;left:18px;right:18px;bottom:15px;z-index:3;
   display:flex;flex-direction:column;align-items:flex-end;text-align:right;
   line-height:1;color:#FFF6E8;text-shadow:0 1px 6px rgba(20,15,40,.5);
 }
@@ -1420,6 +1420,8 @@ function viewHoje(){
       </div>
     </div>
 
+    ${blocoLocal()}
+
     ${urgente ? `<div class="warnbox">
       <b>Faltam ${falta} dias — prioridade agora</b>
       <p style="margin:6px 0 0">${docNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${docNow.length} item(ns) de documento</b> ainda em aberto. ` : ""}${planNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${planNow.length} item(ns) de janela de tempo da Disney</b> pendentes — alguns têm prazo fixo (Lightning Lane, check-in do hotel, check-in do voo).` : ""}</p>
@@ -2167,6 +2169,7 @@ document.addEventListener("click", (e) => {
 
   else if(a === "baixarJson"){ baixarJson(); return; }
   else if(a === "baixarIcs"){ baixarIcs(); return; }
+  else if(a === "ondeEstou"){ pedirLocal(); return; }
 
   else if(a === "addCheck"){
     const g = act.dataset.grupo;
@@ -2724,6 +2727,122 @@ function importar(){
   m2.textContent = "Dados importados."; m2.style.color = "var(--ok)";
 }
 
+/* ============================== 8a. LOCALIZAÇÃO ==============================
+   Espelho de build/geo.js, que roda os mesmos asserts fora do navegador.
+   A posição só é lida quando a tela pede — nada em segundo plano (F7). */
+
+const PARK_GEO = {
+  mk:  {lat:28.4177, lng:-81.5812, r:1200},
+  ak:  {lat:28.3580, lng:-81.5901, r:1400},
+  hs:  {lat:28.3575, lng:-81.5583, r:1000},
+  ue:  {lat:28.4730, lng:-81.4650, r:1200},
+  ds:  {lat:28.3700, lng:-81.5190, r:900},
+  mia: {lat:25.7907, lng:-80.1300, r:8000}
+};
+
+const R_TERRA = 6371000; // raio médio, metros
+const rad = (g) => g * Math.PI / 180;
+
+/* Haversine. Esfera, não elipsoide: erra ~0,3% e ninguém vai notar num raio de 1 km. */
+function distancia(lat1, lng1, lat2, lng2){
+  const dLat = rad(lat2 - lat1), dLng = rad(lng2 - lng1);
+  const a = Math.sin(dLat/2) ** 2
+          + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng/2) ** 2;
+  return 2 * R_TERRA * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/* Chave do lugar cujo raio contém o ponto. Empate de distância desempata pelo nome
+   da chave, para que a mesma coordenada devolva sempre a mesma resposta. */
+function parqueAtual(lat, lng, geo = PARK_GEO){
+  let melhor = null, dMelhor = Infinity;
+  for(const k of Object.keys(geo)){
+    const g = geo[k];
+    const d = distancia(lat, lng, g.lat, g.lng);
+    if(d > g.r) continue;
+    if(d < dMelhor || (d === dMelhor && k < melhor)){ melhor = k; dMelhor = d; }
+  }
+  return melhor;
+}
+
+/* Lugar mais próximo, mesmo fora do raio — a tela usa para dizer a distância
+   quando você ainda está a caminho. Devolve null só se a tabela estiver vazia. */
+function maisProximo(lat, lng, geo = PARK_GEO){
+  let melhor = null, dMelhor = Infinity;
+  for(const k of Object.keys(geo)){
+    const g = geo[k];
+    const d = distancia(lat, lng, g.lat, g.lng);
+    if(d < dMelhor || (d === dMelhor && k < melhor)){ melhor = k; dMelhor = d; }
+  }
+  return melhor === null ? null : {chave: melhor, dist: dMelhor};
+}
+
+/* Última posição lida nesta sessão. Não persiste: posição velha engana mais
+   do que ajuda, e no dia seguinte estaria errada. */
+let ondeEstou = null;   // {chave, dist, dentro} ou null
+let pedindoLocal = false;
+
+function localDisponivel(){
+  return typeof navigator !== "undefined" && !!navigator.geolocation
+      && (typeof isSecureContext === "undefined" || isSecureContext);
+}
+
+function pedirLocal(){
+  if(pedindoLocal || !localDisponivel()) return;
+  pedindoLocal = true;
+  const el = document.getElementById("localMsg");
+  if(el) el.textContent = "Procurando…";
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const {latitude:la, longitude:ln} = pos.coords;
+      const dentro = parqueAtual(la, ln);
+      const perto = maisProximo(la, ln);
+      ondeEstou = perto ? {chave: dentro || perto.chave, dist: perto.dist, dentro: !!dentro} : null;
+      pedindoLocal = false;
+      /* estando no parque, já abre a lista dele */
+      if(dentro && ATTR[dentro]) S.parkFilter = dentro;
+      save(false); render();
+    },
+    (err) => {
+      pedindoLocal = false;
+      const e2 = document.getElementById("localMsg");
+      if(e2) e2.textContent = err && err.code === 1
+        ? "Permissão negada. Dá para usar o app normalmente sem isso."
+        : "Não foi possível obter a localização agora.";
+    },
+    {enableHighAccuracy:true, timeout:12000, maximumAge:60000}
+  );
+}
+
+/* "no Magic Kingdom", mas "em Miami": cidade não leva artigo. */
+const prepLocal = (k) => k === "mia" ? "em" : "no";
+
+/* Bloco da aba Hoje. Fora de qualquer raio conhecido não mostra nada —
+   silêncio é melhor que ruído. */
+function blocoLocal(){
+  if(!localDisponivel()) return "";
+  if(!ondeEstou){
+    return `<div class="card"><div class="card-bd" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn ghost sm" type="button" data-act="ondeEstou">Onde eu estou?</button>
+      <span id="localMsg" style="font-size:13px;color:var(--fg-dim)">Mostra em que parque você está e a distância até ele.</span>
+    </div></div>`;
+  }
+  const nome = PARKS[ondeEstou.chave] ? PARKS[ondeEstou.chave].n : ondeEstou.chave;
+  const km = ondeEstou.dist >= 1000
+    ? (ondeEstou.dist/1000).toLocaleString("pt-BR",{maximumFractionDigits:1}) + " km"
+    : Math.round(ondeEstou.dist) + " m";
+  return `<div class="card pk ${PARKS[ondeEstou.chave] ? PARKS[ondeEstou.chave].cls : ""}">
+    <div class="parkbar"></div>
+    <div class="card-bd" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span class="parkicon sm">${parkIconSvg(parkOf(ondeEstou.chave))}</span>
+      <span style="flex:1;min-width:150px">
+        <b style="display:block">${ondeEstou.dentro ? "Você está " + prepLocal(ondeEstou.chave) + " " + esc(nome) : esc(nome)}</b>
+        <span style="font-size:13px;color:var(--fg-dim)">${ondeEstou.dentro ? "a lista de atrações já abriu neste parque" : "a " + km + " daqui"}</span>
+      </span>
+      <button class="btn ghost sm" type="button" data-act="ondeEstou">Atualizar</button>
+    </div>
+  </div>`;
+}
+
 /* ============================== 8b. AGENDA E CALENDÁRIO ==============================
    Lembretes viram arquivo .ics e quem dispara é o Calendário do aparelho
    (ADR 0009). Espelho de build/agenda.js, que roda os mesmos 13 asserts fora
@@ -3047,6 +3166,20 @@ function toggleTheme(){
     console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
+
+    /* ---- F7: localização ---- */
+    console.assert(Math.abs(distancia(40.6413,-73.7781,33.9416,-118.4085) - 3983000)/3983000 < 0.01,
+      "haversine: JFK→LAX tem que bater com a distância real dentro de 1%");
+    console.assert(parqueAtual(28.4177,-81.5812) === "mk", "o castelo do MK tem que devolver mk");
+    console.assert(parqueAtual(28.5383,-81.3792) === null, "no centro de Orlando não se está em parque nenhum");
+    console.assert(maisProximo(28.5383,-81.3792).chave === "ue", "de Orlando o mais próximo é o Epic Universe");
+    console.assert(maisProximo(0,0,{}) === null, "tabela vazia devolve null em vez de quebrar");
+    Object.keys(PARK_GEO).forEach(k => console.assert(PARKS[k],
+      "PARK_GEO tem lugar que não existe em PARKS: " + k));
+    console.assert(prepLocal("mia") === "em" && prepLocal("mk") === "no",
+      "cidade não leva artigo: é 'em Miami', não 'no Miami'");
+    console.assert(blocoLocal !== undefined && typeof blocoLocal === "function",
+      "a aba Hoje precisa do bloco de localização");
 
     /* ---- F6: tema cartoon ---- */
     {
