@@ -449,6 +449,17 @@ table select:hover{border-color:var(--line-soft)}
   </symbol>
 
   <!-- AJUSTES — engrenagem chapada, miolo vazado -->
+  <symbol id="ico-documentos" viewBox="0 0 64 64">
+    <!-- Folha com o canto dobrado, no mesmo traço de 4px dos outros. Duas
+         linhas de texto e o canto viram a leitura de "documento" em 22px. -->
+    <path d="M14 8h22l14 14v34a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V14a6 6 0 0 1 6-6Z"
+          fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M36 8v10a5 5 0 0 0 5 5h9" fill="none" stroke="currentColor"
+          stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M19 37h20M19 47h13" fill="none" stroke="currentColor"
+          stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+
   <symbol id="ico-ajustes" viewBox="0 0 64 64">
     <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="9"/>
     <g fill="currentColor">
@@ -1504,7 +1515,7 @@ function viewHoje(){
     </div>` : ""}
 
     <div class="row" style="justify-content:center;margin:4px 0 2px">
-      <button class="btn ghost" type="button" data-act="irAjustes">⚙ Ajustes da viagem</button>
+      <button class="btn ghost" type="button" data-act="irAjustes"><svg class="ico" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><use href="#ico-ajustes"/></svg>Ajustes da viagem</button>
     </div>
 
     <div class="note">
@@ -3792,6 +3803,10 @@ function toggleTheme(){
     TABS.forEach(t => console.assert(typeof VIEWS[t.id] === "function", "aba sem view: " + t.id));
     Object.keys(VIEWS).forEach(k => console.assert(TABS.some(t => t.id === k) || k === "ajustes",
       "view sem aba (só ajustes pode): " + k));
+    TABS.forEach(t => console.assert(!!document.getElementById("ico-" + t.id),
+      "aba sem ícone no sprite: " + t.id));
+    console.assert(!!document.getElementById("ico-ajustes"),
+      "ajustes saiu da barra mas o botão da Home usa o ícone");
     console.assert(!TABS.some(t => t.id === "ajustes"), "ajustes não é aba");
     console.assert(typeof VIEWS.ajustes === "function", "mas continua alcançável");
     console.assert(LOCAL_ONLY.includes("seg"), "o segmento aberto é preferência de tela, não pode sincronizar");
