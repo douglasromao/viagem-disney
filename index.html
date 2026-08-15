@@ -281,6 +281,11 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- tempo de fila ---------- */
+.filabar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;
+  background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;
+  padding:8px 10px;margin:0 0 12px;font-size:12.5px;color:var(--fg-dim)}
+
 /* ---------- lançar gasto ---------- */
 .fab{
   position:fixed;right:16px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:60;
@@ -977,6 +982,7 @@ function seed(){
     seg:{roteiro:"dias", listas:"checklist"},
     diaSel:"",
     clima:{at:0, dias:{}},
+    filas:{at:0, parques:{}},
     docs:[],
     gastos:[],
     gastoAberto:false,
@@ -1931,6 +1937,18 @@ function viewParques(){
   <h1>Parques e atrações</h1>
   <p class="sub">Marque o que a família quer fazer. As etiquetas <span class="pill accent">planejar antes</span> são as ${planTotal} coisas que não se resolvem na hora — exigem reserva, compra de fila ou fila virtual no app.</p>
 
+  ${["mk","hs","ak","ue"].includes(pk) ? (() => {
+    const f = S.filas || {};
+    const idade = f.at ? Math.round((Date.now() - f.at)/60000) : null;
+    const fresco = f.at && Date.now() - f.at < 30*60*1000;
+    return `<div class="filabar">
+      <span>${fresco
+        ? `Fila de agora · atualizada ${idade < 1 ? "agora" : "há " + idade + " min"}`
+        : "Tempo de fila em tempo real, direto dos parques."}</span>
+      <button class="btn ghost sm" type="button" data-act="filas">${fresco ? "Atualizar" : "Ver filas"}</button>
+    </div>`;
+  })() : ""}
+
   <div class="filters">
     ${Object.keys(PARKS).filter(k => ATTR[k]).map(k =>
       `<button class="chip pkchip pk ${PARKS[k].cls}" type="button" data-park="${k}" aria-pressed="${pk===k}">
@@ -1984,6 +2002,7 @@ function viewParques(){
                   ${tags.includes("P") ? `<span class="pill accent">planejar antes</span>` : ""}
                   ${tags.includes("B") ? `<span class="pill ok">ok p/ bebê</span>` : ""}
                   ${tags.includes("C") ? `<span class="pill warn">confirmar status</span>` : ""}
+                  ${pillFila(pk, a[0])}
                   ${a[2] ? `<span class="pill neutral">${a[2]} cm</span>` : ""}
                   ${hs ? hs.map(h => h.ok
                       ? `<span class="pill ok">${esc(h.nome.split(" ")[0])} passa</span>`
@@ -2475,6 +2494,7 @@ document.addEventListener("click", (e) => {
   else if(a === "baixarIcs"){ baixarIcs(); return; }
   else if(a === "ondeEstou"){ pedirLocal(); return; }
   else if(a === "clima"){ buscarClima(true); return; }
+  else if(a === "filas"){ buscarFilas(true); return; }
   else if(a === "docAbrir"){ abrirDoc(act.dataset.id); return; }
   else if(a === "docShare"){ compartilharDoc(act.dataset.id); return; }
   else if(a === "docDel"){ removerDoc(act.dataset.id); return; }
@@ -2761,7 +2781,7 @@ const OBJS = ["trip","carro"];
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","clima","docs","gastoAberto","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -3042,7 +3062,7 @@ function marcarRede(ligada){
   const mudou = comRede !== ligada;
   comRede = ligada;
   if(mudou) renderNav();
-  if(ligada){ agendarSync(); buscarClima(false); }
+  if(ligada){ agendarSync(); buscarClima(false); buscarFilas(false); }
 }
 
 if(NATIVE && Capacitor.Plugins && Capacitor.Plugins.Network){
@@ -3242,6 +3262,80 @@ function blocoLocal(){
       <button class="btn ghost sm" type="button" data-act="ondeEstou">Atualizar</button>
     </div>
   </div>`;
+}
+
+/* ============================== 8a-2. TEMPO DE FILA ==============================
+   Vem do queue-times.com por proxy na Edge Function — a API deles não manda
+   CORS, então o navegador não chama direto. É fonte não-oficial: pode cair, e
+   quando cai o app simplesmente não mostra fila nenhuma.
+
+   Casar os nomes é o problema real: eles escrevem "Expedition Everest - Legend
+   of the Forbidden Mountain" e aqui está "Expedition Everest". Medido contra as
+   119 atrações, o casador acerta 78% — e o que sobra é parada, show, playground
+   e trilha, que não têm fila mesmo. */
+
+const FILA_STOP = new Set(["the","a","an","of","and","at","her","his","to","in","on","with","railroad","presented","by"]);
+
+function filaToks(nome){
+  return String(nome||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase()
+    .replace(/\(.*?\)/g," ")        /* (fogos), (playground) */
+    .split(/[—–]/)[0]                /* corta a explicação após o travessão */
+    .replace(/[^a-z0-9 ]/g," ")
+    .split(/\s+/)
+    .filter(w => w && !FILA_STOP.has(w));
+}
+
+/* Melhor candidato por sobreposição de palavras: quanto do MEU nome aparece no
+   deles. Abaixo de 60% é chute, e chute aqui vira fila errada na tela. */
+function acharFila(nome, lista){
+  const a = filaToks(nome);
+  if(!a.length || !lista || !lista.length) return null;
+  const seta = new Set(a);
+  let melhor = null, score = 0;
+  for(const r of lista){
+    const b = r._t || (r._t = filaToks(r.n));
+    if(!b.length) continue;
+    let inter = 0;
+    for(const w of seta) if(b.includes(w)) inter++;
+    const s = inter / seta.size;
+    if(s > score || (s === score && melhor && b.length < melhor._t.length)){ score = s; melhor = r; }
+  }
+  return score >= 0.6 ? melhor : null;
+}
+
+let buscandoFilas = false;
+
+async function buscarFilas(forcar){
+  if(buscandoFilas || !comRede || !S.sync.url) return;
+  const f = S.filas || {};
+  if(!forcar && f.at && Date.now() - f.at < 4*60*1000) return;   /* 4 min */
+  buscandoFilas = true;
+  try{
+    const u = syncUrls();
+    const res = await fetch(u.read + "/filas", {headers: u.headers, cache:"no-store"});
+    if(!res.ok) throw new Error("http " + res.status);
+    const body = await res.json();
+    if(!body || !body.parques) throw new Error("resposta vazia");
+    S.filas = {at: Date.now(), parques: body.parques};
+    save(false); render();
+  }catch(e){
+    /* Fonte não-oficial: sem fila o app inteiro continua igual. */
+    console.warn("filas:", e && e.message);
+  }finally{ buscandoFilas = false; }
+}
+
+/* Etiqueta ao lado da atração. Só aparece com dado fresco: fila de 3 horas
+   atrás é pior que fila nenhuma. */
+function pillFila(pk, nome){
+  const f = S.filas || {};
+  if(!f.at || Date.now() - f.at > 30*60*1000) return "";
+  const r = acharFila(nome, (f.parques || {})[pk]);
+  if(!r) return "";
+  if(!r.a) return `<span class="pill neutral" title="fechada agora">fechada</span>`;
+  const cls = r.w >= 60 ? "crit" : r.w >= 30 ? "warn" : "ok";
+  return `<span class="pill ${cls}" title="tempo de fila agora">${r.w} min</span>`;
 }
 
 /* ============================== 8a-1. ONDE ESTACIONEI ==============================
@@ -4020,6 +4114,40 @@ function toggleTheme(){
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
 
+    /* ---- Tempo de fila ---- */
+    console.assert(LOCAL_ONLY.includes("filas"),
+      "fila muda a cada minuto e vem de fora: não sincroniza");
+    console.assert(payload().filas === undefined, "filas não pode entrar no payload");
+    {
+      const api = [
+        {n:"Expedition Everest - Legend of the Forbidden Mountain", w:35, a:true},
+        {n:"Big Thunder Mountain Railroad", w:20, a:true},
+        {n:'"it\'s a small world"', w:5, a:true},
+        {n:"Under the Sea - Journey of The Little Mermaid", w:10, a:false},
+        {n:"Tomorrowland Transit Authority PeopleMover", w:0, a:true}
+      ];
+      const ach = (x) => { const r = acharFila(x, api); return r && r.n; };
+      console.assert(ach("Expedition Everest") === api[0].n, "sufixo de marketing não pode impedir o casamento");
+      console.assert(ach("Big Thunder Mountain") === api[1].n, "Railroad sobrando também não");
+      console.assert(ach("it's a small world") === api[2].n, "aspas e apóstrofo não podem atrapalhar");
+      console.assert(ach("Under the Sea ~ Little Mermaid") === api[3].n, "til e palavra a menos ainda casam");
+      console.assert(ach("PeopleMover") === api[4].n, "nome curto dentro de um longo casa");
+      console.assert(ach("Space Mountain") === null, "atração que não está na lista não pode casar por engano");
+      console.assert(ach("") === null && acharFila("Jungle Cruise", []) === null && acharFila("x", null) === null,
+        "entrada vazia devolve null em vez de quebrar");
+
+      const bak = S.filas;
+      S.filas = {at: Date.now(), parques:{mk: api}};
+      console.assert(/35 min/.test(pillFila("mk","Expedition Everest")), "mostra o tempo");
+      console.assert(/warn/.test(pillFila("mk","Expedition Everest")), "35 min é atenção");
+      console.assert(/ok/.test(pillFila("mk","Big Thunder Mountain")), "20 min é tranquilo");
+      console.assert(/fechada/.test(pillFila("mk","Under the Sea ~ Little Mermaid")), "fechada aparece como fechada");
+      S.filas = {at: Date.now() - 45*60*1000, parques:{mk: api}};
+      console.assert(pillFila("mk","Expedition Everest") === "",
+        "fila de 45 min atrás não é mostrada: dado velho é pior que dado nenhum");
+      S.filas = bak;
+    }
+
     /* ---- Onde estacionei ---- */
     console.assert(!LOCAL_ONLY.includes("carro"),
       "onde o carro está tem que sincronizar: quem procura pode não ser quem estacionou");
@@ -4356,6 +4484,7 @@ function toggleTheme(){
 /* ============================== 11. INÍCIO ============================== */
 render();
 buscarClima(false);
+buscarFilas(false);
 
 /* Service worker: offline completo (ADR 0008). Só sob http(s) — abrir o arquivo
    direto do Finder (file://) não registra, e não precisa. */
