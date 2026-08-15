@@ -281,6 +281,46 @@ table select:hover{border-color:var(--line-soft)}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
 
+/* ---------- lançar gasto ---------- */
+.fab{
+  position:fixed;right:16px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:60;
+  display:flex;align-items:center;gap:7px;
+  background:var(--accent);color:var(--on-accent);border:0;border-radius:999px;
+  padding:13px 20px;cursor:pointer;box-shadow:0 6px 18px -6px rgba(15,31,41,.5);
+  font-family:var(--font-display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;
+}
+.fab span{font-size:19px;line-height:1;margin-top:-2px}
+.fab:active{transform:translateY(1px)}
+@media (min-width:861px){.fab{bottom:24px}}
+
+.folha-fundo{position:fixed;inset:0;background:rgba(10,16,26,.5);z-index:70}
+.folha{
+  position:fixed;left:0;right:0;bottom:0;z-index:71;
+  background:var(--surface);border-radius:18px 18px 0 0;
+  box-shadow:0 -8px 30px -10px rgba(10,16,26,.5);
+  padding-bottom:env(safe-area-inset-bottom);
+  max-height:88vh;overflow-y:auto;
+}
+@media (min-width:861px){
+  .folha{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);
+    width:min(420px,92vw);border-radius:16px}
+}
+.folha-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:15px 16px 10px;border-bottom:1px solid var(--line-soft)}
+.folha-hd b{font-family:var(--font-display);font-size:18px}
+.folha-bd{padding:14px 16px 18px}
+
+/* ---------- hoje, durante a viagem ---------- */
+.hoje-prox{background:var(--accent-soft);border-radius:9px;padding:8px 11px;margin:0 0 10px}
+.hoje-prox b{display:block;font-size:14.5px;margin-top:1px}
+.hoje-per{display:grid;grid-template-columns:74px 1fr;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.hoje-per:last-of-type{border-bottom:0}
+.hoje-per-l{font-family:var(--font-data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)}
+.hoje-per-i{display:flex;flex-direction:column;gap:3px;font-size:13.5px;min-width:0}
+.hoje-per-i b{font-family:var(--font-data);font-size:12.5px;color:var(--fg-dim)}
+.hoje-res{color:var(--accent);font-weight:600}
+.hoje-notas{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;padding-top:9px;border-top:1px solid var(--line-soft);text-wrap:pretty}
+
 /* ---------- documentos ---------- */
 .doc{display:grid;grid-template-columns:24px 1fr auto auto 26px;gap:8px;align-items:center;
   padding:9px 0;border-bottom:1px solid var(--line-soft)}
@@ -937,7 +977,10 @@ function seed(){
     seg:{roteiro:"dias", listas:"checklist"},
     diaSel:"",
     clima:{at:0, dias:{}},
-    docs:[]
+    docs:[],
+    gastos:[],
+    gastoAberto:false,
+    carro:{}
   };
 }
 
@@ -1278,6 +1321,65 @@ function renderNav(){
 
 /* ============================== 5. TELAS ============================== */
 
+/* Antes de embarcar a tela é de preparo; durante, é o dia de hoje; depois,
+   é o fechamento de contas. A spec F5 pedia isso e ficou faltando. */
+function faseViagem(){
+  const a = d(S.trip.start), b = d(S.trip.end);
+  if(isNaN(a) || isNaN(b)) return "antes";
+  const h = today();
+  if(diffDays(h, a) > 0) return "antes";
+  return diffDays(h, b) >= 0 ? "durante" : "depois";
+}
+
+/* O dia de hoje, do jeito que interessa dentro do parque: onde é, que tempo
+   faz, o que está planejado e o que vem a seguir. Editar continua no Roteiro. */
+function blocoHojeNoRoteiro(){
+  const hj = iso(today());
+  const dias = tripDays();
+  if(!dias.includes(hj)) return "";
+
+  const day = S.days[hj] || {};
+  const pk = parkOf(day.park || "none");
+  const itens = mergedDayItems(hj, day);
+  const idx = dias.indexOf(hj) + 1;
+
+  /* "a seguir" = a próxima coisa com hora marcada que ainda não passou */
+  const agora = new Date();
+  const hhmm = String(agora.getHours()).padStart(2,"0") + ":" + String(agora.getMinutes()).padStart(2,"0");
+  const proximo = itens.filter(i => i.hora && i.hora > hhmm).sort((a,b) => a.hora.localeCompare(b.hora))[0];
+
+  const blocos = PERIODOS.map(per => {
+    const doP = itens.filter(i => i.periodo === per.id);
+    if(!doP.length) return "";
+    return `<div class="hoje-per">
+      <span class="hoje-per-l">${per.label}</span>
+      <span class="hoje-per-i">${doP.map(i =>
+        `<span class="${i.fonte === "dining" ? "hoje-res" : ""}">${i.hora ? `<b>${esc(i.hora)}</b> ` : ""}${esc(i.nome)}</span>`
+      ).join("")}</span>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="card pk ${PARKS[pk].cls}" style="margin-bottom:16px">
+    <div class="parkbar"></div>
+    <div class="card-hd">
+      <span class="row" style="gap:10px">
+        <span class="parkicon sm">${parkIconSvg(pk)}</span>
+        <span><h2 style="margin:0">${esc(PARKS[pk].n)}</h2>
+        <span class="eyebrow">hoje · dia ${idx} de ${dias.length}</span></span>
+      </span>
+      <button class="btn ghost sm" type="button" data-act="verDiaHoje">Abrir no roteiro</button>
+    </div>
+    <div class="card-bd">
+      ${blocoClima(hj, pk)}
+      ${proximo ? `<div class="hoje-prox"><span class="eyebrow">a seguir</span>
+        <b>${esc(proximo.hora)} · ${esc(proximo.nome)}</b></div>` : ""}
+      ${blocos || `<p style="font-size:13.5px;color:var(--fg-dim);margin:2px 0">Nada planejado para hoje. Marque atrações em <b>Parques</b> ou escreva no <b>Roteiro</b>.</p>`}
+      ${day.notes ? `<p class="hoje-notas">${esc(day.notes)}</p>` : ""}
+    </div>
+  </div>`;
+}
+
 function viewHoje(){
   const days = tripDays();
   const start = d(S.trip.start);
@@ -1488,6 +1590,9 @@ function viewHoje(){
 
   <div class="stack">
 
+    ${faseViagem() === "durante" ? blocoHojeNoRoteiro() : ""}
+    ${blocoCarro()}
+
     <div class="stats">
       <div class="stat">
         <div class="k">Checklist</div>
@@ -1495,16 +1600,30 @@ function viewHoje(){
         <div class="n">${ck.done} de ${ck.total} itens</div>
         <div class="bar ${ck.pct>66?"c-ok":ck.pct>33?"c-warn":"c-crit"}"><i style="width:${ck.pct}%"></i></div>
       </div>
+      ${faseViagem() === "durante" ? `
+      <div class="stat">
+        <div class="k">Dia da viagem</div>
+        <div class="v">${Math.max(1, diffDays(d(S.trip.start), today()) + 1)}<span style="font-size:18px">/${days.length}</span></div>
+        <div class="n">faltam ${Math.max(0, diffDays(today(), d(S.trip.end)))} para voltar</div>
+      </div>` : `
       <div class="stat">
         <div class="k">Dias de parque</div>
         <div class="v">${parkDays}<span style="font-size:18px">/4</span></div>
         <div class="n">de ${days.length} dias de viagem</div>
-      </div>
+      </div>`}
+      ${faseViagem() === "antes" ? `
       <div class="stat">
         <div class="k">Orçamento previsto</div>
         <div class="v" style="font-size:23px">${brl(orcBRL)}</div>
         <div class="n">gasto lançado: ${brl(realBRL)}</div>
-      </div>
+      </div>` : `
+      <div class="stat">
+        <div class="k">Gasto até agora</div>
+        <div class="v" style="font-size:23px">${brl(gastoTotalBRL())}</div>
+        <div class="n">${orcBRL ? `de ${brl(orcBRL)} previsto` : "sem previsão definida"}</div>
+        ${orcBRL ? (() => { const g = gastoTotalBRL();
+          return `<div class="bar ${g>orcBRL?"c-crit":"c-ok"}"><i style="width:${Math.min(100,Math.round(g/orcBRL*100))}%"></i></div>`; })() : ""}
+      </div>`}
     </div>
 
     ${blocoLocal()}
@@ -1966,7 +2085,8 @@ function viewOrcamento(){
   const planBRL = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
   const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
   const lancados = S.budget.filter(b => b.real > 0).length;
-  const delta = realBRL - planBRL;
+  const realTotal = realBRL + totalGastos();
+  const delta = realTotal - planBRL;
 
   const shopUSD = S.shop.reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
 
@@ -1976,8 +2096,9 @@ function viewOrcamento(){
 
   <div class="stats" style="margin-bottom:16px">
     <div class="stat"><div class="k">Previsto</div><div class="v" style="font-size:23px">${brl(planBRL)}</div><div class="n">${S.budget.length} linhas</div></div>
-    <div class="stat"><div class="k">Gasto lançado</div><div class="v" style="font-size:23px">${brl(realBRL)}</div><div class="n">${lancados} linha(s) com valor real</div>
-      <div class="bar ${realBRL>planBRL?"c-crit":"c-ok"}"><i style="width:${planBRL?Math.min(100,Math.round(realBRL/planBRL*100)):0}%"></i></div></div>
+    <div class="stat"><div class="k">Gasto lançado</div><div class="v" style="font-size:23px">${brl(realTotal)}</div>
+      <div class="n">${lancados} linha(s)${S.gastos.length ? ` · ${S.gastos.length} lançamento(s) na viagem` : ""}</div>
+      <div class="bar ${realTotal>planBRL?"c-crit":"c-ok"}"><i style="width:${planBRL?Math.min(100,Math.round(realTotal/planBRL*100)):0}%"></i></div></div>
     <div class="stat"><div class="k">${delta>=0?"Acima do previsto":"Abaixo do previsto"}</div>
       <div class="v" style="font-size:23px;color:${delta>0?"var(--crit)":"var(--ok)"}">${brl(Math.abs(delta))}</div>
       <div class="n">comparado ao planejado</div></div>
@@ -1990,7 +2111,10 @@ function viewOrcamento(){
     const sub = its.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
     return `
     <div class="card">
-      <div class="card-hd"><h2>${esc(c)}</h2><span class="pill neutral">${brl(sub)}</span></div>
+      <div class="card-hd"><h2>${esc(c)}</h2><span class="row" style="gap:6px">
+        <span class="pill neutral">prev ${brl(sub)}</span>
+        ${totalGastos(c) ? `<span class="pill ok">gasto ${brl(totalGastos(c))}</span>` : ""}
+      </span></div>
       <div class="card-bd">
         <div class="tw"><table>
           <thead><tr><th>Item</th><th>Moeda</th><th class="num">Previsto</th><th class="num">Real</th><th class="num">Previsto em R$</th><th></th></tr></thead>
@@ -2019,13 +2143,31 @@ function viewOrcamento(){
   }).join("")}
   </div>
 
+  ${S.gastos.length ? `
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd"><h2>Gastos lançados na viagem</h2><span class="pill ok">${brl(totalGastos())}</span></div>
+    <div class="card-bd">
+      <p style="font-size:12.5px;color:var(--fg-dim);margin:0 0 10px">Lançados pelo botão <b>+ Gasto</b> durante a viagem. Somam por cima do previsto das linhas acima — não substituem o campo <b>Real</b>, que serve para os valores grandes fechados antes de embarcar.</p>
+      ${S.gastos.slice().sort((a,b)=>b.at-a.at).map(g => `
+        <div class="doc">
+          <span class="doc-i" aria-hidden="true">${g.cur === "USD" ? "💵" : "🇧🇷"}</span>
+          <span class="doc-txt">
+            <b>${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " · " + esc(g.nota) : ""}</b>
+            <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}</span>
+          </span>
+          <button class="del" type="button" data-act="gastoDel" data-id="${g.id}" aria-label="Remover gasto">×</button>
+        </div>`).join("")}
+    </div>
+  </div>` : ""}
+
   <div class="card" style="margin-top:16px">
     <div class="card-hd"><h2>Total geral</h2></div>
     <div class="card-bd">
       <div class="tw"><table style="min-width:0">
         <tbody>
           <tr><td>Previsto</td><td class="num" style="font-size:19px;font-weight:700">${brl(planBRL)}</td></tr>
-          <tr><td>Gasto lançado</td><td class="num" style="font-size:19px;font-weight:700">${brl(realBRL)}</td></tr>
+          <tr><td>Gasto lançado</td><td class="num" style="font-size:19px;font-weight:700">${brl(gastoTotalBRL())}</td></tr>
+          ${totalGastos() ? `<tr><td style="padding-left:16px;color:var(--fg-dim)">dos quais, lançados na viagem</td><td class="num" style="color:var(--fg-dim)">${brl(totalGastos())}</td></tr>` : ""}
           <tr><td>Por pessoa (${S.family.length} pax)</td><td class="num">${brl(S.family.length?planBRL/S.family.length:0)}</td></tr>
           <tr><td>Por dia (${tripDays().length||1} dias)</td><td class="num">${brl(planBRL/(tripDays().length||1))}</td></tr>
         </tbody>
@@ -2274,7 +2416,7 @@ function render(){
       <button class="themebtn syncbtn" type="button" data-act="syncNow" id="syncBtn2">${rotuloBotao(true)}</button>
       <button class="themebtn" type="button" id="themeBtn2">Tema</button>
     </div></div>`;
-  main.innerHTML = mob + (VIEWS[S.tab] || viewHoje)();
+  main.innerHTML = mob + (VIEWS[S.tab] || viewHoje)() + botaoGasto() + folhaGasto();
   const exp = document.getElementById("expBox");
   if(exp) exp.value = encodeState();
 }
@@ -2337,6 +2479,17 @@ document.addEventListener("click", (e) => {
   else if(a === "docShare"){ compartilharDoc(act.dataset.id); return; }
   else if(a === "docDel"){ removerDoc(act.dataset.id); return; }
   else if(a === "irAjustes"){ setTab("ajustes"); return; }
+  else if(a === "carroMarcar"){ marcarCarro(); return; }
+  else if(a === "carroEsquecer"){ esquecerCarro(); return; }
+  else if(a === "carroFotoVer"){ abrirDocId(CARRO_FOTO); return; }
+  else if(a === "gastoAbrir"){ abrirGasto(); return; }
+  else if(a === "gastoFechar"){ fecharGasto(); return; }
+  else if(a === "gastoSalvar"){ salvarGasto(); return; }
+  else if(a === "gastoDel"){ removerGasto(act.dataset.id); return; }
+  else if(a === "verDiaHoje"){
+    S.diaSel = iso(today()); S.seg = Object.assign({}, S.seg, {roteiro:"dias"});
+    setTab("roteiro"); return;
+  }
 
   else if(a === "addCheck"){
     const g = act.dataset.grupo;
@@ -2424,6 +2577,14 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.carrofoto !== undefined){
+    fotoCarro(t.files && t.files[0]); t.value = ""; return;
+  }
+  if(t.dataset.carro){
+    S.carro = Object.assign({}, S.carro, {[t.dataset.carro]: t.value});
+    save(); return;
+  }
+
   if(t.dataset.docup !== undefined){
     adicionarDocs(t.files, t.dataset.docup);
     t.value = "";                       /* deixa re-escolher o mesmo arquivo */
@@ -2506,6 +2667,8 @@ document.addEventListener("change", (e) => {
 /* Enter nos campos "adicionar" dispara o botão ao lado */
 document.addEventListener("keydown", (e) => {
   const t = e.target;
+  if(S.gastoAberto && e.key === "Escape"){ e.preventDefault(); fecharGasto(); return; }
+  if(e.key === "Enter" && t.dataset && t.dataset.gasto){ e.preventDefault(); salvarGasto(); return; }
   if(e.key === "Enter" && (t.dataset.newcheck || t.dataset.newshop || t.dataset.newbud || t.dataset.newdining !== undefined || t.dataset.newitemname !== undefined)){
     e.preventDefault();
     const btn = t.parentElement.querySelector("[data-act]");
@@ -2590,13 +2753,15 @@ function aplicarSugestao(){
    Espelho de build/merge.js, que roda os mesmos testes fora do navegador. */
 
 /* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
-const COLS = ["family","hotels","shop","budget","dining","extraCheck"];
+const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos"];
 const MAPS = ["checks","attrNotes"];
+/* Objetos de campos soltos: cada campo é um caminho próprio, como trip:rate. */
+const OBJS = ["trip","carro"];
 
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","clima","docs","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","clima","docs","gastoAberto","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -2605,7 +2770,7 @@ const clone = (v) => v === undefined ? undefined : JSON.parse(JSON.stringify(v))
 /* Todo caminho sincronizável presente no state. */
 function caminhos(S){
   const out = [];
-  for(const k of Object.keys(S.trip || {})) out.push("trip:" + k);
+  for(const o of OBJS) for(const k of Object.keys(S[o] || {})) out.push(o + ":" + k);
   for(const c of COLS) for(const r of S[c] || []) if(r && r.id) out.push(c + ":" + r.id);
   for(const m of MAPS) for(const k of Object.keys(S[m] || {})) out.push(m + ":" + k);
   for(const isoD of Object.keys(S.days || {})){
@@ -2630,7 +2795,7 @@ function parse(p){
 
 function ler(S, p){
   const q = parse(p);
-  if(q.raiz === "trip") return (S.trip || {})[q.id];
+  if(OBJS.includes(q.raiz)) return (S[q.raiz] || {})[q.id];
   if(COLS.includes(q.raiz)) return (S[q.raiz] || []).find(r => r && r.id === q.id);
   if(MAPS.includes(q.raiz)) return (S[q.raiz] || {})[q.id];
   if(q.raiz === "days"){
@@ -2643,7 +2808,7 @@ function ler(S, p){
 
 function escrever(S, p, v){
   const q = parse(p);
-  if(q.raiz === "trip"){ (S.trip = S.trip || {})[q.id] = v; return; }
+  if(OBJS.includes(q.raiz)){ (S[q.raiz] = S[q.raiz] || {})[q.id] = v; return; }
   if(COLS.includes(q.raiz)){ porId(S[q.raiz] = S[q.raiz] || [], q.id, v); return; }
   if(MAPS.includes(q.raiz)){ (S[q.raiz] = S[q.raiz] || {})[q.id] = v; return; }
   if(q.raiz === "days"){
@@ -2656,7 +2821,7 @@ function escrever(S, p, v){
 
 function apagar(S, p){
   const q = parse(p);
-  if(q.raiz === "trip"){ if(S.trip) delete S.trip[q.id]; return; }
+  if(OBJS.includes(q.raiz)){ if(S[q.raiz]) delete S[q.raiz][q.id]; return; }
   if(COLS.includes(q.raiz)){ semId(S[q.raiz], q.id); return; }
   if(MAPS.includes(q.raiz)){ if(S[q.raiz]) delete S[q.raiz][q.id]; return; }
   if(q.raiz === "days"){
@@ -3079,6 +3244,195 @@ function blocoLocal(){
   </div>`;
 }
 
+/* ============================== 8a-1. ONDE ESTACIONEI ==============================
+   Estacionamento de parque tem o tamanho de um bairro, e vocês saem de lá às
+   22h com duas crianças cansadas. Um toque grava a coordenada; a foto da placa
+   da fileira é o que realmente resolve, porque GPS não distingue fileira B12 de
+   B14. A coordenada sincroniza (é dado da viagem); a foto fica no aparelho. */
+
+const CARRO_FOTO = "carro-foto";
+
+function marcarCarro(){
+  if(!localDisponivel()){ carroMsg("Este navegador não dá a localização.", "err"); return; }
+  carroMsg("Pegando a localização…");
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const perto = maisProximo(pos.coords.latitude, pos.coords.longitude);
+      S.carro = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        at: Date.now(),
+        onde: perto && perto.dist < 4000 ? perto.chave : "",
+        nota: (S.carro && S.carro.nota) || ""
+      };
+      save(); render();
+      carroMsg("Local do carro guardado.", "ok");
+    },
+    (err) => carroMsg(err && err.code === 1
+      ? "Permissão de localização negada."
+      : "Não foi possível obter a localização agora.", "err"),
+    {enableHighAccuracy:true, timeout:12000, maximumAge:0}
+  );
+}
+
+async function fotoCarro(arquivo){
+  if(!arquivo) return;
+  try{
+    await docPut(CARRO_FOTO, arquivo);
+    S.carro = Object.assign({}, S.carro, {foto: Date.now()});
+    save(); render();
+    carroMsg("Foto guardada neste aparelho.", "ok");
+  }catch(e){ carroMsg("Não foi possível guardar a foto.", "err"); }
+}
+
+async function esquecerCarro(){
+  if(!confirm("Esquecer onde o carro está?")) return;
+  await docDel(CARRO_FOTO);
+  S.carro = {};
+  save(); render();
+}
+
+function carroMsg(t, tom){
+  const el = document.getElementById("carroMsg");
+  if(!el) return;
+  el.textContent = t;
+  el.style.color = tom === "err" ? "var(--crit)" : tom === "ok" ? "var(--ok)" : "var(--fg-dim)";
+}
+
+const horasDesde = (ms) => {
+  const min = Math.round((Date.now() - ms) / 60000);
+  if(min < 1) return "agora";
+  if(min < 60) return "há " + min + " min";
+  const h = Math.floor(min/60);
+  return "há " + h + "h" + (min%60 ? String(min%60).padStart(2,"0") : "");
+};
+
+function blocoCarro(){
+  if(faseViagem() !== "durante") return "";
+  const c = S.carro || {};
+  const tem = c.lat != null && c.lng != null;
+  return `
+  <div class="card">
+    <div class="card-hd">
+      <h2>Onde estacionei</h2>
+      ${tem ? `<button class="btn ghost sm" type="button" data-act="carroEsquecer">Esquecer</button>` : ""}
+    </div>
+    <div class="card-bd">
+      ${tem ? `
+        <p style="margin:0 0 10px;font-size:14px">
+          <b>${c.onde && PARKS[c.onde] ? esc(PARKS[c.onde].n) : "Local guardado"}</b>
+          <span style="color:var(--fg-dim)"> · ${horasDesde(c.at)}</span>
+        </p>
+        ${c.nota ? `<p style="margin:0 0 10px;font-size:13.5px">${esc(c.nota)}</p>` : ""}
+        <div class="row" style="gap:8px">
+          <a class="btn ghost sm" href="${mapUrl(c.lat + "," + c.lng)}" target="_blank" rel="noopener noreferrer">Ver no mapa ↗</a>
+          ${c.foto ? `<button class="btn ghost sm" type="button" data-act="carroFotoVer">Ver a foto</button>` : ""}
+          <label class="btn ghost sm" style="cursor:pointer">${c.foto ? "Trocar foto" : "Foto da fileira"}
+            <input type="file" accept="image/*" capture="environment" data-carrofoto hidden></label>
+        </div>
+        <label class="f" style="margin-top:10px"><span>Fileira, setor, referência</span>
+          <input type="text" data-carro="nota" value="${esc(c.nota||"")}" placeholder="ex.: Heroes 12, perto do ponto do trenzinho"></label>
+      ` : `
+        <p style="font-size:13.5px;color:var(--fg-dim);margin:0 0 10px">Ao estacionar, toque abaixo. Guarda a coordenada e, se quiser, uma foto da placa da fileira — GPS acha o estacionamento, mas não distingue a fileira B12 da B14.</p>
+        <button class="btn" type="button" data-act="carroMarcar">Marquei aqui</button>
+      `}
+      <p id="carroMsg" style="font-size:12.5px;margin:10px 0 0;color:var(--fg-dim)"></p>
+    </div>
+  </div>`;
+}
+
+/* ============================== 8a0. GASTOS DO DIA ==============================
+   As 20 linhas do orçamento são de planejamento: passagem, hotel, ingresso.
+   Gasto de viagem é outra coisa — US$ 18 de almoço, na fila, com criança no
+   colo. Por isso vira lista própria, com dois toques, e soma por categoria em
+   cima do previsto. Isso SINCRONIZA: é dado da viagem, não do aparelho. */
+
+const gastoCats = () => [...new Set(S.budget.map(b => b.cat))];
+
+function totalGastos(cat){
+  return S.gastos
+    .filter(g => !cat || g.cat === cat)
+    .reduce((t,g) => t + toBRL(g.valor||0, g.cur), 0);
+}
+
+/* Soma o que foi lançado nas linhas e o que foi anotado no dia. Alguém pode
+   contar duas vezes se lançar nos dois lugares; a tela de Orçamento separa as
+   duas colunas justamente para isso ficar visível. */
+const gastoTotalBRL = () =>
+  S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0) + totalGastos();
+
+function abrirGasto(){
+  S.gastoAberto = true; save(false); render();
+  setTimeout(() => { const el = document.querySelector("[data-gasto=valor]"); if(el) el.focus(); }, 30);
+}
+function fecharGasto(){ S.gastoAberto = false; save(false); render(); }
+
+function salvarGasto(){
+  const v = parseFloat(String((document.querySelector("[data-gasto=valor]")||{}).value || "").replace(",", "."));
+  if(!v || v <= 0){
+    const m = document.getElementById("gastoMsg");
+    if(m){ m.textContent = "Digite um valor maior que zero."; m.style.color = "var(--crit)"; }
+    return;
+  }
+  const cur  = (document.querySelector("[data-gasto=cur]")  || {}).value || "USD";
+  const cat  = (document.querySelector("[data-gasto=cat]")  || {}).value || gastoCats()[0] || "Nos parques";
+  const nota = ((document.querySelector("[data-gasto=nota]") || {}).value || "").trim();
+
+  S.gastos.push({id:uid("g"), valor:v, cur, cat, nota, dia:iso(today()), at:Date.now()});
+  S.gastoAberto = false;
+  save();                    /* o caminho sai do diff, não do argumento */
+  render();
+}
+
+function removerGasto(id){
+  const g = S.gastos.find(x => x.id === id);
+  if(!g) return;
+  if(!confirm(`Remover ${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " — " + g.nota : ""}?`)) return;
+  S.gastos = S.gastos.filter(x => x.id !== id);
+  save();                    /* carimbar() vê o registro sumir e cria a lápide */
+  render();
+}
+
+/* Botão flutuante: só durante a viagem, que é quando lançar gasto é rotina. */
+function botaoGasto(){
+  if(faseViagem() !== "durante") return "";
+  return `<button class="fab" type="button" data-act="gastoAbrir" aria-label="Lançar um gasto">
+    <span>+</span> Gasto
+  </button>`;
+}
+
+function folhaGasto(){
+  if(!S.gastoAberto) return "";
+  const cats = gastoCats();
+  return `
+  <div class="folha-fundo" data-act="gastoFechar"></div>
+  <div class="folha" role="dialog" aria-label="Lançar gasto">
+    <div class="folha-hd">
+      <b>Lançar gasto</b>
+      <button class="del" type="button" data-act="gastoFechar" aria-label="Fechar">×</button>
+    </div>
+    <div class="folha-bd">
+      <div class="row" style="gap:8px;align-items:flex-end">
+        <label class="f" style="flex:1;min-width:120px"><span>Valor</span>
+          <input type="number" inputmode="decimal" step="0.01" min="0" data-gasto="valor" placeholder="0,00" style="font-size:22px;font-family:var(--font-data)"></label>
+        <label class="f" style="width:96px"><span>Moeda</span>
+          <select data-gasto="cur">
+            <option value="USD" selected>US$</option>
+            <option value="BRL">R$</option>
+          </select></label>
+      </div>
+      <label class="f" style="margin-top:10px"><span>Categoria</span>
+        <select data-gasto="cat">${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
+      <label class="f" style="margin-top:10px"><span>O que foi (opcional)</span>
+        <input type="text" data-gasto="nota" placeholder="almoço, pipoca, estacionamento…"></label>
+      <p id="gastoMsg" style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Convertido pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida em Ajustes.</p>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" type="button" data-act="gastoSalvar" style="flex:1">Lançar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* ============================== 8a1. DOCUMENTOS ==============================
    Passaporte, visto, ingresso, reserva. O que se mostra num balcão precisa
    abrir sem sinal — então o arquivo mora no aparelho, em IndexedDB, e nunca
@@ -3178,6 +3532,16 @@ async function adicionarDocs(arquivos, cat){
 }
 
 /* Abre numa aba nova a partir do Blob: funciona offline e não depende de rede. */
+/* Abre qualquer id do IndexedDB, esteja ou não no índice de documentos —
+   a foto do carro não é um documento da viagem. */
+async function abrirDocId(id){
+  const blob = await docGet(id);
+  if(!blob) return;
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 async function abrirDoc(id){
   const d = S.docs.find(x => x.id === id);
   const blob = await docGet(id);
@@ -3655,6 +4019,83 @@ function toggleTheme(){
     console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
+
+    /* ---- Onde estacionei ---- */
+    console.assert(!LOCAL_ONLY.includes("carro"),
+      "onde o carro está tem que sincronizar: quem procura pode não ser quem estacionou");
+    console.assert(caminhos({trip:{}, carro:{lat:1, lng:2}}).includes("carro:lat"),
+      "carro precisa gerar caminho para o merge enxergar");
+    console.assert(horasDesde(Date.now()) === "agora", "acabou de estacionar");
+    console.assert(horasDesde(Date.now() - 25*60000) === "há 25 min", "menos de 1h em minutos");
+    console.assert(horasDesde(Date.now() - 3*3600*1000) === "há 3h", "3h exatas sem minutos pendurados");
+    console.assert(horasDesde(Date.now() - (2*3600+30*60)*1000) === "há 2h30", "2h30");
+    {
+      const bak = S.carro, bakT = {s:S.trip.start, e:S.trip.end};
+      const h = today(), m = (n) => iso(new Date(h.getFullYear(),h.getMonth(),h.getDate()+n));
+      S.trip.start = m(5); S.trip.end = m(15);
+      console.assert(blocoCarro() === "", "antes da viagem não faz sentido perguntar do carro");
+      S.trip.start = m(-1); S.trip.end = m(8);
+      S.carro = {};
+      console.assert(/Marquei aqui/.test(blocoCarro()), "sem carro guardado, oferece marcar");
+      S.carro = {lat:28.41, lng:-81.58, at:Date.now(), onde:"mk", nota:"Heroes 12"};
+      const b = blocoCarro();
+      console.assert(/Magic Kingdom/.test(b), "com o ponto guardado, diz onde é");
+      console.assert(/Heroes 12/.test(b), "a nota da fileira aparece");
+      console.assert(/agora/.test(b), "e há quanto tempo");
+      S.carro = bak; S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
+
+    /* ---- Gastos do dia ---- */
+    console.assert(!LOCAL_ONLY.includes("gastos"),
+      "gasto é dado da viagem: TEM que sincronizar entre os aparelhos");
+    console.assert(LOCAL_ONLY.includes("gastoAberto"), "a folha aberta é estado de tela");
+    console.assert(caminhos({gastos:[{id:"g1"}], trip:{}}).includes("gastos:g1"),
+      "sem estar em COLS, o gasto não teria caminho e não sincronizaria");
+    {
+      const bakG = S.gastos, bakB = S.budget, bakR = S.trip.rate;
+      S.trip.rate = 5;
+      S.budget = [{id:"b1", label:"x", cat:"Nos parques", plan:100, real:50, cur:"BRL"}];
+      S.gastos = [
+        {id:"g1", valor:10, cur:"USD", cat:"Nos parques", nota:"pipoca", dia:"2026-08-25", at:1},
+        {id:"g2", valor:30, cur:"BRL", cat:"Compras",     nota:"",       dia:"2026-08-25", at:2}
+      ];
+      console.assert(totalGastos("Nos parques") === 50, "US$ 10 a 5,00 = R$ 50, veio " + totalGastos("Nos parques"));
+      console.assert(totalGastos("Compras") === 30, "gasto em real não é convertido de novo");
+      console.assert(totalGastos() === 80, "sem categoria, soma tudo");
+      console.assert(totalGastos("Não existe") === 0, "categoria sem gasto dá zero, não NaN");
+      console.assert(gastoTotalBRL() === 130, "total = linhas (50) + lançamentos (80), veio " + gastoTotalBRL());
+      S.gastos = []; 
+      console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
+      S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
+    }
+
+    /* ---- Fases da viagem ---- */
+    {
+      const bakT = {s:S.trip.start, e:S.trip.end};
+      const hoje = today();
+      const mais = (n) => iso(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()+n));
+
+      S.trip.start = mais(5);  S.trip.end = mais(15);
+      console.assert(faseViagem() === "antes", "viagem no futuro = antes");
+      S.trip.start = mais(-3); S.trip.end = mais(6);
+      console.assert(faseViagem() === "durante", "hoje entre ida e volta = durante");
+      S.trip.start = mais(0);  S.trip.end = mais(9);
+      console.assert(faseViagem() === "durante", "o próprio dia do embarque já é durante");
+      S.trip.start = mais(-9); S.trip.end = mais(0);
+      console.assert(faseViagem() === "durante", "o dia da volta ainda é durante");
+      S.trip.start = mais(-20); S.trip.end = mais(-1);
+      console.assert(faseViagem() === "depois", "passou a data de volta = depois");
+      S.trip.start = "";       S.trip.end = "";
+      console.assert(faseViagem() === "antes", "sem datas não quebra: cai em antes");
+
+      /* fora do intervalo o bloco não aparece em vez de inventar um dia */
+      S.trip.start = mais(5); S.trip.end = mais(15);
+      console.assert(blocoHojeNoRoteiro() === "", "hoje fora da viagem não gera bloco");
+      S.trip.start = mais(-1); S.trip.end = mais(8);
+      const b = blocoHojeNoRoteiro();
+      console.assert(b.indexOf("hoje · dia 2 de") !== -1, "no segundo dia o bloco diz dia 2, veio: " + b.slice(b.indexOf("dia "), b.indexOf("dia ")+16));
+      S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
 
     /* ---- Documentos ---- */
     console.assert(LOCAL_ONLY.includes("docs"),
