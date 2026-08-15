@@ -1508,13 +1508,15 @@ function heightInfo(minCm){
 /* A barra de baixo é de AÇÃO, não de navegação: as três coisas que se faz
    dentro do parque, com o polegar, sem procurar. Planejar mora no menu. */
 const TABS = [
+  {id:"hoje",       label:"Hoje",       short:"Hoje"},
   {id:"fotos",      label:"Fotos",      short:"Fotos"},
   {id:"documentos", label:"Documentos", short:"Docs"},
   {id:"gastos",     label:"Gastos",     short:"Gastos"}
 ];
 
+/* Hoje saiu da gaveta e foi para a barra: é a tela de volta, e voltar não pode
+   custar dois toques. Nenhum id fica nos dois menus. */
 const MENU = [
-  {id:"hoje",    label:"Hoje",    desc:"contagem, o dia de hoje, onde você está"},
   {id:"roteiro", label:"Roteiro", desc:"os dias e as reservas"},
   {id:"mapa",    label:"Mapa",    desc:"trajeto do dia, parada a parada"},
   {id:"parques", label:"Parques", desc:"119 atrações, régua de altura, filas"},
@@ -5702,8 +5704,9 @@ function toggleTheme(){
     }
 
     /* ---- F5: cinco abas e os segmentos ---- */
-    console.assert(TABS.length === 3, "a barra de baixo tem as três ações do parque, veio " + TABS.length);
-    console.assert(MENU.length === 6, "o menu tem as telas de planejar, veio " + MENU.length);
+    console.assert(TABS.length === 4, "a barra de baixo: Hoje mais as três ações, veio " + TABS.length);
+    console.assert(MENU.length === 5, "o menu tem as telas de planejar, veio " + MENU.length);
+    console.assert(TABS[0].id === "hoje", "Hoje é o primeiro da barra");
     [...TABS, ...MENU].forEach(t => {
       console.assert(typeof VIEWS[t.id] === "function", "item sem view: " + t.id);
       console.assert(!!document.getElementById("ico-" + t.id), "item sem ícone no sprite: " + t.id);
