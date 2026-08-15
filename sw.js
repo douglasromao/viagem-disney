@@ -10,7 +10,7 @@
  * está offline.
  */
 
-const VERSAO = "disneytrip-v5";
+const VERSAO = "disneytrip-v6";
 const ESSENCIAL = [
   "./",
   "./index.html",

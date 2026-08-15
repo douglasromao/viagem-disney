@@ -142,13 +142,8 @@ label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;t
 .linkpill:hover{color:var(--accent);border-color:var(--accent)}
 
 .zonemap{width:100%;max-width:420px;display:block;margin:0 auto;font-family:var(--font-display)}
-.zonebubble{cursor:pointer}
-.zonebubble circle:first-of-type{fill:var(--c);fill-opacity:.14;stroke:var(--c);stroke-width:1.5;transition:fill-opacity .15s}
-.zonebubble:hover circle:first-of-type,.zonebubble:focus-visible circle:first-of-type{fill-opacity:.32}
 .zonecount{text-anchor:middle;dominant-baseline:middle;fill:var(--c);font-size:15px;font-weight:700}
 .zonelabel{text-anchor:middle;fill:var(--fg-dim);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase}
-.zonebubble:focus-visible{outline:none}
-.zonebubble:focus-visible circle:first-of-type{stroke-width:3}
 
 .mapembed-wrap{margin-top:4px}
 .mapembed{width:100%;border:1px solid var(--line);border-radius:8px;display:block;background:var(--surface-2)}
@@ -285,6 +280,16 @@ table select:hover{border-color:var(--line-soft)}
 .nav button .lbl{display:flex;align-items:center;gap:9px}
 .bottomnav button{display:flex;flex-direction:column;align-items:center;gap:2px}
 .bottomnav .ico{width:22px;height:22px}
+
+/* ---------- documentos ---------- */
+.doc{display:grid;grid-template-columns:24px 1fr auto auto 26px;gap:8px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.doc:last-of-type{border-bottom:0}
+.doc-i{font-size:17px;line-height:1}
+.doc-txt{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.doc-txt b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-txt span{font-family:var(--font-data);font-size:11px;color:var(--fg-faint)}
+.doc-add{display:inline-block;margin-top:10px;cursor:pointer}
 
 /* ---------- previsão do tempo ---------- */
 .clima{
@@ -920,7 +925,8 @@ function seed(){
     onlyKid:false,
     seg:{roteiro:"dias", listas:"checklist"},
     diaSel:"",
-    clima:{at:0, dias:{}}
+    clima:{at:0, dias:{}},
+    docs:[]
   };
 }
 
@@ -1169,32 +1175,6 @@ function proximaOrd(dt, periodo){
 
 function landId(pk, land){ return "land-" + pk + "-" + land.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-"); }
 
-/* Mapa esquemático das áreas de um parque — bolhas ligadas ao centro,
-   não uma planta real (não temos coordenadas oficiais e não vamos fingir
-   que temos). O raio de cada bolha cresce com o número de atrações. */
-function zoneMap(pk){
-  const list = ATTR[pk];
-  const lands = [];
-  list.forEach(a => { if(!lands.includes(a[1])) lands.push(a[1]); });
-  const n = lands.length;
-  const cx = 180, cy = 130, R = n <= 4 ? 74 : 96;
-  const nodes = lands.map((land, i) => {
-    const count = list.filter(a => a[1] === land).length;
-    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
-    return { land, count, x: cx + R * Math.cos(ang), y: cy + R * Math.sin(ang), r: 15 + Math.min(13, count * 1.4) };
-  });
-  const lines = nodes.map(nd => `<line x1="${cx}" y1="${cy}" x2="${nd.x.toFixed(1)}" y2="${nd.y.toFixed(1)}" stroke="var(--line)" stroke-width="2"/>`).join("");
-  const hub = `<circle cx="${cx}" cy="${cy}" r="15" fill="var(--c)" opacity=".16"/><circle cx="${cx}" cy="${cy}" r="5" fill="var(--c)"/>`;
-  const bubbles = nodes.map(nd => `
-    <g class="zonebubble" tabindex="0" role="button" data-act="gotoLand" data-park="${pk}" data-land="${landId(pk, nd.land)}">
-      <title>${esc(nd.land)} — ${nd.count} atraç${nd.count===1?"ão":"ões"}</title>
-      <circle cx="${nd.x.toFixed(1)}" cy="${nd.y.toFixed(1)}" r="${nd.r}"/>
-      <text x="${nd.x.toFixed(1)}" y="${nd.y.toFixed(1)}" class="zonecount">${nd.count}</text>
-      <text x="${nd.x.toFixed(1)}" y="${(nd.y + nd.r + 13).toFixed(1)}" class="zonelabel">${esc(nd.land)}</text>
-    </g>`).join("");
-  return `<svg viewBox="0 0 360 235" class="zonemap">${lines}${hub}${bubbles}</svg>`;
-}
-
 function checkId(kind, a, b){ return kind + "|" + a + "|" + b; }
 
 function allCheckItems(){
@@ -1219,12 +1199,15 @@ function heightInfo(minCm){
 
 /* ============================== 4. NAVEGAÇÃO ============================== */
 
+/* Ajustes saiu da barra: é tela de configuração, não de uso diário. Chega-se
+   nela pelo botão no fim de Hoje e pelo botão Sincronizar, que existe em toda
+   aba. Parques foi para o fim — é planejamento, não consulta de balcão. */
 const TABS = [
-  {id:"hoje",    label:"Hoje",    short:"Hoje"},
-  {id:"roteiro", label:"Roteiro", short:"Roteiro"},
-  {id:"parques", label:"Parques", short:"Parques"},
-  {id:"listas",  label:"Listas",  short:"Listas"},
-  {id:"ajustes", label:"Ajustes", short:"Ajustes"}
+  {id:"hoje",       label:"Hoje",       short:"Hoje"},
+  {id:"roteiro",    label:"Roteiro",    short:"Roteiro"},
+  {id:"listas",     label:"Listas",     short:"Listas"},
+  {id:"documentos", label:"Documentos", short:"Docs"},
+  {id:"parques",    label:"Parques",    short:"Parques"}
 ];
 
 /* Segmentos dentro de Roteiro e Listas. Preferência de tela, não dado de
@@ -1519,6 +1502,10 @@ function viewHoje(){
       <b>Faltam ${falta} dias — prioridade agora</b>
       <p style="margin:6px 0 0">${docNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${docNow.length} item(ns) de documento</b> ainda em aberto. ` : ""}${planNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${planNow.length} item(ns) de janela de tempo da Disney</b> pendentes — alguns têm prazo fixo (Lightning Lane, check-in do hotel, check-in do voo).` : ""}</p>
     </div>` : ""}
+
+    <div class="row" style="justify-content:center;margin:4px 0 2px">
+      <button class="btn ghost" type="button" data-act="irAjustes">⚙ Ajustes da viagem</button>
+    </div>
 
     <div class="note">
       <b>Por que este roteiro alterna parque e descanso</b>
@@ -1832,15 +1819,6 @@ function viewParques(){
   <div class="card pk ${cls}" style="margin-bottom:16px">
     <div class="parkbar"></div>
     <div class="card-hd">
-      <span class="row" style="gap:12px"><span class="parkicon sm">${parkIconSvg(pk)}</span><h2>Áreas do parque</h2></span>
-      <span class="eyebrow">esquemático — clique numa área</span>
-    </div>
-    <div class="card-bd">${zoneMap(pk)}</div>
-  </div>
-
-  <div class="card pk ${cls}" style="margin-bottom:16px">
-    <div class="parkbar"></div>
-    <div class="card-hd">
       <span class="row" style="gap:12px"><span class="parkicon sm">${parkIconSvg(pk)}</span><h2>Suas marcadas no mapa</h2></span>
     </div>
     <div class="card-bd">
@@ -2060,6 +2038,52 @@ function fmtWhen(ms){
 
 /* As três telas de linha-com-número, sob um segmented control. As funções
    originais continuam intactas — só ganharam uma casca. */
+function viewDocumentos(){
+  const total = S.docs.reduce((t,d) => t + (d.tam||0), 0);
+  const cat = (c) => S.docs.filter(d => d.cat === c.id).sort((a,b) => b.at - a.at);
+
+  return `<h1>Documentos</h1>
+  <p class="sub">Passaporte, visto, ingressos, reservas. Ficam <b>neste aparelho</b> e abrem sem internet — que é justamente quando você precisa deles no balcão. ${S.docs.length ? `${S.docs.length} arquivo(s) · ${docFmt(total)}` : ""}</p>
+
+  <div class="warnbox" style="margin-bottom:16px">
+    <b>Não sobem para servidor nenhum</b>
+    <p style="margin:6px 0 0">Scan de passaporte em nuvem é risco que a viagem não precisa correr. Em compensação, cada celular guarda os seus: use <b>compartilhar</b> em cada documento para mandar ao aparelho de quem mais precisa. E lembre que apagar o app leva os arquivos junto.</p>
+  </div>
+
+  <p id="docMsg" style="font-size:13px;margin:0 0 14px"></p>
+
+  <div class="stack">
+  ${DOC_CATS.map(c => {
+    const its = cat(c);
+    return `
+    <div class="card">
+      <div class="card-hd">
+        <h2>${c.label}</h2>
+        ${its.length ? `<span class="pill neutral">${its.length}</span>` : ""}
+      </div>
+      <div class="card-bd">
+        ${c.dica ? `<p style="font-size:12.5px;color:var(--fg-faint);margin:0 0 10px">${c.dica}</p>` : ""}
+        ${its.map(d => `
+          <div class="doc">
+            <span class="doc-i" aria-hidden="true">${docEhImagem(d.tipo) ? "🖼️" : /pdf/.test(d.tipo) ? "📄" : "📎"}</span>
+            <span class="doc-txt">
+              <b>${esc(d.nome)}</b>
+              <span>${docFmt(d.tam||0)}</span>
+            </span>
+            <button class="btn ghost sm" type="button" data-act="docAbrir" data-id="${d.id}">Abrir</button>
+            <button class="btn ghost sm" type="button" data-act="docShare" data-id="${d.id}" aria-label="Compartilhar ${esc(d.nome)}">↗</button>
+            <button class="del" type="button" data-act="docDel" data-id="${d.id}" aria-label="Remover ${esc(d.nome)}">×</button>
+          </div>`).join("")}
+        <label class="btn ghost sm doc-add">
+          + Adicionar em ${c.label}
+          <input type="file" multiple accept="image/*,application/pdf" data-docup="${c.id}" hidden>
+        </label>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>`;
+}
+
 function viewListas(){
   const ck = progress(allCheckItems().map(c => c.id));
   const shopDone = S.shop.filter(s => s.done).length;
@@ -2227,8 +2251,9 @@ function viewBackup(){
 
 /* ============================== 6. RENDER ============================== */
 
-const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, parques:viewParques,
-               listas:viewListas, ajustes:viewAjustes};
+/* ajustes não está em TABS de propósito: é alcançável, não é aba. */
+const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, listas:viewListas,
+               documentos:viewDocumentos, parques:viewParques, ajustes:viewAjustes};
 
 function render(){
   renderNav();
@@ -2272,17 +2297,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  const zone = e.target.closest("[data-act='gotoLand']");
-  if(zone){
-    S.parkFilter = zone.dataset.park; S.onlyPlan = false; S.onlyKid = false;
-    setTab("parques");
-    setTimeout(() => {
-      const el = document.getElementById(zone.dataset.land);
-      if(el) el.scrollIntoView({behavior:"auto", block:"start"});
-    }, 60);
-    return;
-  }
-
   if(e.target.id === "themeBtn" || e.target.id === "themeBtn2"){ toggleTheme(); return; }
 
   const act = e.target.closest("[data-act]");
@@ -2308,6 +2322,10 @@ document.addEventListener("click", (e) => {
   else if(a === "baixarIcs"){ baixarIcs(); return; }
   else if(a === "ondeEstou"){ pedirLocal(); return; }
   else if(a === "clima"){ buscarClima(true); return; }
+  else if(a === "docAbrir"){ abrirDoc(act.dataset.id); return; }
+  else if(a === "docShare"){ compartilharDoc(act.dataset.id); return; }
+  else if(a === "docDel"){ removerDoc(act.dataset.id); return; }
+  else if(a === "irAjustes"){ setTab("ajustes"); return; }
 
   else if(a === "addCheck"){
     const g = act.dataset.grupo;
@@ -2395,6 +2413,12 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.docup !== undefined){
+    adicionarDocs(t.files, t.dataset.docup);
+    t.value = "";                       /* deixa re-escolher o mesmo arquivo */
+    return;
+  }
+
   if(t.dataset.check !== undefined){
     if(t.checked) S.checks[t.dataset.check] = true; else delete S.checks[t.dataset.check];
     espelharNoRoteiro(t.dataset.check, t.checked);
@@ -2476,10 +2500,6 @@ document.addEventListener("keydown", (e) => {
     const btn = t.parentElement.querySelector("[data-act]");
     if(btn) btn.click();
     return;
-  }
-  if((e.key === "Enter" || e.key === " ") && t.closest && t.closest("[data-act='gotoLand']")){
-    e.preventDefault();
-    t.closest("[data-act='gotoLand']").dispatchEvent(new MouseEvent("click", {bubbles:true}));
   }
 });
 
@@ -2565,7 +2585,7 @@ const MAPS = ["checks","attrNotes"];
 /* u e del PRECISAM viajar, senão o merge não existe entre aparelhos.
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
-                    "lastSync","version","seg","diaSel","clima","photos","mapsKey"];
+                    "lastSync","version","seg","diaSel","clima","docs","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -3048,6 +3068,142 @@ function blocoLocal(){
   </div>`;
 }
 
+/* ============================== 8a1. DOCUMENTOS ==============================
+   Passaporte, visto, ingresso, reserva. O que se mostra num balcão precisa
+   abrir sem sinal — então o arquivo mora no aparelho, em IndexedDB, e nunca
+   sobe para servidor nenhum (mesma razão do ADR 0005, agravada pelo conteúdo:
+   scan de passaporte em nuvem com chave compartilhada é risco que a viagem não
+   precisa correr).
+
+   localStorage não serve: são 5 MB no total e o arquivo viraria base64.
+   IndexedDB guarda Blob nativo e aguenta dezenas de MB.
+
+   No state fica só o índice (nome, categoria, tipo, tamanho) — o binário fica
+   no banco do navegador, e a chave `docs` está em LOCAL_ONLY. */
+
+const DOC_CATS = [
+  {id:"imigracao", label:"Imigração",  dica:"Passaporte, visto, passagem, comprovante de hospedagem"},
+  {id:"parques",   label:"Parques",    dica:"Ingressos, comprovantes de reserva, Lightning Lane"},
+  {id:"hotel",     label:"Hotel",      dica:"Reservas, vouchers, confirmação de check-in"},
+  {id:"carro",     label:"Carro",      dica:"Locação, seguro, habilitação"},
+  {id:"saude",     label:"Saúde",      dica:"Seguro viagem, receitas, carteira de vacinação"},
+  {id:"outros",    label:"Outros",     dica:""}
+];
+const DOC_MAX = 25 * 1024 * 1024;     /* 25 MB por arquivo já é folgado */
+
+/* ---- IndexedDB: um armazém só, chave = id do documento ---- */
+let _db = null;
+function docsDB(){
+  if(_db) return _db;
+  _db = new Promise((ok, erro) => {
+    const req = indexedDB.open("disneytrip-docs", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains("arquivos")) db.createObjectStore("arquivos");
+    };
+    req.onsuccess = () => ok(req.result);
+    req.onerror  = () => erro(req.error);
+  });
+  return _db;
+}
+async function docPut(id, blob){
+  const db = await docsDB();
+  return new Promise((ok, erro) => {
+    const tx = db.transaction("arquivos", "readwrite");
+    tx.objectStore("arquivos").put(blob, id);
+    tx.oncomplete = () => ok();
+    tx.onerror = () => erro(tx.error);
+  });
+}
+async function docGet(id){
+  const db = await docsDB();
+  return new Promise((ok, erro) => {
+    const req = db.transaction("arquivos", "readonly").objectStore("arquivos").get(id);
+    req.onsuccess = () => ok(req.result || null);
+    req.onerror = () => erro(req.error);
+  });
+}
+async function docDel(id){
+  const db = await docsDB();
+  return new Promise((ok) => {
+    const tx = db.transaction("arquivos", "readwrite");
+    tx.objectStore("arquivos").delete(id);
+    tx.oncomplete = () => ok();
+    tx.onerror = () => ok();
+  });
+}
+
+const docFmt = (b) => b >= 1048576 ? (b/1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b/1024)) + " KB";
+const docEhImagem = (t) => /^image\//.test(t || "");
+
+function docMsg(txt, tom){
+  const el = document.getElementById("docMsg");
+  if(!el) return;
+  el.textContent = txt;
+  el.style.color = tom === "err" ? "var(--crit)" : tom === "ok" ? "var(--ok)" : "var(--fg-dim)";
+}
+
+async function adicionarDocs(arquivos, cat){
+  const lista = [...(arquivos || [])];
+  if(!lista.length) return;
+  let entraram = 0, grandes = [];
+  for(const f of lista){
+    if(f.size > DOC_MAX){ grandes.push(f.name); continue; }
+    const id = uid("doc");
+    try{
+      await docPut(id, f);
+      S.docs.push({id, nome:f.name || "documento", cat, tipo:f.type || "", tam:f.size, at:Date.now()});
+      entraram++;
+    }catch(e){
+      docMsg("Não foi possível guardar “" + (f.name||"o arquivo") + "”: " + (e && e.name || "erro"), "err");
+    }
+  }
+  if(entraram){ save("docs"); render(); }
+  docMsg(
+    grandes.length
+      ? `${entraram} guardado(s). Fora do limite de 25 MB: ${grandes.join(", ")}.`
+      : entraram ? `${entraram} documento(s) guardado(s) neste aparelho.` : "",
+    grandes.length ? "err" : "ok");
+}
+
+/* Abre numa aba nova a partir do Blob: funciona offline e não depende de rede. */
+async function abrirDoc(id){
+  const d = S.docs.find(x => x.id === id);
+  const blob = await docGet(id);
+  if(!blob){ docMsg("O arquivo não está mais neste aparelho. Adicione de novo.", "err"); return; }
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank");
+  if(!w) docMsg("O navegador bloqueou a janela. Permita pop-ups para abrir o documento.", "err");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/* Compartilhar é como o documento chega no celular de outra pessoa — não existe
+   nuvem aqui de propósito. */
+async function compartilharDoc(id){
+  const d = S.docs.find(x => x.id === id);
+  const blob = await docGet(id);
+  if(!blob || !d) return;
+  const arq = new File([blob], d.nome, {type: d.tipo || "application/octet-stream"});
+  if(navigator.canShare && navigator.canShare({files:[arq]})){
+    try{ await navigator.share({files:[arq], title:d.nome}); }
+    catch(e){ if(e && e.name !== "AbortError") docMsg("Não foi possível compartilhar.", "err"); }
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = d.nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+async function removerDoc(id){
+  const d = S.docs.find(x => x.id === id);
+  if(!confirm(`Remover “${d ? d.nome : "este documento"}” deste aparelho?`)) return;
+  await docDel(id);
+  S.docs = S.docs.filter(x => x.id !== id);
+  save("docs"); render();
+  docMsg("Documento removido.", "ok");
+}
+
 /* ============================== 8a2. PREVISÃO DO TEMPO ==============================
    Open-Meteo: sem chave, com CORS e HTTPS. Chave embutida num app público seria
    chave exposta — por isso não uso serviço que exige uma.
@@ -3489,6 +3645,23 @@ function toggleTheme(){
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
 
+    /* ---- Documentos ---- */
+    console.assert(LOCAL_ONLY.includes("docs"),
+      "o índice de documentos é do aparelho: passaporte não sincroniza");
+    console.assert(payload().docs === undefined, "docs não pode entrar no payload do sync");
+    console.assert(DOC_CATS.length === 6 && DOC_CATS.some(c => c.id === "imigracao"),
+      "as categorias são por lugar onde o documento é pedido");
+    console.assert(new Set(DOC_CATS.map(c => c.id)).size === DOC_CATS.length,
+      "categoria repetida faria o arquivo aparecer duas vezes");
+    console.assert(docFmt(512) === "1 KB" && docFmt(1536) === "2 KB"
+      && docFmt(1048576) === "1.0 MB" && docFmt(5*1048576) === "5.0 MB",
+      "tamanho legível vira KB até 1 MB e MB daí em diante");
+    console.assert(docEhImagem("image/jpeg") && !docEhImagem("application/pdf") && !docEhImagem(""),
+      "só image/* conta como imagem, e tipo vazio não quebra");
+    console.assert(DOC_MAX === 25*1024*1024, "o limite por arquivo é 25 MB");
+    console.assert(typeof indexedDB === "object" && typeof docPut === "function",
+      "os arquivos precisam do IndexedDB — localStorage não aguentaria");
+
     /* ---- Previsão do tempo ---- */
     console.assert(climaCod(0).t==="Sol" && climaCod(3).t==="Nublado"
       && climaCod(95).t==="Trovoada" && climaCod(81).t==="Pancadas",
@@ -3617,7 +3790,10 @@ function toggleTheme(){
     /* ---- F5: cinco abas e os segmentos ---- */
     console.assert(TABS.length === 5, "a Tab Bar do iOS comporta 5, veio " + TABS.length);
     TABS.forEach(t => console.assert(typeof VIEWS[t.id] === "function", "aba sem view: " + t.id));
-    Object.keys(VIEWS).forEach(k => console.assert(TABS.some(t => t.id === k), "view sem aba: " + k));
+    Object.keys(VIEWS).forEach(k => console.assert(TABS.some(t => t.id === k) || k === "ajustes",
+      "view sem aba (só ajustes pode): " + k));
+    console.assert(!TABS.some(t => t.id === "ajustes"), "ajustes não é aba");
+    console.assert(typeof VIEWS.ajustes === "function", "mas continua alcançável");
     console.assert(LOCAL_ONLY.includes("seg"), "o segmento aberto é preferência de tela, não pode sincronizar");
     Object.keys(SEGS).forEach(a => {
       console.assert(TABS.some(t => t.id === a), "segmento de uma aba que não existe: " + a);
