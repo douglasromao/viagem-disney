@@ -354,6 +354,33 @@ table select:hover{border-color:var(--line-soft)}
 /* ---------- ícones das abas ---------- */
 .ico{width:20px;height:20px;flex:0 0 auto;fill:currentColor}
 
+/* ---------- grupos recolhíveis ---------- */
+.grupo-hd{
+  width:100%;background:none;border:0;text-align:left;cursor:pointer;font:inherit;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.grupo-hd:hover h2{color:var(--accent)}
+.grupo-seta{width:15px;height:15px;flex:0 0 auto;color:var(--fg-faint);
+  transform:rotate(90deg);transition:transform .18s ease}
+.grupo.fechado .grupo-seta{transform:rotate(0deg)}
+.grupo.fechado .grupo-bd{display:none}
+.grupo.fechado .card-hd{border-bottom:0;padding-bottom:2px}
+@media (prefers-reduced-motion:reduce){.grupo-seta{transition:none}}
+
+/* ---------- listas próprias ---------- */
+.chip-mais{border-style:dashed;color:var(--accent)}
+.lista-nome{
+  font-family:var(--font-display);font-size:19px;font-weight:600;
+  background:none;border:1px solid transparent;padding:2px 6px;border-radius:7px;
+  min-width:0;flex:1;
+}
+.lista-nome:hover{border-color:var(--line-soft)}
+.lista-nome:focus{background:var(--surface-2);border-color:var(--line)}
+.lista-item{background:none;border:1px solid transparent;padding:3px 6px;width:100%;font-size:14px}
+.lista-item:hover{border-color:var(--line-soft)}
+.lista-item:focus{background:var(--surface-2);border-color:var(--line)}
+.item.done .lista-item{text-decoration:line-through;opacity:.55}
+
 /* ---------- contagem no calendário ---------- */
 .capa{display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;text-align:left;font:inherit}
 /* No topo, não no rodapé: embaixo colidia com "dias para embarcar". */
@@ -1204,6 +1231,8 @@ function seed(){
     mapaDia:"",
     itemAberto:"",
     calAberto:false,
+    listas:[],
+    grupoFechado:{},
     marcaDia:0,
     riscados:{},
     diaFoto:{},
@@ -1517,16 +1546,26 @@ const SEGS = {
   listas:  [{id:"checklist", label:"Checklist"}, {id:"compras", label:"Compras"}, {id:"orcamento", label:"Orçamento"}]
 };
 
+/* Listas ganha um segmento por lista própria, além dos três fixos. */
+function segsDe(aba){
+  if(aba !== "listas") return SEGS[aba];
+  return SEGS.listas.concat((S.listas || []).map(l => ({id:l.id, label:l.nome || "Lista"})));
+}
+
 function segAtual(aba){
-  const opts = SEGS[aba].map(x => x.id);
+  const opts = segsDe(aba).map(x => x.id);
   const v = (S.seg || {})[aba];
   return opts.includes(v) ? v : opts[0];
 }
 
 function barraSeg(aba, extra){
-  return `<div class="filters">${SEGS[aba].map(x =>
-    `<button class="chip" type="button" data-seg="${aba}" data-segid="${x.id}" aria-pressed="${segAtual(aba)===x.id}">${x.label}${
-      extra && extra[x.id] ? ` <span style="opacity:.7">${extra[x.id]}</span>` : ""}</button>`).join("")}</div>`;
+  const itens = segsDe(aba).map(x =>
+    `<button class="chip" type="button" data-seg="${aba}" data-segid="${x.id}" aria-pressed="${segAtual(aba)===x.id}">${esc(x.label)}${
+      extra && extra[x.id] ? ` <span style="opacity:.7">${extra[x.id]}</span>` : ""}</button>`).join("");
+  const mais = aba === "listas"
+    ? `<button class="chip chip-mais" type="button" data-act="listaNova" title="Criar uma lista">+ lista</button>`
+    : "";
+  return `<div class="filters">${itens}${mais}</div>`;
 }
 
 function renderNav(){
@@ -1989,13 +2028,7 @@ function viewChecklist(){
     const its = items.filter(i => i.grupo === g);
     const p = progress(its.map(i => i.id));
     const cls = p.pct === 100 ? "ok" : p.pct >= 50 ? "warn" : "crit";
-    return `
-    <div class="card">
-      <div class="card-hd">
-        <h2>${esc(g)}</h2>
-        <span class="pill ${cls}">${p.done}/${p.total}</span>
-      </div>
-      <div class="card-bd">
+    return cardGrupo("ck:" + g, esc(g), `<span class="pill ${cls}">${p.done}/${p.total}</span>`, `
         <div class="bar c-${cls}" style="margin:0 0 8px"><i style="width:${p.pct}%"></i></div>
         ${its.map(i => `
           <label class="item ${S.checks[i.id]?"done":""}">
@@ -2009,9 +2042,7 @@ function viewChecklist(){
         <div class="row" style="margin-top:12px">
           <input type="text" placeholder="Adicionar item em “${esc(g)}”…" data-newcheck="${esc(g)}" style="flex:1;min-width:180px">
           <button class="btn ghost sm" type="button" data-act="addCheck" data-grupo="${esc(g)}">Adicionar</button>
-        </div>
-      </div>
-    </div>`;
+        </div>`);
   }).join("")}
   </div>`;
 }
@@ -2410,10 +2441,7 @@ function viewCompras(){
   ${cats.map(c => {
     const its = S.shop.filter(s => s.cat === c);
     const sub = its.reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
-    return `
-    <div class="card">
-      <div class="card-hd"><h2>${esc(c)}</h2><span class="pill neutral">${usd(sub)}</span></div>
-      <div class="card-bd">
+    return cardGrupo("sh:" + c, esc(c), `<span class="pill neutral">${usd(sub)}</span>`, `
         <div class="tw"><table>
           <thead><tr><th style="width:26px"></th><th>Item</th><th>Onde</th><th class="num">Qtd</th><th class="num">US$ un.</th><th class="num">Total</th><th class="num">Prio</th><th></th></tr></thead>
           <tbody>
@@ -2437,9 +2465,7 @@ function viewCompras(){
         <div class="row" style="margin-top:10px">
           <input type="text" placeholder="Novo item em “${esc(c)}”…" data-newshop="${esc(c)}" style="flex:1;min-width:180px">
           <button class="btn ghost sm" type="button" data-act="addShop" data-cat="${esc(c)}">Adicionar</button>
-        </div>
-      </div>
-    </div>`;
+        </div>`);
   }).join("")}
   </div>
 
@@ -2480,13 +2506,10 @@ function viewOrcamento(){
   ${cats.map(c => {
     const its = S.budget.filter(b => b.cat === c);
     const sub = its.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
-    return `
-    <div class="card">
-      <div class="card-hd"><h2>${esc(c)}</h2><span class="row" style="gap:6px">
+    return cardGrupo("bd:" + c, esc(c), `<span class="row" style="gap:6px">
         <span class="pill neutral">prev ${brl(sub)}</span>
         ${totalGastos(c) ? `<span class="pill ok">gasto ${brl(totalGastos(c))}</span>` : ""}
-      </span></div>
-      <div class="card-bd">
+      </span>`, `
         <div class="tw"><table>
           <thead><tr><th>Item</th><th>Moeda</th><th class="num">Previsto</th><th class="num">Real</th><th class="num">Previsto em R$</th><th></th></tr></thead>
           <tbody>
@@ -2508,9 +2531,7 @@ function viewOrcamento(){
         <div class="row" style="margin-top:10px">
           <input type="text" placeholder="Nova linha em “${esc(c)}”…" data-newbud="${esc(c)}" style="flex:1;min-width:180px">
           <button class="btn ghost sm" type="button" data-act="addBud" data-cat="${esc(c)}">Adicionar</button>
-        </div>
-      </div>
-    </div>`;
+        </div>`);
   }).join("")}
   </div>
 
@@ -2816,6 +2837,80 @@ function viewGastos(){
   </div>`;
 }
 
+/* ---------- grupos que abrem e fecham ----------
+   Vale para o checklist, compras e orçamento: são cards longos, e num celular
+   percorrer 8 grupos abertos para achar um item é rolagem demais. */
+const grupoFechado = (chave) => !!(S.grupoFechado || {})[chave];
+
+function alternarGrupo(chave){
+  const g = Object.assign({}, S.grupoFechado || {});
+  if(g[chave]) delete g[chave]; else g[chave] = true;
+  S.grupoFechado = g; save(false); render();
+}
+
+/* Cabeçalho clicável, com a seta girando. O conteúdo continua no DOM (fica só
+   escondido) para o navegador não perder o foco de um campo em edição. */
+function cardGrupo(chave, titulo, extra, corpo){
+  const f = grupoFechado(chave);
+  return `<div class="card grupo${f ? " fechado" : ""}">
+    <button class="card-hd grupo-hd" type="button" data-grupo="${esc(chave)}" aria-expanded="${!f}">
+      <span class="row" style="gap:8px;min-width:0">
+        <svg class="grupo-seta" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 style="margin:0">${titulo}</h2>
+      </span>
+      ${extra || ""}
+    </button>
+    <div class="card-bd grupo-bd">${corpo}</div>
+  </div>`;
+}
+
+/* ---------- listas próprias ---------- */
+function novaLista(){
+  const nome = (prompt("Nome da nova lista:") || "").trim();
+  if(!nome) return;
+  const l = {id:uid("l"), nome, itens:[]};
+  S.listas.push(l);
+  S.seg = Object.assign({}, S.seg, {listas: l.id});
+  save(); render();
+}
+
+function apagarLista(id){
+  const l = S.listas.find(x => x.id === id);
+  if(!l) return;
+  if(!confirm(`Apagar a lista “${l.nome}” e os ${l.itens.length} item(ns) dela?`)) return;
+  S.listas = S.listas.filter(x => x.id !== id);
+  S.seg = Object.assign({}, S.seg, {listas: "checklist"});
+  save(); render();
+}
+
+function viewListaPropria(l){
+  const feitos = l.itens.filter(i => i.done).length;
+  return `
+  <div class="card">
+    <div class="card-hd">
+      <input class="lista-nome" type="text" data-lista="${l.id}" data-k="nome" value="${esc(l.nome)}" aria-label="Nome da lista">
+      <span class="row" style="gap:8px">
+        <span class="pill ${feitos === l.itens.length && l.itens.length ? "ok" : "neutral"}">${feitos}/${l.itens.length}</span>
+        <button class="del" type="button" data-act="listaDel" data-id="${l.id}" aria-label="Apagar a lista">×</button>
+      </span>
+    </div>
+    <div class="card-bd">
+      ${l.itens.length ? `<div class="bar ${feitos===l.itens.length?"c-ok":"c-warn"}" style="margin:0 0 10px"><i style="width:${l.itens.length?Math.round(feitos/l.itens.length*100):0}%"></i></div>` : ""}
+      ${l.itens.map(i => `
+        <label class="item ${i.done?"done":""}">
+          <input type="checkbox" data-litem="${l.id}|${i.id}" ${i.done?"checked":""}>
+          <span class="txt"><input type="text" class="lista-item" data-litem="${l.id}|${i.id}" data-k="texto" value="${esc(i.texto)}" aria-label="Item"></span>
+          <button class="del" type="button" data-act="litemDel" data-id="${l.id}|${i.id}" aria-label="Remover">×</button>
+        </label>`).join("")}
+      <div class="row" style="margin-top:12px">
+        <input type="text" placeholder="Adicionar item…" data-newlitem="${l.id}" style="flex:1;min-width:180px">
+        <button class="btn ghost sm" type="button" data-act="litemAdd" data-id="${l.id}">Adicionar</button>
+      </div>
+      ${!l.itens.length ? `<p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Lista vazia. Serve para o que o checklist não cobre — remédios, presentes, restaurantes para tentar.</p>` : ""}
+    </div>
+  </div>`;
+}
+
 function viewListas(){
   const ck = progress(allCheckItems().map(c => c.id));
   const shopDone = S.shop.filter(s => s.done).length;
@@ -2824,7 +2919,11 @@ function viewListas(){
     compras:   shopDone + "/" + S.shop.length
   });
   const seg = segAtual("listas");
-  const corpo = seg === "compras" ? viewCompras() : seg === "orcamento" ? viewOrcamento() : viewChecklist();
+  const propria = (S.listas || []).find(l => l.id === seg);
+  const corpo = propria ? viewListaPropria(propria)
+    : seg === "compras" ? viewCompras()
+    : seg === "orcamento" ? viewOrcamento()
+    : viewChecklist();
   /* cada view já traz o próprio h1; some, porque o cabeçalho agora é do segmento */
   return cab + corpo.replace(/^\s*<h1>[^<]*<\/h1>/, "");
 }
@@ -3076,6 +3175,9 @@ document.addEventListener("click", (e) => {
   const diaBtn = e.target.closest("[data-dia]");
   if(diaBtn){ S.diaSel = diaBtn.dataset.dia; save(false); render(); return; }
 
+  const grp = e.target.closest("[data-grupo]");
+  if(grp){ alternarGrupo(grp.dataset.grupo); return; }
+
   const segBtn = e.target.closest("[data-seg]");
   if(segBtn){
     S.seg = S.seg || {};
@@ -3197,6 +3299,21 @@ document.addEventListener("click", (e) => {
       periodo:per, ord:proximaOrd(dt, per)
     });
   }
+  else if(a === "listaNova"){ novaLista(); return; }
+  else if(a === "listaDel"){ apagarLista(act.dataset.id); return; }
+  else if(a === "litemAdd"){
+    const id = act.dataset.id;
+    const inp = document.querySelector(`[data-newlitem="${CSS.escape(id)}"]`);
+    const v = inp && inp.value.trim();
+    if(!v) return;
+    const l = S.listas.find(x => x.id === id);
+    if(l) l.itens.push({id:uid("li"), texto:v, done:false});
+  }
+  else if(a === "litemDel"){
+    const [lid, iid] = act.dataset.id.split("|");
+    const l = S.listas.find(x => x.id === lid);
+    if(l) l.itens = l.itens.filter(i => i.id !== iid);
+  }
   else if(a === "marcaTirar"){ tirarMarcaDia(); return; }
   else if(a === "calAbrir"){ S.calAberto = true; save(false); render(); return; }
   else if(a === "calFechar"){ S.calAberto = false; save(false); render(); return; }
@@ -3243,6 +3360,19 @@ document.addEventListener("change", (e) => {
   if(t.dataset.device !== undefined){ S.device = t.value.trim() || "Sem nome"; save(false); return; }
   if(t.dataset.mapskey !== undefined){ S.mapsKey = t.value.trim(); save(false); render(); return; }
 
+  if(t.dataset.litem){
+    const [lid, iid] = t.dataset.litem.split("|");
+    const l = S.listas.find(x => x.id === lid);
+    const it = l && l.itens.find(i => i.id === iid);
+    if(!it) return;
+    if(t.type === "checkbox") it.done = t.checked; else it[t.dataset.k] = t.value;
+    save(); render(); return;
+  }
+  if(t.dataset.lista){
+    const l = S.listas.find(x => x.id === t.dataset.lista);
+    if(l){ l[t.dataset.k] = t.value; save(); render(); }
+    return;
+  }
   if(t.dataset.marcanova !== undefined){
     definirMarcaDia(t.files && t.files[0]); t.value = ""; return;
   }
@@ -3367,7 +3497,7 @@ document.addEventListener("keydown", (e) => {
   if(S.menuAberto && e.key === "Escape"){ e.preventDefault(); S.menuAberto = false; save(false); render(); return; }
   if(S.gastoAberto && e.key === "Escape"){ e.preventDefault(); fecharGasto(); return; }
   if(e.key === "Enter" && t.dataset && t.dataset.gasto){ e.preventDefault(); salvarGasto(); return; }
-  if(e.key === "Enter" && (t.dataset.newcheck || t.dataset.newshop || t.dataset.newbud || t.dataset.newdining !== undefined || t.dataset.newitemname !== undefined)){
+  if(e.key === "Enter" && (t.dataset.newcheck || t.dataset.newshop || t.dataset.newbud || t.dataset.newlitem || t.dataset.newdining !== undefined || t.dataset.newitemname !== undefined)){
     e.preventDefault();
     const btn = t.parentElement.querySelector("[data-act]");
     if(btn) btn.click();
@@ -3451,7 +3581,7 @@ function aplicarSugestao(){
    Espelho de build/merge.js, que roda os mesmos testes fora do navegador. */
 
 /* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
-const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos"];
+const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos","listas"];
 const MAPS = ["checks","attrNotes","riscados"];
 /* Objetos de campos soltos: cada campo é um caminho próprio, como trip:rate. */
 const OBJS = ["trip","carro"];
@@ -3461,7 +3591,8 @@ const OBJS = ["trip","carro"];
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
                     "simularViagem","menuAberto","mapaDia","mapaSel","itemAberto","calAberto",
-                    "diaFoto","marcaDia","fotos","photos","mapsKey"];
+                    "diaFoto","marcaDia","grupoFechado","fotos","photos","mapsKey"];
+/* listas NÃO entra: lista própria é dado da viagem e sincroniza. */
 /* riscados NÃO entra: riscar o dia é ritual de família e tem que aparecer nos
    dois celulares. A foto do dia (diaFoto) fica, porque é binário. */
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
@@ -5191,6 +5322,46 @@ function toggleTheme(){
       S.gastos = []; 
       console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
+    }
+
+    /* ---- Grupos recolhíveis e listas próprias ---- */
+    console.assert(LOCAL_ONLY.includes("grupoFechado"),
+      "qual grupo está fechado é preferência de tela");
+    console.assert(!LOCAL_ONLY.includes("listas"),
+      "lista própria é dado da viagem: TEM que sincronizar");
+    console.assert(payload().listas !== undefined, "a lista viaja no payload");
+    console.assert(caminhos({trip:{}, listas:[{id:"l1"}]}).includes("listas:l1"),
+      "sem estar em COLS, a lista não teria caminho e não sincronizaria");
+    {
+      const bak = S.grupoFechado;
+      S.grupoFechado = {};
+      console.assert(grupoFechado("ck:Documentos") === false, "grupo nasce aberto");
+      alternarGrupo("ck:Documentos");
+      console.assert(grupoFechado("ck:Documentos") === true, "clicar fecha");
+      alternarGrupo("ck:Documentos");
+      console.assert(grupoFechado("ck:Documentos") === false, "clicar de novo abre");
+      /* a chave leva o prefixo da tela: um grupo "Compras" no checklist não pode
+         fechar o card "Compras" do orçamento */
+      alternarGrupo("sh:Disney");
+      console.assert(grupoFechado("bd:Disney") === false, "o prefixo separa as telas");
+      S.grupoFechado = bak;
+
+      const html = cardGrupo("x:y", "Título", "", "CORPO");
+      console.assert(html.indexOf("aria-expanded=\"true\"") !== -1, "aberto informa aria-expanded");
+      console.assert(html.indexOf("CORPO") !== -1, "o corpo fica no DOM mesmo fechado, para não perder foco");
+    }
+    {
+      const bakL = S.listas, bakS = S.seg;
+      S.listas = [{id:"l1", nome:"Remédios", itens:[{id:"a", texto:"Dipirona", done:false}]}];
+      console.assert(segsDe("listas").length === 4, "os 3 fixos mais a própria, veio " + segsDe("listas").length);
+      console.assert(segsDe("listas")[3].label === "Remédios", "a aba usa o nome da lista");
+      S.seg = {listas:"l1"};
+      console.assert(segAtual("listas") === "l1", "dá para abrir a lista própria");
+      S.listas = [];
+      console.assert(segAtual("listas") === "checklist",
+        "lista apagada não pode deixar a tela apontando para o vazio");
+      console.assert(segsDe("roteiro").length === SEGS.roteiro.length, "só Listas ganha segmentos extras");
+      S.listas = bakL; S.seg = bakS;
     }
 
     /* ---- Marca dos dias, escolhida no aparelho ---- */
