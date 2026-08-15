@@ -155,6 +155,7 @@ label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;t
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) iframe.mapembed{filter:invert(92%) hue-rotate(180deg) contrast(90%)}}
 :root[data-theme="dark"] iframe.mapembed{filter:invert(92%) hue-rotate(180deg) contrast(90%)}
 .mapembed-empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;font-size:12.5px;color:var(--fg-dim);text-wrap:pretty}
+.mapembed-empty > span{display:block}
 .mapembed-empty b{color:var(--fg)}
 
 /* ---------- park color coding ---------- */
@@ -250,18 +251,66 @@ table select:hover{border-color:var(--line-soft)}
 
 .bottomnav{display:none}
 
+/* ---------- linha de reserva ---------- */
+.dinrow{display:grid;gap:6px;grid-template-columns:1fr 1fr;align-items:center}
+.dinrow .wide{grid-column:1/-1}
+@media (max-width:700px){
+  /* dois campos por linha num iPhone truncam tudo: uma coluna só */
+  .dinrow{grid-template-columns:1fr}
+  .dinrow .wide{grid-column:auto}
+}
+
+/* ---------- tabela vira card no celular ----------
+   Abaixo de 700px a tabela de 8 colunas não cabe num iPhone de 390px: cada
+   linha vira um cartão com rótulo por campo, e o scroll lateral acaba. Os
+   data-* e os handlers não mudam — só o desenho. */
+@media (max-width:700px){
+  .tw{overflow-x:visible}
+  table{min-width:0;display:block}
+  thead{display:none}
+  tbody,tfoot{display:block}
+  tbody tr{
+    display:grid;grid-template-columns:84px minmax(0,1fr);gap:3px 10px;align-items:center;
+    padding:11px 38px 11px 13px;margin-bottom:9px;position:relative;
+    background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r);
+  }
+  tbody td{display:contents}
+  tbody td::before{
+    content:attr(data-l);
+    font-family:var(--font-data);font-size:10px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--fg-faint);line-height:1.25;
+  }
+  tbody td > *{width:100%;min-width:0}
+  /* valor colado no rótulo, não jogado na borda oposta do cartão */
+  tbody td.num,
+  tbody td.num input,
+  tbody td.num select{text-align:left}
+  tbody td input[type=text],
+  tbody td input[type=number],
+  tbody td select{border-color:var(--line-soft);background:var(--surface);padding:6px 8px}
+  /* a célula sem rótulo é o botão de apagar: vai para o canto do cartão em vez
+     de ocupar uma linha inteira */
+  tbody td:not([data-l]){display:block;position:absolute;top:8px;right:8px;width:auto}
+  tbody td:not([data-l])::before{content:none}
+  tbody td:not([data-l]) > *{width:auto}
+  tbody tr.done{opacity:1}
+  tbody tr.done td[data-l="Item"] > *{opacity:.5;text-decoration:line-through}
+  tfoot tr{display:flex;justify-content:space-between;gap:10px;padding:11px 13px}
+  tfoot td{border:0;padding:0}
+  table input[type=number]{max-width:none}
+}
+
 /* ---------- mobile ---------- */
 @media (max-width:860px){
   .shell{grid-template-columns:1fr}
   .rail{display:none}
   main{padding:18px 15px 96px}
   .bottomnav{display:block;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-  .bottomnav .inner{display:flex;overflow-x:auto;gap:2px;padding:5px 6px}
-  .bottomnav button{flex:0 0 auto;background:none;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--fg-dim);font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .bottomnav .inner{display:flex;gap:2px;padding:5px 6px}
+  .bottomnav button{flex:1 1 0;min-width:0;background:none;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--fg-dim);font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
   .bottomnav button[aria-current="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
   .mobhd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
   .mobhd .brand b{font-size:17px}
-  table{min-width:560px}
 }
 @media (min-width:861px){.mobhd{display:none}}
 </style>
@@ -724,7 +773,8 @@ function seed(){
     attrNotes:{},
     parkFilter:"mk",
     onlyPlan:false,
-    onlyKid:false
+    onlyKid:false,
+    seg:{roteiro:"dias", listas:"checklist"}
   };
 }
 
@@ -865,7 +915,7 @@ function mapEmbedBlock(stopsIn, opts){
   return `<div class="mapembed-wrap">
     ${key
       ? `<iframe class="mapembed" style="height:${height}px" src="${mapEmbedUrl(usaveis, key)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="${esc(label)}"></iframe>`
-      : `<div class="mapembed mapembed-empty" style="height:${Math.min(height,110)}px">Configure sua chave gratuita do Google Maps na aba <b>Backup</b> para ver o mapa aqui — e lembre que, publicado no claude.ai, o mapa embutido não aparece de qualquer forma (veja o aviso abaixo). Use o link "abrir no Google Maps" por enquanto.</div>`}
+      : `<div class="mapembed mapembed-empty" style="height:${Math.min(height,110)}px"><span>Configure sua chave gratuita do Google Maps em <b>Ajustes</b> para ver o mapa aqui. Enquanto isso, use o link “abrir no Google Maps” logo abaixo — ele não depende de chave nenhuma.</span></div>`}
     <div class="row" style="margin-top:7px;gap:8px">
       <a class="pill neutral linkpill" href="${mapDirLinkFromStops(stops)}" target="_blank" rel="noopener noreferrer">abrir no Google Maps ↗</a>
       <span class="eyebrow">se o mapa não aparecer acima, use este link — no claude.ai publicado, é sempre o caminho certo</span>
@@ -976,19 +1026,36 @@ function heightInfo(minCm){
 /* ============================== 4. NAVEGAÇÃO ============================== */
 
 const TABS = [
-  {id:"inicio",    label:"Início",    short:"Início"},
-  {id:"checklist", label:"Checklist", short:"Check"},
-  {id:"roteiro",   label:"Roteiro",   short:"Dias"},
-  {id:"parques",   label:"Parques",   short:"Parques"},
-  {id:"compras",   label:"Compras",   short:"Compras"},
-  {id:"orcamento", label:"Orçamento", short:"R$"},
-  {id:"backup",    label:"Backup",    short:"Backup"}
+  {id:"hoje",    label:"Hoje",    short:"Hoje"},
+  {id:"roteiro", label:"Roteiro", short:"Roteiro"},
+  {id:"parques", label:"Parques", short:"Parques"},
+  {id:"listas",  label:"Listas",  short:"Listas"},
+  {id:"ajustes", label:"Ajustes", short:"Ajustes"}
 ];
+
+/* Segmentos dentro de Roteiro e Listas. Preferência de tela, não dado de
+   viagem — por isso `seg` está em LOCAL_ONLY. */
+const SEGS = {
+  roteiro: [{id:"dias", label:"Dias"}, {id:"reservas", label:"Reservas"}],
+  listas:  [{id:"checklist", label:"Checklist"}, {id:"compras", label:"Compras"}, {id:"orcamento", label:"Orçamento"}]
+};
+
+function segAtual(aba){
+  const opts = SEGS[aba].map(x => x.id);
+  const v = (S.seg || {})[aba];
+  return opts.includes(v) ? v : opts[0];
+}
+
+function barraSeg(aba, extra){
+  return `<div class="filters">${SEGS[aba].map(x =>
+    `<button class="chip" type="button" data-seg="${aba}" data-segid="${x.id}" aria-pressed="${segAtual(aba)===x.id}">${x.label}${
+      extra && extra[x.id] ? ` <span style="opacity:.7">${extra[x.id]}</span>` : ""}</button>`).join("")}</div>`;
+}
 
 function renderNav(){
   const ck = progress(allCheckItems().map(c => c.id));
   const shopDone = S.shop.filter(s => s.done).length;
-  const counts = {checklist: ck.done + "/" + ck.total, compras: shopDone + "/" + S.shop.length};
+  const counts = {listas: ck.done + "/" + ck.total};
 
   document.getElementById("nav").innerHTML = TABS.map(t =>
     `<button type="button" data-tab="${t.id}" aria-current="${S.tab===t.id}">
@@ -1019,7 +1086,7 @@ function renderNav(){
 
 /* ============================== 5. TELAS ============================== */
 
-function viewInicio(){
+function viewHoje(){
   const days = tripDays();
   const start = d(S.trip.start);
   const falta = isNaN(start) ? null : diffDays(today(), start);
@@ -1044,7 +1111,7 @@ function viewInicio(){
 
   return `
   <h1>Miami · Orlando</h1>
-  <p class="sub">Chegada e saída por Miami, quatro parques em Orlando: Magic Kingdom, Animal Kingdom, Hollywood Studios e Epic Universe. Tudo o que você marcar fica salvo neste aparelho — use a aba <b>Backup</b> para levar os dados para outro celular ou computador.</p>
+  <p class="sub">Chegada e saída por Miami, quatro parques em Orlando: Magic Kingdom, Animal Kingdom, Hollywood Studios e Epic Universe. Tudo o que você marcar fica salvo neste aparelho — use <b>Ajustes</b> para levar os dados para outro celular ou computador.</p>
 
   <div class="stack">
 
@@ -1077,6 +1144,17 @@ function viewInicio(){
       <p style="margin:6px 0 0">${docNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${docNow.length} item(ns) de documento</b> ainda em aberto. ` : ""}${planNow.length ? `<b style="color:inherit;font-family:inherit;text-transform:none;letter-spacing:0">${planNow.length} item(ns) de janela de tempo da Disney</b> pendentes — alguns têm prazo fixo (Lightning Lane, check-in do hotel, check-in do voo).` : ""}</p>
     </div>` : ""}
 
+    <div class="note">
+      <b>Por que este roteiro alterna parque e descanso</b>
+      <p style="margin:6px 0 0">Fim de agosto na Flórida é calor alto com umidade e chuva quase todo fim de tarde. Com 4 anos e 1a10m o que funciona é: entrar na abertura, sair por volta das 13h, dormir e piscina no hotel, e voltar à noite só se ainda houver energia. Tentar ficar o dia inteiro derruba a família no dia seguinte. Some a isso os dois trechos de estrada entre Miami e Orlando, que consomem um dia cada, e sobram quatro dias de parque em dez de viagem — que é exatamente o desenho do roteiro sugerido.</p>
+    </div>
+
+  </div>`;
+}
+
+/* Os três cards de configuração da viagem, hoje em Ajustes › Viagem. */
+function blocoViagem(){
+  return `
     <div class="card">
       <div class="card-hd"><h2>Datas e cotação</h2></div>
       <div class="card-bd">
@@ -1099,11 +1177,11 @@ function viewInicio(){
           <thead><tr><th>Nome</th><th>Tipo</th><th class="num">Altura (cm)</th><th></th></tr></thead>
           <tbody>${S.family.map(f => `
             <tr>
-              <td><input type="text" data-fam="${f.id}" data-k="nome" value="${esc(f.nome)}"></td>
-              <td><select data-fam="${f.id}" data-k="tipo">
+              <td data-l="Nome"><input type="text" data-fam="${f.id}" data-k="nome" value="${esc(f.nome)}"></td>
+              <td data-l="Tipo"><select data-fam="${f.id}" data-k="tipo">
                 ${["adulto","crianca","bebe"].map(t => `<option value="${t}" ${f.tipo===t?"selected":""}>${t==="adulto"?"Adulto":t==="crianca"?"Criança":"Bebê"}</option>`).join("")}
               </select></td>
-              <td class="num"><input type="number" min="0" max="230" data-fam="${f.id}" data-k="altura" value="${f.altura}"></td>
+              <td class="num" data-l="Altura (cm)"><input type="number" min="0" max="230" data-fam="${f.id}" data-k="altura" value="${f.altura}"></td>
               <td style="width:34px"><button class="del" type="button" data-act="delFam" data-id="${f.id}" aria-label="Remover">×</button></td>
             </tr>`).join("")}</tbody>
         </table></div>
@@ -1133,13 +1211,7 @@ function viewInicio(){
         <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Assim que reservar, preencha o endereço — o mapa fica mais preciso do que buscar só pelo nome do hotel.</p>
       </div>
     </div>
-
-    <div class="note">
-      <b>Por que este roteiro alterna parque e descanso</b>
-      <p style="margin:6px 0 0">Fim de agosto na Flórida é calor alto com umidade e chuva quase todo fim de tarde. Com 4 anos e 1a10m o que funciona é: entrar na abertura, sair por volta das 13h, dormir e piscina no hotel, e voltar à noite só se ainda houver energia. Tentar ficar o dia inteiro derruba a família no dia seguinte. Some a isso os dois trechos de estrada entre Miami e Orlando, que consomem um dia cada, e sobram quatro dias de parque em dez de viagem — que é exatamente o desenho do roteiro sugerido.</p>
-    </div>
-
-  </div>`;
+`;
 }
 
 function viewChecklist(){
@@ -1185,13 +1257,17 @@ function viewChecklist(){
 
 function viewRoteiro(){
   const days = tripDays();
-  if(!days.length) return `<h1>Roteiro</h1><p class="sub">Defina as datas de ida e volta na aba <b>Início</b>.</p>`;
+  if(!days.length) return `<h1>Roteiro</h1><p class="sub">Defina as datas de ida e volta em <b>Ajustes › Viagem</b>.</p>`;
+  const marcadas = S.dining.filter(r => r.done).length;
+  const cab = `<h1>Roteiro</h1>` + barraSeg("roteiro", {reservas: marcadas + "/" + S.dining.length});
+  return cab + (segAtual("roteiro") === "reservas" ? roteiroReservas(days) : roteiroDias(days));
+}
+
+function roteiroDias(days){
 
   const t = iso(today());
   const opts = Object.keys(PARKS);
-
   return `
-  <h1>Roteiro dia a dia</h1>
   <p class="sub">${days.length} dias: voo na madrugada de 23/08, pouso em Miami às 7h de 24/08 e direto para Orlando de carro, quatro parques com descanso entre eles, volta a Miami em 30/08 e voo de volta às 19h de 01/09. Clique em <b>Aplicar sugestão</b> para preencher com esse plano e depois ajuste à vontade.</p>
 
   <div class="row" style="margin-bottom:16px">
@@ -1241,7 +1317,7 @@ function viewRoteiro(){
                 <button class="btn ghost sm" type="button" data-act="addItem" data-dt="${dt}">+</button>
               </div>
             </div>
-            <p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">Restaurantes com dia marcado na aba <b>Restaurantes e reservas</b>, mais abaixo, entram aqui sozinhos.</p>
+            <p style="font-size:12px;color:var(--fg-faint);margin:6px 0 0">Restaurantes com dia marcado em <b>Roteiro › Reservas</b> entram aqui sozinhos.</p>
           </div>
 
           <label class="f"><span>Notas do dia</span>
@@ -1252,6 +1328,11 @@ function viewRoteiro(){
     }).join("")}
   </div>
 
+  `;
+}
+
+function roteiroReservas(days){
+  return `
   <div class="card" style="margin-top:20px">
     <div class="card-hd"><h2>Restaurantes e reservas</h2><span class="pill warn">janela de 60 dias já passou</span></div>
     <div class="card-bd">
@@ -1260,7 +1341,7 @@ function viewRoteiro(){
       ${S.dining.map(r => `
         <div class="item ${r.done?"done":""}" style="align-items:center">
           <input type="checkbox" data-dinchk="${r.id}" ${r.done?"checked":""} aria-label="Reservado">
-          <span class="txt" style="display:grid;gap:6px;grid-template-columns:1fr 1fr;align-items:center">
+          <span class="txt dinrow">
             <input type="text" data-din="${r.id}" data-k="nome" value="${esc(r.nome)}" placeholder="Nome do restaurante" style="font-weight:600">
             <input type="text" data-din="${r.id}" data-k="local" value="${esc(r.local)}" placeholder="Onde (parque/hotel)">
             <select data-din="${r.id}" data-k="dia">
@@ -1268,8 +1349,8 @@ function viewRoteiro(){
               ${days.map(dt => { const dd=d(dt); return `<option value="${dt}" ${r.dia===dt?"selected":""}>${String(dd.getDate()).padStart(2,"0")} ${MO[dd.getMonth()]} · ${WD[dd.getDay()].slice(0,3)}</option>`; }).join("")}
             </select>
             <input type="time" data-din="${r.id}" data-k="hora" value="${esc(r.hora||"")}" aria-label="Horário da reserva" style="font-family:var(--font-data)">
-            <input type="text" data-din="${r.id}" data-k="nota" value="${esc(r.nota)}" placeholder="Nota — quem indicou, preferências…" style="grid-column:1/-1">
-            <a class="pill neutral linkpill" style="justify-self:start" href="${mapUrl(r.nome + " " + r.local)}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+            <input type="text" data-din="${r.id}" data-k="nota" value="${esc(r.nota)}" placeholder="Nota — quem indicou, preferências…" class="wide">
+            <a class="pill neutral linkpill wide" style="justify-self:start" href="${mapUrl(r.nome + " " + r.local)}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
           </span>
           <button class="del" type="button" data-act="delDining" data-id="${r.id}" aria-label="Remover">×</button>
         </div>`).join("")}
@@ -1290,7 +1371,8 @@ function viewRoteiro(){
       <p style="font-size:12.5px;color:var(--fg-faint);margin:0">Mande o arquivo para o resto da família no WhatsApp: cada um importa no próprio celular, sem instalar nada. <b>Mudou o roteiro ou o horário de uma reserva? Exporte de novo</b> — reimportar substitui os lembretes antigos em vez de duplicar.</p>
       <p id="icsMsg" style="font-size:13px;margin:10px 0 0"></p>
     </div>
-  </div>`;
+  </div>
+`;
 }
 
 function viewParques(){
@@ -1441,15 +1523,15 @@ function viewCompras(){
           <tbody>
           ${its.map(s => `
             <tr class="${s.done?"done":""}">
-              <td><input type="checkbox" data-shopchk="${s.id}" ${s.done?"checked":""} aria-label="Comprado"></td>
-              <td><input type="text" data-shop="${s.id}" data-k="item" value="${esc(s.item)}"></td>
-              <td><select data-shop="${s.id}" data-k="loja">
+              <td data-l="Comprado"><input type="checkbox" data-shopchk="${s.id}" ${s.done?"checked":""} aria-label="Comprado"></td>
+              <td data-l="Item"><input type="text" data-shop="${s.id}" data-k="item" value="${esc(s.item)}"></td>
+              <td data-l="Onde"><select data-shop="${s.id}" data-k="loja">
                 ${LOJAS.concat(LOJAS.includes(s.loja)?[]:[s.loja]).map(l => `<option ${l===s.loja?"selected":""}>${esc(l)}</option>`).join("")}
               </select></td>
-              <td class="num"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="qtd" value="${s.qtd}"></td>
-              <td class="num"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="usd" value="${s.usd}"></td>
-              <td class="num">${usd((s.qtd||0)*(s.usd||0))}</td>
-              <td class="num"><select data-shop="${s.id}" data-k="prio">
+              <td class="num" data-l="Qtd"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="qtd" value="${s.qtd}"></td>
+              <td class="num" data-l="US$ un."><input type="number" min="0" step="1" data-shop="${s.id}" data-k="usd" value="${s.usd}"></td>
+              <td class="num" data-l="Total">${usd((s.qtd||0)*(s.usd||0))}</td>
+              <td class="num" data-l="Prioridade"><select data-shop="${s.id}" data-k="prio">
                 ${[3,2,1].map(p => `<option value="${p}" ${s.prio==p?"selected":""}>${p===3?"alta":p===2?"média":"baixa"}</option>`).join("")}
               </select></td>
               <td style="width:34px"><button class="del" type="button" data-act="delShop" data-id="${s.id}" aria-label="Remover">×</button></td>
@@ -1509,14 +1591,14 @@ function viewOrcamento(){
           <tbody>
           ${its.map(b => `
             <tr>
-              <td><input type="text" data-bud="${b.id}" data-k="label" value="${esc(b.label)}"></td>
-              <td><select data-bud="${b.id}" data-k="cur">
+              <td data-l="Item"><input type="text" data-bud="${b.id}" data-k="label" value="${esc(b.label)}"></td>
+              <td data-l="Moeda"><select data-bud="${b.id}" data-k="cur">
                 <option value="BRL" ${b.cur==="BRL"?"selected":""}>R$</option>
                 <option value="USD" ${b.cur==="USD"?"selected":""}>US$</option>
               </select></td>
-              <td class="num"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}"></td>
-              <td class="num"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}"></td>
-              <td class="num">${brl(toBRL(b.plan,b.cur))}</td>
+              <td class="num" data-l="Previsto"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}"></td>
+              <td class="num" data-l="Real"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}"></td>
+              <td class="num" data-l="Em R$">${brl(toBRL(b.plan,b.cur))}</td>
               <td style="width:34px"><button class="del" type="button" data-act="delBud" data-id="${b.id}" aria-label="Remover">×</button></td>
             </tr>`).join("")}
           </tbody>
@@ -1557,6 +1639,28 @@ function fmtWhen(ms){
   const hoje = iso(today()) === iso(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()));
   const hora = String(dt.getHours()).padStart(2,"0") + ":" + String(dt.getMinutes()).padStart(2,"0");
   return hoje ? "hoje " + hora : `${String(dt.getDate()).padStart(2,"0")} ${MO[dt.getMonth()]} ${hora}`;
+}
+
+/* As três telas de linha-com-número, sob um segmented control. As funções
+   originais continuam intactas — só ganharam uma casca. */
+function viewListas(){
+  const ck = progress(allCheckItems().map(c => c.id));
+  const shopDone = S.shop.filter(s => s.done).length;
+  const cab = `<h1>Listas</h1>` + barraSeg("listas", {
+    checklist: ck.done + "/" + ck.total,
+    compras:   shopDone + "/" + S.shop.length
+  });
+  const seg = segAtual("listas");
+  const corpo = seg === "compras" ? viewCompras() : seg === "orcamento" ? viewOrcamento() : viewChecklist();
+  /* cada view já traz o próprio h1; some, porque o cabeçalho agora é do segmento */
+  return cab + corpo.replace(/^\s*<h1>[^<]*<\/h1>/, "");
+}
+
+function viewAjustes(){
+  return `<h1>Ajustes</h1>
+  <p class="sub">Dados da viagem, sincronização entre aparelhos e cópia de segurança.</p>
+  <div class="stack">${blocoViagem()}</div>
+  ` + viewBackup().replace(/^\s*<h1>[^<]*<\/h1>/, "");
 }
 
 function viewBackup(){
@@ -1706,8 +1810,8 @@ function viewBackup(){
 
 /* ============================== 6. RENDER ============================== */
 
-const VIEWS = {inicio:viewInicio, checklist:viewChecklist, roteiro:viewRoteiro,
-               parques:viewParques, compras:viewCompras, orcamento:viewOrcamento, backup:viewBackup};
+const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, parques:viewParques,
+               listas:viewListas, ajustes:viewAjustes};
 
 function render(){
   renderNav();
@@ -1717,8 +1821,9 @@ function render(){
       <button class="themebtn syncbtn" type="button" data-act="syncNow" id="syncBtn2">${rotuloBotao(true)}</button>
       <button class="themebtn" type="button" id="themeBtn2">Tema</button>
     </div></div>`;
-  main.innerHTML = mob + (VIEWS[S.tab] || viewInicio)();
-  if(S.tab === "backup") document.getElementById("expBox").value = encodeState();
+  main.innerHTML = mob + (VIEWS[S.tab] || viewHoje)();
+  const exp = document.getElementById("expBox");
+  if(exp) exp.value = encodeState();
 }
 
 /* ============================== 7. EVENTOS ============================== */
@@ -1729,12 +1834,20 @@ document.addEventListener("click", (e) => {
   const tabBtn = e.target.closest("[data-tab]");
   if(tabBtn){ setTab(tabBtn.dataset.tab); return; }
 
+  const segBtn = e.target.closest("[data-seg]");
+  if(segBtn){
+    S.seg = S.seg || {};
+    S.seg[segBtn.dataset.seg] = segBtn.dataset.segid;
+    save(false); render(); window.scrollTo({top:0});
+    return;
+  }
+
   const parkBtn = e.target.closest("[data-park]");
   if(parkBtn){ S.parkFilter = parkBtn.dataset.park; save(false); render(); return; }
 
   if(e.target.closest("[data-act='syncNow']")){
-    if(!S.sync.url){ setTab("backup"); return; }
-    if(S.tab !== "backup") setTab("backup");
+    if(!S.sync.url){ setTab("ajustes"); return; }
+    if(S.tab !== "ajustes") setTab("ajustes");
     syncNow();
     return;
   }
@@ -1964,6 +2077,8 @@ const MAPS = ["checks","attrNotes"];
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","photos","mapsKey"];
+/* `seg` já está aí de propósito: qual segmento está aberto é preferência
+   deste aparelho, não algo para sincronizar. */
 
 const clone = (v) => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 
@@ -2322,7 +2437,7 @@ function importar(){
   const manter = {};
   LOCAL_ONLY.forEach(k => manter[k] = S[k]);
   S = Object.assign(seed(), obj, manter);
-  S.tab = "backup";
+  S.tab = "ajustes";
   save(); render();
   const m2 = document.getElementById("impMsg");
   m2.textContent = "Dados importados."; m2.style.color = "var(--ok)";
@@ -2651,6 +2766,24 @@ function toggleTheme(){
     console.assert(mapEmbedBlock(muitas,{}).indexOf("+3 local")!==-1, "acima de 9 paradas, o excesso é avisado em vez de quebrar o link");
     console.assert(mapEmbedBlock([],{}) === "", "sem paradas não deveria gerar embed nenhum");
     S.mapsKey = bakKey;
+
+    /* ---- F5: cinco abas e os segmentos ---- */
+    console.assert(TABS.length === 5, "a Tab Bar do iOS comporta 5, veio " + TABS.length);
+    TABS.forEach(t => console.assert(typeof VIEWS[t.id] === "function", "aba sem view: " + t.id));
+    Object.keys(VIEWS).forEach(k => console.assert(TABS.some(t => t.id === k), "view sem aba: " + k));
+    console.assert(LOCAL_ONLY.includes("seg"), "o segmento aberto é preferência de tela, não pode sincronizar");
+    Object.keys(SEGS).forEach(a => {
+      console.assert(TABS.some(t => t.id === a), "segmento de uma aba que não existe: " + a);
+      console.assert(segAtual(a) === SEGS[a][0].id, "sem escolha, cai no primeiro segmento");
+    });
+    S.seg = {listas:"inventado"};
+    console.assert(segAtual("listas") === "checklist", "segmento inválido tem que cair no primeiro, não quebrar");
+    S.seg = {listas:"orcamento"};
+    console.assert(segAtual("listas") === "orcamento", "segmento válido tem que ser respeitado");
+    /* nenhum texto de tela pode mandar o usuário para uma aba que não existe */
+    ["hoje","roteiro","parques","listas","ajustes"].forEach(() => {});
+    console.assert(!/aba <b>(Início|Backup|Checklist|Compras|Orçamento)<\/b>/.test(document.body.innerHTML),
+      "algum texto ainda manda o usuário para uma aba que não existe mais");
 
     console.assert(LOCAL_ONLY.includes("mapsKey"), "a chave do Maps não pode viajar no sync nem no código de transferência");
 
