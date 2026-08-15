@@ -281,8 +281,22 @@ table select:hover{border-color:var(--line-soft)}
 .day-bd select{font-family:var(--font-display);letter-spacing:.05em;text-transform:uppercase;font-size:13px;color:var(--c);font-weight:600}
 
 .dayitems{display:flex;flex-direction:column;gap:6px}
-.dayitem{display:grid;grid-template-columns:22px 1fr 26px;gap:6px;align-items:center}
-.dayitem-dining{grid-template-columns:22px 84px 1fr 26px}
+.dayitem{display:grid;grid-template-columns:22px minmax(0,1fr) 26px 26px;gap:6px;align-items:center}
+.dayitem-dining{grid-template-columns:22px 84px minmax(0,1fr) 26px}
+.dayitem .pin{
+  background:none;border:0;cursor:pointer;padding:2px;border-radius:6px;
+  font-size:14px;line-height:1;filter:grayscale(1);opacity:.45;
+}
+.dayitem .pin:hover,.dayitem .pin[aria-expanded="true"]{filter:none;opacity:1;background:var(--surface-3)}
+.dayitem .pin.tem{filter:none;opacity:1}
+.dayitem-add .pin{visibility:hidden}
+
+.itemlocal{
+  background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;
+  padding:11px 12px;margin:2px 0 8px 28px;
+}
+.itemlocal p{font-size:12px;color:var(--fg-dim);margin:8px 0 10px;text-wrap:pretty}
+.itemlocal p b{color:var(--fg);font-weight:600}
 /* item que veio de Parques: filete na lateral, sem gastar largura com etiqueta */
 .dayitem-attr input[type=text]{border-left:3px solid var(--accent)}
 .dayitem input[type=time]{font-family:var(--font-data);font-size:12.5px;padding:6px 5px;text-align:center}
@@ -1124,6 +1138,7 @@ function seed(){
     seg:{roteiro:"dias", listas:"checklist"},
     diaSel:"",
     mapaDia:"",
+    itemAberto:"",
     mapaSel:{},
     clima:{at:0, dias:{}},
     filas:{at:0, parques:{}},
@@ -1226,6 +1241,10 @@ function attrLink(nome, parqueNome){
 
 /* Link universal do Google Maps: abre o app no celular, o site no PC —
    sem chave de API. Mesma lógica dos links de "saiba mais". */
+/* Buscar o nome no Google costuma ser o caminho mais curto para achar o
+   endereço de um lugar que não é atração de parque. */
+function googleUrl(query){ return "https://www.google.com/search?q=" + encodeURIComponent(query); }
+
 function mapUrl(query){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query); }
 
 /* Mapa embutido de verdade — Maps Embed API oficial do Google, que exige
@@ -1340,7 +1359,7 @@ function dayStops(pk, notes, items){
   if(hotel && (hotel.endereco || hotel.nome)) stops.push(hotel.endereco || (hotel.nome + " " + hotel.cidade));
   stops.push(PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL"));
   const sufixo = pk === "mia" ? " Miami FL" : " Orlando FL";
-  stops.push(...nomes.map(i => i.nome + sufixo));
+  stops.push(...nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome + sufixo));
   return stops;
 }
 
@@ -1352,7 +1371,7 @@ function diningForDay(dt){
 }
 function mergedDayItems(dt, day){
   const manuais = (day.items || []).map(it => ({
-    id:it.id, hora:it.hora, nome:it.nome, attr:it.attr,
+    id:it.id, hora:it.hora, nome:it.nome, attr:it.attr, end:it.end,
     periodo:periodoDoItem(it), ord:it.ord ?? 999, fonte:"item"
   }));
   const reservas = diningForDay(dt).map(r => ({
@@ -1978,8 +1997,22 @@ function roteiroDias(days){
         <button type="button" data-act="mvItem" data-dt="${sel}" data-id="${it.id}" data-dir="1" aria-label="Descer">↓</button>
       </span>
       <input type="text" data-item="${sel}|${it.id}" data-k="nome" value="${esc(it.nome)}" list="sug-${sel}" aria-label="Programa">
+      <button class="pin${it.end ? " tem" : ""}" type="button" data-act="itemLocal" data-id="${it.id}"
+        aria-expanded="${S.itemAberto === it.id}"
+        aria-label="${it.end ? "Endereço definido" : "Definir endereço"}" title="Endereço e busca">📍</button>
       <button class="del" type="button" data-act="delItem" data-dt="${sel}" data-id="${it.id}" aria-label="Remover">×</button>
-    </div>`;
+    </div>
+    ${S.itemAberto === it.id ? `
+    <div class="itemlocal">
+      <label class="f"><span>Endereço ou nome exato do lugar</span>
+        <input type="text" data-item="${sel}|${it.id}" data-k="end" value="${esc(it.end||"")}"
+          placeholder="ex.: 5156 International Dr, Orlando FL"></label>
+      <p>Sem endereço, o mapa procura por <b>${esc(it.nome || "o nome do item")}${p === "none" ? "" : (p === "mia" ? " Miami FL" : " Orlando FL")}</b> — o que erra quando o nome é comum. Use a busca para achar o endereço certo e cole aqui.</p>
+      <div class="row" style="gap:8px">
+        <a class="btn ghost sm" href="${googleUrl(it.nome + (p === "none" ? "" : (p === "mia" ? " Miami FL" : " Orlando FL")))}" target="_blank" rel="noopener noreferrer">Buscar no Google ↗</a>
+        <a class="btn ghost sm" href="${mapUrl((it.end && it.end.trim()) ? it.end : it.nome + (p === "none" ? "" : (p === "mia" ? " Miami FL" : " Orlando FL")))}" target="_blank" rel="noopener noreferrer">Ver no Maps ↗</a>
+      </div>
+    </div>` : ""}`;
 
   const blocos = PERIODOS.map(per => {
     const doPeriodo = itens.filter(i => i.periodo === per.id);
@@ -2020,7 +2053,7 @@ function roteiroDias(days){
         <datalist id="sug-${sel}">${sugestoes.map(x => `<option value="${esc(x)}">`).join("")}</datalist>
         <div class="dayitems">
           ${blocos || `<p style="font-size:13px;color:var(--fg-dim);margin:2px 0 10px">Nada marcado ainda. Marque atrações na aba <b>Parques</b> e elas entram aqui sozinhas, ou escreva abaixo.</p>`}
-          <div class="dayitem dayitem-add" style="grid-template-columns:22px 92px 1fr 26px">
+          <div class="dayitem dayitem-add" style="grid-template-columns:22px 92px minmax(0,1fr) 26px">
             <span class="mv"></span>
             <select data-newitemper="${sel}" aria-label="Período do novo item">
               ${PERIODOS.map(x => `<option value="${x.id}" ${x.id===PERIODO_PADRAO?"selected":""}>${x.label}</option>`).join("")}
@@ -2551,7 +2584,10 @@ function paradasDoDia(dt){
   mergedDayItems(dt, day).forEach(it => out.push({
     id: it.id, tipo: it.fonte === "dining" ? "reserva" : "item",
     nome: it.nome, periodo: it.periodo,
-    busca: it.nome + (pk === "none" ? "" : suf)
+    /* endereço digitado vence o palpite "nome + cidade", que erra quando o
+       lugar tem nome comum */
+    busca: (it.end && it.end.trim()) ? it.end.trim() : it.nome + (pk === "none" ? "" : suf),
+    temEnd: !!(it.end && it.end.trim())
   }));
   return out;
 }
@@ -3060,10 +3096,14 @@ document.addEventListener("click", (e) => {
     S.days[dt] = S.days[dt] || {};
     S.days[dt].items = S.days[dt].items || [];
     S.days[dt].items.push({
-      id:uid("it"), nome, attr:null,
+      id:uid("it"), nome, attr:null, end:"",
       hora:(horaInp && horaInp.value) || "",
       periodo:per, ord:proximaOrd(dt, per)
     });
+  }
+  else if(a === "itemLocal"){
+    S.itemAberto = S.itemAberto === act.dataset.id ? "" : act.dataset.id;
+    save(false); render(); return;
   }
   else if(a === "mvItem"){
     moverItem(act.dataset.dt, act.dataset.id, Number(act.dataset.dir));
@@ -3314,7 +3354,7 @@ const OBJS = ["trip","carro"];
    photos e version ficam (ADR 0005 e token do servidor é por aparelho). */
 const LOCAL_ONLY = ["tab","parkFilter","onlyPlan","onlyKid","sync","device",
                     "lastSync","version","seg","diaSel","clima","filas","docs","gastoAberto",
-                    "simularViagem","menuAberto","mapaDia","mapaSel","fotos","photos","mapsKey"];
+                    "simularViagem","menuAberto","mapaDia","mapaSel","itemAberto","fotos","photos","mapsKey"];
 /* `seg` já está aí de propósito: qual segmento está aberto é preferência
    deste aparelho, não algo para sincronizar. */
 
@@ -4890,6 +4930,44 @@ function toggleTheme(){
       S.gastos = []; 
       console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
       S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
+    }
+
+    /* ---- Endereço do item ---- */
+    console.assert(LOCAL_ONLY.includes("itemAberto"), "o painel aberto é estado de tela");
+    console.assert(googleUrl("Sawgrass Mills").indexOf("google.com/search") !== -1,
+      "a busca no Google usa a busca, não o mapa");
+    console.assert(googleUrl("a b").indexOf("a%20b") !== -1 || googleUrl("a b").indexOf("a+b") !== -1,
+      "o termo tem que ir codificado");
+    {
+      const bakD = S.days, bakH = S.hotels, bakT = {s:S.trip.start,e:S.trip.end};
+      S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+      S.hotels = [];
+      const dt = tripDays()[2];
+
+      /* sem endereço, o mapa chuta pelo nome + cidade */
+      S.days = {}; S.days[dt] = {park:"mk", items:[{id:"i1", nome:"Sawgrass Mills", periodo:"manha", ord:0}]};
+      let p = paradasDoDia(dt).find(x => x.id === "i1");
+      console.assert(p.busca === "Sawgrass Mills Orlando FL", "sem endereço, chuta nome + cidade, veio " + p.busca);
+      console.assert(p.temEnd === false, "e marca que não tem endereço");
+
+      /* com endereço, o chute sai de cena */
+      S.days[dt].items[0].end = "12801 W Sunrise Blvd, Sunrise FL";
+      p = paradasDoDia(dt).find(x => x.id === "i1");
+      console.assert(p.busca === "12801 W Sunrise Blvd, Sunrise FL",
+        "com endereço, é ele que vai para o mapa, veio " + p.busca);
+      console.assert(p.temEnd === true, "e marca que tem");
+
+      /* espaço em branco não conta como endereço */
+      S.days[dt].items[0].end = "   ";
+      console.assert(paradasDoDia(dt).find(x=>x.id==="i1").busca === "Sawgrass Mills Orlando FL",
+        "endereço só de espaços volta a chutar pelo nome");
+
+      /* dayStops, que alimenta o mapa antigo do dia, respeita o mesmo */
+      S.days[dt].items[0].end = "12801 W Sunrise Blvd, Sunrise FL";
+      console.assert(dayStops("mk", "", mergedDayItems(dt, S.days[dt]))
+        .some(x => x.indexOf("Sunrise Blvd") !== -1), "o mapa do dia também usa o endereço");
+
+      S.days = bakD; S.hotels = bakH; S.trip.start = bakT.s; S.trip.end = bakT.e;
     }
 
     /* ---- Mapa do dia ---- */
