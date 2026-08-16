@@ -1515,17 +1515,23 @@ function dayStops(pk, notes, items, dt){
   const saida = h ? [enderecoHotel(h)] : [];
 
   if(pk === "off"){
-    /* Com o hotel na frente, a cidade genérica vira uma perna sem sentido:
-       ninguém sai de "Orlando" para "Orlando". */
-    const base = saida.slice();
+    /* Dia de estrada é uma rota de verdade: começa onde se dormiu, termina
+       onde se vai dormir, e o que se para no caminho fica no meio. A cidade
+       genérica só entra quando falta a hospedagem daquela ponta — ninguém sai
+       de "Orlando" para "Orlando". */
+    const chega = chegadaDoDia(dt);
+    const destino = chega && (!h || chega.id !== h.id) ? enderecoHotel(chega) : null;
+    const origem = saida.slice();
+    let fim = [];
     if(/Orlando\s*→\s*Miami/.test(notes)){
-      if(!saida.length) base.push("Orlando, FL");
-      base.push("Miami International Airport, FL");
+      if(!origem.length) origem.push("Orlando, FL");
+      fim = [destino || "Miami International Airport, FL"];
     }else if(/para Orlando/.test(notes)){
-      if(!saida.length) base.push("Miami International Airport, FL");
-      base.push("Orlando, FL");
+      if(!origem.length) origem.push("Miami International Airport, FL");
+      fim = [destino || "Orlando, FL"];
     }
-    return base.concat(nomes.map(i => i.nome + " Orlando FL"));
+    const meio = nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome + " Orlando FL");
+    return origem.concat(meio, fim);
   }
   if(pk === "none") return saida.concat(nomes.map(i => i.nome));
 
@@ -2776,14 +2782,22 @@ function paradasDoDia(dt){
     out.push({id:"parque", tipo:"parque", nome: PARKS[pk].n,
               busca: PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL")});
 
+  /* Destino do dia de estrada: a hospedagem onde se dorme hoje. Fica para o
+     fim da lista, depois das paradas do caminho — a ordem daqui é a ordem em
+     que o Google desenha a rota. */
+  let destino = null;
   if(pk === "off"){
     const n = day.notes || "";
+    const chega = chegadaDoDia(dt);
+    const dest = chega && (!hotel || chega.id !== hotel.id)
+      ? {id:"para", tipo:"hotel", nome: chega.nome || "Hospedagem", busca: enderecoHotel(chega)}
+      : null;
     if(/Orlando\s*→\s*Miami/.test(n)){
       if(!hotel) out.push({id:"de", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
-      out.push({id:"para", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
+      destino = dest || {id:"para", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"};
     }else if(/para Orlando/.test(n)){
       if(!hotel) out.push({id:"de", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
-      out.push({id:"para", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
+      destino = dest || {id:"para", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"};
     }
   }
 
@@ -2795,6 +2809,7 @@ function paradasDoDia(dt){
     busca: (it.end && it.end.trim()) ? it.end.trim() : it.nome + (pk === "none" ? "" : suf),
     temEnd: !!(it.end && it.end.trim())
   }));
+  if(destino) out.push(destino);
   return out;
 }
 
@@ -5304,8 +5319,16 @@ function toggleTheme(){
     console.assert(stopsIda[0]==="Miami International Airport, FL" && stopsIda[1]==="Orlando, FL", "chegada: rota Miami → Orlando");
     const stopsVolta = dayStops("off","Orlando → Miami",[]);
     console.assert(stopsVolta[0]==="Orlando, FL" && stopsVolta[1]==="Miami International Airport, FL", "volta: rota Orlando → Miami");
+    /* A parada do caminho fica ENTRE origem e destino: pô-la depois do destino
+       faria o Google desenhar a ida, a volta e a ida de novo. */
     const stopsOffItem = dayStops("off","Orlando → Miami",[{id:"1",hora:"11:00",nome:"Sawgrass Mills"}]);
-    console.assert(stopsOffItem[2].indexOf("Sawgrass Mills")!==-1, "dia de estrada: item cadastrado vem depois da rota");
+    console.assert(stopsOffItem.length === 3 && stopsOffItem[1].indexOf("Sawgrass Mills")!==-1,
+      "dia de estrada: a parada do caminho entra no meio da rota, veio " + JSON.stringify(stopsOffItem));
+    console.assert(stopsOffItem[2] === "Miami International Airport, FL",
+      "e o destino continua sendo o fim");
+    console.assert(dayStops("off","Orlando → Miami",
+      [{id:"1",nome:"Sawgrass Mills",end:"12801 W Sunrise Blvd, Sunrise FL"}])[1] === "12801 W Sunrise Blvd, Sunrise FL",
+      "o endereço digitado também vale no dia de estrada");
 
     const bakHotels = S.hotels;
     S.hotels = [{id:"h1",nome:"Test Hotel Orlando",cidade:"Orlando, FL",endereco:""}];
@@ -5603,6 +5626,17 @@ function toggleTheme(){
       console.assert(r.length === 2, "hotel + destino: a cidade genérica some quando o hotel já é a origem, veio " + r.length);
       console.assert(r[0].tipo === "hotel", "o dia de estrada também começa no hotel");
       console.assert(/Miami/.test(r[1].nome), "e termina no destino, veio " + r[1].nome);
+      /* com a hospedagem de destino cadastrada, o destino é ela, e é a última */
+      { const bak4 = S.hotels;
+        S.hotels = [{id:"hA", nome:"Airbnb Orlando", cidade:"Orlando, FL", endereco:"end orl", de:"2026-08-20", ate:dt},
+                    {id:"hB", nome:"Praia Miami",    cidade:"Miami, FL",   endereco:"end mia", de:dt, ate:"2026-09-01"}];
+        S.days[dt].items = [{id:"i9", nome:"Sawgrass Mills", periodo:"tarde", ord:0}];
+        const r2 = paradasDoDia(dt);
+        console.assert(r2[0].nome === "Airbnb Orlando", "sai da hospedagem de Orlando");
+        console.assert(r2[r2.length-1].nome === "Praia Miami",
+          "e termina na hospedagem de Miami, depois da parada do caminho, veio " + r2.map(x=>x.nome).join(" > "));
+        console.assert(r2[1].nome === "Sawgrass Mills", "com a parada do caminho no meio");
+        S.hotels = bak4; S.days[dt].items = []; }
       console.assert(!r.some(x => x.nome === "Orlando"),
         "sair de 'Orlando' logo depois do hotel de Orlando é perna sem sentido");
       console.assert(!r.some(x => x.tipo === "parque"), "dia de estrada não tem parque");
@@ -5645,6 +5679,8 @@ function toggleTheme(){
           "no dia do check-in, sem hospedagem anterior, não se sai de lugar nenhum");
         console.assert(dayStops("off", "seguir direto para Orlando", [], "2026-08-24")[0]
           === "Miami International Airport, FL", "e a rota volta a sair do aeroporto");
+        console.assert(dayStops("off", "seguir direto para Orlando", [], "2026-08-24")[1] === "end orl",
+          "terminando na hospedagem daquele dia, não na cidade genérica");
         console.assert(blocoSaida("2026-08-24", "off", "seguir direto para Orlando").indexOf("chega em") !== -1,
           "no dia do check-in o bloco diz para onde o dia vai, não que falta cadastro");
         console.assert(blocoSaida("2026-08-24", "off", "").indexOf("saida-vazia") === -1,
