@@ -1218,6 +1218,7 @@ function seed(){
     grupoFechado:{},
     marcaDia:0,
     riscados:{},
+    attrLinks:{},
     diaFoto:{},
     mapaSel:{},
     clima:{at:0, dias:{}},
@@ -1326,6 +1327,32 @@ function attrLink(nome, parqueNome){
 function googleUrl(query){ return "https://www.google.com/search?q=" + encodeURIComponent(query); }
 
 function mapUrl(query){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query); }
+
+/* O link automático é busca: sempre abre alguma coisa, quase nunca cai no
+   ponto certo dentro do parque. Quem achar a página oficial da atração — ou o
+   pino exato no mapa — cola aqui, e todo mundo passa a abrir o bom. Por isso
+   sincroniza (ADR 0010, regra 4). */
+const linkAttr = (id) => (S.attrLinks || {})[id] || "";
+
+function pillMapa(pk, nome, id){
+  const meu = linkAttr(id);
+  const href = meu || mapUrl(nome + " " + PARKS[pk].n + " Orlando");
+  return `<a class="pill ${meu ? "accent" : "neutral"} linkpill" href="${esc(href)}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+    <button class="btn ghost sm" type="button" data-attrlink="${esc(id)}"
+      title="${meu ? "Trocar ou remover o link do mapa" : "Colar o link do mapa desta atração"}">${meu ? "🔗" : "🔗+"}</button>`;
+}
+
+/* Só http(s): um "javascript:" colado aqui viraria execução no toque seguinte,
+   e o link fica salvo e sincronizado — o que o outro celular abriria também. */
+function editarLinkAttr(id){
+  const v = prompt("Link do mapa ou da página desta atração.\nDeixe vazio para voltar à busca no Google Maps:", linkAttr(id));
+  if(v === null) return;
+  const url = v.trim();
+  if(url && !/^https?:\/\//i.test(url)){ alert("Só link começando com http:// ou https://"); return; }
+  S.attrLinks = Object.assign({}, S.attrLinks);
+  if(url) S.attrLinks[id] = url; else delete S.attrLinks[id];
+  save(); render();
+}
 
 /* Mapa embutido de verdade — Maps Embed API oficial do Google, que exige
    uma chave (gratuita, com cota generosa). O truque antigo sem chave
@@ -2375,7 +2402,7 @@ function viewParques(){
                       ? `<span class="pill ok">${esc(h.nome.split(" ")[0])} passa</span>`
                       : `<span class="pill crit">${esc(h.nome.split(" ")[0])}: faltam ${h.falta} cm</span>`).join("") : ""}
                   <a class="pill neutral linkpill" href="${attrLink(a[0], PARKS[pk].n)}" target="_blank" rel="noopener noreferrer">saiba mais ↗</a>
-                  <a class="pill neutral linkpill" href="${mapUrl(a[0] + " " + PARKS[pk].n + " Orlando")}" target="_blank" rel="noopener noreferrer">mapa ↗</a>
+                  ${pillMapa(pk, a[0], id)}
                   ${btnFoto(pk, id, "📷")}
                 </span>
               </span>
@@ -3174,6 +3201,9 @@ document.addEventListener("click", (e) => {
   const parkBtn = e.target.closest("[data-park]");
   if(parkBtn){ S.parkFilter = parkBtn.dataset.park; save(false); render(); return; }
 
+  const linkBtn = e.target.closest("[data-attrlink]");
+  if(linkBtn){ editarLinkAttr(linkBtn.dataset.attrlink); return; }
+
   if(e.target.closest("[data-act='syncNow']")){
     if(!S.sync.url){ setTab("ajustes"); return; }
     if(S.tab !== "ajustes") setTab("ajustes");
@@ -3567,7 +3597,7 @@ function aplicarSugestao(){
 
 /* Coleções sincronizáveis. Arrays com id casam por id; mapas são LWW por chave. */
 const COLS = ["family","hotels","shop","budget","dining","extraCheck","gastos","listas"];
-const MAPS = ["checks","riscados"];
+const MAPS = ["checks","riscados","attrLinks"];
 /* Objetos de campos soltos: cada campo é um caminho próprio, como trip:rate. */
 const OBJS = ["trip","carro"];
 
@@ -5377,6 +5407,25 @@ function toggleTheme(){
       S.trip.end = "";
       console.assert(diasDoCalendario().length === 0, "sem data de volta não monta calendário");
       S.trip.start = bakT.s; S.trip.end = bakT.e; S.riscados = bakR;
+    }
+
+    /* ---- Link do mapa da atração ---- */
+    {
+      const bak = S.attrLinks;
+      S.attrLinks = {};
+      const idT = attrId("mk", 0, ATTR.mk[0][0]);
+      console.assert(pillMapa("mk", ATTR.mk[0][0], idT).indexOf("google.com/maps") !== -1,
+        "sem link colado, a pílula cai na busca do Google Maps");
+      S.attrLinks[idT] = "https://disneyworld.disney.go.com/attractions/magic-kingdom/x/";
+      const html = pillMapa("mk", ATTR.mk[0][0], idT);
+      console.assert(html.indexOf("disneyworld.disney.go.com") !== -1 && html.indexOf("google.com/maps") === -1,
+        "com link colado, é o link colado que abre — não a busca");
+      console.assert(MAPS.includes("attrLinks") && !LOCAL_ONLY.includes("attrLinks"),
+        "quem achou a página certa achou para a família toda: attrLinks sincroniza");
+      console.assert(payload().attrLinks !== undefined, "e portanto viaja no payload");
+      console.assert(caminhos(S).indexOf("attrLinks:" + idT) !== -1,
+        "cada link é um caminho próprio, senão dois celulares se sobrescrevem");
+      S.attrLinks = bak;
     }
 
     /* ---- Endereço do item ---- */
