@@ -319,6 +319,17 @@ table select:hover{border-color:var(--line-soft)}
 .warnbox{background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--r);padding:12px 14px;font-size:13.5px;text-wrap:pretty}
 .warnbox b{font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--warn)}
 
+/* Rótulo pequeno. A classe já era usada em 8 lugares e nunca teve regra
+   nenhuma: todos eles vinham saindo como texto corrido. */
+.eyebrow{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--fg-faint)}
+
+/* ponto de saída do dia */
+.saida{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0;font-size:13.5px;
+  background:var(--ok-bg);border:1px solid var(--ok);border-radius:var(--r);padding:9px 12px}
+.saida span:not(.eyebrow){color:var(--fg-dim);font-size:12.5px}
+.saida-vazia{background:var(--warn-bg);border-color:var(--warn);color:var(--fg)}
+
 
 /* ---------- capa ---------- */
 .capa{position:relative;border-radius:var(--r);overflow:hidden;margin:0 0 18px;box-shadow:var(--shadow)}
@@ -1202,8 +1213,8 @@ function seed(){
     budget: BUDGET.map(r => ({id:uid("b"), label:r[0], cat:r[1], plan:r[2], real:0, cur:r[3]})),
     dining: DINING.map(r => ({id:uid("d"), nome:r[0], local:r[1], nota:r[2], done:false, dia:"", hora:""})),
     hotels:[
-      {id:uid("h"), nome:"", cidade:"", endereco:""},
-      {id:uid("h"), nome:"", cidade:"", endereco:""}
+      {id:uid("h"), nome:"", cidade:"", endereco:"", de:"", ate:""},
+      {id:uid("h"), nome:"", cidade:"", endereco:"", de:"", ate:""}
     ],
     days: sugerirRoteiro({start:"2026-08-23", end:"2026-09-01"}) || {},
     parkFilter:"mk",
@@ -1450,24 +1461,85 @@ function dayItemsSorted(items){
     || (a.hora||"99:99").localeCompare(b.hora||"99:99")
     || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
 }
-function dayStops(pk, notes, items){
+/* Em que cidade a família amanhece. No dia de estrada quem manda é o sentido
+   escrito nas notas: "para Orlando" quer dizer que se dorme em Miami. */
+function cidadeDoDia(pk, notes){
+  if(pk === "mia") return "miami";
+  if(pk === "off") return /para Orlando/.test(notes||"") ? "miami" : "orlando";
+  return "orlando";
+}
+
+/* "Nenhum parque" cobre dias bem diferentes. No primeiro deles a família está
+   chegando: o voo sai do Brasil, e não existe ponto de saída na Flórida nem
+   que o check-in do hotel seja daquele mesmo dia. O último dia é o contrário
+   — sai-se da hospedagem para o aeroporto — e o dia livre no meio sai da
+   hospedagem como qualquer outro dia. */
+function ehDiaDeChegada(dt, pk){
+  if(pk !== "none") return false;
+  const ds = tripDays();
+  return !ds.length || dt === ds[0];
+}
+
+/* Todo dia começa de onde a família dormiu — hotel ou airbnb do período.
+   As datas de entrada e saída do hotel mandam; sem datas preenchidas, cai no
+   palpite pela cidade do dia, que é o que existia antes.
+   O dia de chegada é a exceção que vence até as datas: com check-in marcado
+   para o dia do pouso, o mapa diria que o dia começa no airbnb de Miami — e o
+   dia começa num voo saindo do Brasil. */
+function hospedagemDoDia(dt, pk, notes){
+  if(ehDiaDeChegada(dt, pk)) return null;
+  const hs = (S.hotels || []).filter(h => h && (h.endereco || (h.nome||"").trim()));
+  /* No dia da troca as duas faixas se encostam: sai-se da que já se dormia
+     (dt depois da entrada), não daquela em que se dá entrada hoje. Resolver
+     por essa regra, e não pela ordem da lista, deixa a resposta igual mesmo
+     que a família reordene as hospedagens. */
+  const cobre = hs.filter(h => h.de && h.ate && dt && dt >= h.de && dt <= h.ate);
+  const dentro = cobre.find(h => dt > h.de) || cobre[0];
+  if(dentro) return dentro;
+  const cidade = cidadeDoDia(pk, notes);
+  return hs.find(h => (h.cidade||"").toLowerCase().includes(cidade)) || null;
+}
+const enderecoHotel = (h) => h.endereco || ((h.nome||"") + " " + (h.cidade||"")).trim();
+
+function dayStops(pk, notes, items, dt){
   const nomes = dayItemsSorted(items);
+  const h = hospedagemDoDia(dt, pk, notes);
+  const saida = h ? [enderecoHotel(h)] : [];
+
   if(pk === "off"){
-    const base = [];
-    if(/Orlando\s*→\s*Miami/.test(notes)) base.push("Orlando, FL", "Miami International Airport, FL");
-    else if(/para Orlando/.test(notes)) base.push("Miami International Airport, FL", "Orlando, FL");
+    /* Com o hotel na frente, a cidade genérica vira uma perna sem sentido:
+       ninguém sai de "Orlando" para "Orlando". */
+    const base = saida.slice();
+    if(/Orlando\s*→\s*Miami/.test(notes)){
+      if(!saida.length) base.push("Orlando, FL");
+      base.push("Miami International Airport, FL");
+    }else if(/para Orlando/.test(notes)){
+      if(!saida.length) base.push("Miami International Airport, FL");
+      base.push("Orlando, FL");
+    }
     return base.concat(nomes.map(i => i.nome + " Orlando FL"));
   }
-  if(pk === "none") return nomes.map(i => i.nome);
+  if(pk === "none") return saida.concat(nomes.map(i => i.nome));
 
-  const stops = [];
-  const cidade = pk === "mia" ? "miami" : "orlando";
-  const hotel = S.hotels.find(h => (h.cidade||"").toLowerCase().includes(cidade));
-  if(hotel && (hotel.endereco || hotel.nome)) stops.push(hotel.endereco || (hotel.nome + " " + hotel.cidade));
+  const stops = saida.slice();
   stops.push(PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL"));
   const sufixo = pk === "mia" ? " Miami FL" : " Orlando FL";
   stops.push(...nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome + sufixo));
   return stops;
+}
+
+/* O ponto de saída fica escrito no dia, não só desenhado no mapa: é a
+   primeira decisão da manhã e quem confere o roteiro na véspera não vai abrir
+   o Google Maps para descobrir de onde sai. */
+function blocoSaida(dt, pk, notes){
+  const h = hospedagemDoDia(dt, pk, notes);
+  if(!h){
+    if(ehDiaDeChegada(dt, pk)) return "";   /* chegando: não há de onde sair ainda */
+    return `<p class="saida saida-vazia">Sem hospedagem para este dia — cadastre em <b>Ajustes › Hospedagem</b>, com as datas de entrada e saída, e o roteiro passa a sair de lá.</p>`;
+  }
+  return `<p class="saida"><span class="eyebrow">sai de</span>
+    <b>${esc(h.nome || "Hospedagem")}</b>${h.endereco ? `<span> · ${esc(h.endereco)}</span>` : ""}
+    <a class="pill neutral linkpill" href="${esc(mapUrl(enderecoHotel(h)))}" target="_blank" rel="noopener noreferrer">mapa ↗</a></p>`;
 }
 
 /* Ponte entre Restaurantes e o roteiro: uma reserva com dia atribuído
@@ -1682,6 +1754,7 @@ function blocoHojeNoRoteiro(){
     </div>
     <div class="card-bd">
       ${blocoClima(hj, pk)}
+      ${blocoSaida(hj, pk, day.notes||"")}
       ${proximo ? `<div class="hoje-prox"><span class="eyebrow">a seguir</span>
         <b>${esc(proximo.hora)} · ${esc(proximo.nome)}</b></div>` : ""}
       ${blocos || `<p style="font-size:13.5px;color:var(--fg-dim);margin:2px 0">Nada planejado para hoje. Marque atrações em <b>Parques</b> ou escreva no <b>Roteiro</b>.</p>`}
@@ -2018,9 +2091,16 @@ function blocoViagem(){
               <input type="text" data-hotel="${h.id}" data-k="endereco" value="${esc(h.endereco)}" placeholder="rua, número — deixe em branco para buscar só pelo nome"></label>
             <button class="del" type="button" data-act="delHotel" data-id="${h.id}" aria-label="Remover">×</button>
           </div>
+          <div class="row" style="align-items:flex-end;margin-top:8px">
+            <label class="f" style="flex:1;min-width:130px"><span>Entrada</span>
+              <input type="date" data-hotel="${h.id}" data-k="de" value="${esc(h.de||"")}"></label>
+            <label class="f" style="flex:1;min-width:130px"><span>Saída</span>
+              <input type="date" data-hotel="${h.id}" data-k="ate" value="${esc(h.ate||"")}"></label>
+            <span class="eyebrow" style="flex:2;min-width:180px;padding-bottom:9px">os dias nessa faixa saem daqui no roteiro e no mapa</span>
+          </div>
           ${mapEmbedBlock([h.endereco || (h.nome + " " + h.cidade)], {height:170, label:"Mapa de " + h.nome})}
         </div>`).join("")}
-        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Assim que reservar, preencha o endereço — o mapa fica mais preciso do que buscar só pelo nome do hotel.</p>
+        <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Assim que reservar, preencha o endereço — o mapa fica mais preciso do que buscar só pelo nome do hotel. As datas de entrada e saída definem <b>de onde cada dia sai</b>: todo dia do roteiro começa na hospedagem daquele período. Sem datas, o app adivinha pela cidade do dia, o que erra nos dias livres e nos de estrada.</p>
       </div>
     </div>
 `;
@@ -2180,7 +2260,8 @@ function roteiroDias(days){
 
       <label class="f"><span>Notas do dia</span>
         <textarea rows="2" data-day="${sel}" data-k="notes" placeholder="rope drop, o que levar, hora de sair…">${esc(day.notes||"")}</textarea></label>
-      ${mapEmbedBlock(dayStops(p, day.notes||"", itens), {height:190, label:"Mapa do dia " + (idx+1)})}
+      ${blocoSaida(sel, p, day.notes||"")}
+      ${mapEmbedBlock(dayStops(p, day.notes||"", itens, sel), {height:190, label:"Mapa do dia " + (idx+1)})}
     </div>
   </div>
   `;
@@ -2660,13 +2741,12 @@ function paradasDoDia(dt){
   const day = S.days[dt] || {};
   const pk = parkOf(day.park || "none");
   const out = [];
-  const cidade = pk === "mia" ? "miami" : "orlando";
   const suf = pk === "mia" ? " Miami FL" : " Orlando FL";
 
-  const hotel = S.hotels.find(h => (h.cidade||"").toLowerCase().includes(cidade));
-  if(hotel && (hotel.endereco || hotel.nome))
-    out.push({id:"hotel", tipo:"hotel", nome: hotel.nome || "Hotel",
-              busca: hotel.endereco || (hotel.nome + " " + hotel.cidade)});
+  const hotel = hospedagemDoDia(dt, pk, day.notes);
+  if(hotel)
+    out.push({id:"hotel", tipo:"hotel", nome: hotel.nome || "Hospedagem",
+              busca: enderecoHotel(hotel)});
 
   if(pk !== "none" && pk !== "off")
     out.push({id:"parque", tipo:"parque", nome: PARKS[pk].n,
@@ -2675,10 +2755,10 @@ function paradasDoDia(dt){
   if(pk === "off"){
     const n = day.notes || "";
     if(/Orlando\s*→\s*Miami/.test(n)){
-      out.push({id:"de", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
+      if(!hotel) out.push({id:"de", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
       out.push({id:"para", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
     }else if(/para Orlando/.test(n)){
-      out.push({id:"de", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
+      if(!hotel) out.push({id:"de", tipo:"rota", nome:"Aeroporto de Miami", busca:"Miami International Airport, FL"});
       out.push({id:"para", tipo:"rota", nome:"Orlando", busca:"Orlando, FL"});
     }
   }
@@ -5496,13 +5576,96 @@ function toggleTheme(){
          e quem não quiser desmarca. Depois dele vêm origem e destino. */
       S.days[dt] = {park:"off", notes:"Orlando → Miami (~3h40)", items:[]};
       const r = paradasDoDia(dt);
-      console.assert(r.length === 3, "hotel + origem + destino, veio " + r.length);
+      console.assert(r.length === 2, "hotel + destino: a cidade genérica some quando o hotel já é a origem, veio " + r.length);
       console.assert(r[0].tipo === "hotel", "o dia de estrada também começa no hotel");
-      console.assert(r[1].nome === "Orlando" && /Miami/.test(r[2].nome),
-        "e a rota do dia é Orlando → Miami");
+      console.assert(/Miami/.test(r[1].nome), "e termina no destino, veio " + r[1].nome);
+      console.assert(!r.some(x => x.nome === "Orlando"),
+        "sair de 'Orlando' logo depois do hotel de Orlando é perna sem sentido");
       console.assert(!r.some(x => x.tipo === "parque"), "dia de estrada não tem parque");
+      /* sem hotel nenhum, a rota genérica volta — é melhor que mapa vazio */
+      S.hotels = [];
+      console.assert(paradasDoDia(dt).length === 2 && paradasDoDia(dt)[0].nome === "Orlando",
+        "sem hospedagem cadastrada, a origem genérica volta");
       S.days = bakD; S.hotels = bakH; S.mapaSel = bakM;
       S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
+
+    /* ---- Ponto de saída do dia ---- */
+    {
+      const bakD = S.days, bakH = S.hotels, bakT = {s:S.trip.start,e:S.trip.end};
+      S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+      const mia = {id:"h1", nome:"Airbnb Brickell", cidade:"Miami, FL", endereco:"1 Brickell Ave",
+                   de:"2026-08-23", ate:"2026-08-25"};
+      const orl = {id:"h2", nome:"Hotel Lake Buena Vista", cidade:"Orlando, FL", endereco:"2 Vista Blvd",
+                   de:"2026-08-25", ate:"2026-09-01"};
+      S.hotels = [mia, orl];
+
+      /* a data manda: dia livre em Miami sai do airbnb de Miami, e não do hotel
+         de Orlando só porque "orlando" é o palpite padrão */
+      console.assert(hospedagemDoDia("2026-08-24", "none", "") === mia,
+        "dia livre em Miami tem que sair do airbnb de Miami");
+      console.assert(hospedagemDoDia("2026-08-23", "none", "") === null,
+        "no dia da chegada não se sai da hospedagem, mesmo com check-in marcado para ele");
+      console.assert(blocoSaida("2026-08-23", "none", "") === "",
+        "e o dia da chegada não mostra bloco nenhum");
+      console.assert(hospedagemDoDia("2026-08-25", "off", "seguir direto para Orlando") === mia,
+        "no dia da troca sai-se de onde se dormiu — o check-in de Orlando é a chegada");
+      console.assert(hospedagemDoDia("2026-08-26", "hs", "") === orl,
+        "no dia seguinte à troca, já é o hotel de Orlando");
+      { const invertido = [orl, mia];
+        const bak2 = S.hotels; S.hotels = invertido;
+        console.assert(hospedagemDoDia("2026-08-25", "off", "") === mia,
+          "e a resposta não pode depender da ordem da lista de hospedagens");
+        S.hotels = bak2; }
+      console.assert(hospedagemDoDia("2026-08-27", "mk", "") === orl,
+        "dia de parque sai do hotel de Orlando");
+      console.assert(dayStops("none", "", [{id:"i1", nome:"Praia"}], "2026-08-24")[0] === "1 Brickell Ave",
+        "e o mapa do dia começa por ele");
+
+      /* sem datas, cai no palpite pela cidade — inclusive no dia de estrada,
+         onde o sentido escrito na nota diz onde se dormiu */
+      S.hotels = [{id:"h1", nome:"A", cidade:"Miami, FL", endereco:"end mia"},
+                  {id:"h2", nome:"B", cidade:"Orlando, FL", endereco:"end orl"}];
+      console.assert(hospedagemDoDia("2026-08-25", "off", "seguir direto para Orlando").id === "h1",
+        "indo para Orlando, dormiu-se em Miami");
+      console.assert(hospedagemDoDia("2026-08-31", "off", "Orlando → Miami (~3h40)").id === "h2",
+        "voltando para Miami, dormiu-se em Orlando");
+      console.assert(dayStops("off", "seguir direto para Orlando", [], "2026-08-25")[0] === "end mia",
+        "o dia de estrada sai do hotel, não do aeroporto");
+
+      /* dia de voo sem data de hospedagem não pode inventar de onde sai —
+         mas dia livre no meio da viagem sai do hotel como qualquer outro */
+      console.assert(hospedagemDoDia("2026-08-23", "none", "") === null,
+        "sem data de hospedagem, dia de voo não tem ponto de saída");
+      console.assert(ehDiaDeChegada("2026-08-23","none") && !ehDiaDeChegada("2026-09-01","none"),
+        "só o primeiro dia é chegada: no último sai-se do hotel para o aeroporto");
+      console.assert(!ehDiaDeChegada("2026-08-27","none") && !ehDiaDeChegada("2026-08-27","mk"),
+        "dia livre no meio da viagem não é dia de chegada");
+      console.assert(hospedagemDoDia("2026-08-27", "none", "").id === "h2",
+        "e por isso sai do hotel de Orlando mesmo sem datas");
+      console.assert(dayStops("none", "", [{id:"i1", nome:"Embarque GRU"}], "2026-08-23").length === 1,
+        "e o mapa dele continua só com o item");
+      console.assert(blocoSaida("2026-08-23", "none", "") === "",
+        "nem mostra aviso: no dia de voo não há hospedagem a cobrar");
+
+      /* o aviso aparece quando falta hospedagem num dia que deveria ter */
+      S.hotels = [];
+      console.assert(blocoSaida("2026-08-27", "mk", "").indexOf("saida-vazia") !== -1,
+        "dia de parque sem hospedagem cadastrada tem que avisar");
+      S.hotels = [orl];
+      console.assert(blocoSaida("2026-08-27", "mk", "").indexOf("Lake Buena Vista") !== -1,
+        "com hospedagem, o dia mostra de onde sai");
+      console.assert(enderecoHotel(orl) === "2 Vista Blvd",
+        "o endereço digitado vence o palpite nome + cidade");
+      console.assert(enderecoHotel({nome:"Só Nome", cidade:"Orlando, FL"}) === "Só Nome Orlando, FL",
+        "sem endereço, busca por nome + cidade");
+
+      /* hotel em branco não conta como hospedagem */
+      S.hotels = [{id:"h9", nome:"", cidade:"", endereco:"", de:"", ate:""}];
+      console.assert(hospedagemDoDia("2026-08-27", "mk", "") === null,
+        "linha de hospedagem vazia não pode virar ponto de saída");
+
+      S.days = bakD; S.hotels = bakH; S.trip.start = bakT.s; S.trip.end = bakT.e;
     }
 
     /* ---- Fotos da viagem ---- */
