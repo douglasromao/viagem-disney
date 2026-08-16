@@ -329,6 +329,7 @@ table select:hover{border-color:var(--line-soft)}
   background:var(--ok-bg);border:1px solid var(--ok);border-radius:var(--r);padding:9px 12px}
 .saida span:not(.eyebrow){color:var(--fg-dim);font-size:12.5px}
 .saida-vazia{background:var(--warn-bg);border-color:var(--warn);color:var(--fg)}
+.saida-chega{background:var(--accent-soft);border-color:var(--accent)}
 
 
 /* ---------- capa ---------- */
@@ -1489,13 +1490,20 @@ function ehDiaDeChegada(dt, pk){
 function hospedagemDoDia(dt, pk, notes){
   if(ehDiaDeChegada(dt, pk)) return null;
   const hs = (S.hotels || []).filter(h => h && (h.endereco || (h.nome||"").trim()));
-  /* No dia da troca as duas faixas se encostam: sai-se da que já se dormia
-     (dt depois da entrada), não daquela em que se dá entrada hoje. Resolver
-     por essa regra, e não pela ordem da lista, deixa a resposta igual mesmo
-     que a família reordene as hospedagens. */
-  const cobre = hs.filter(h => h.de && h.ate && dt && dt >= h.de && dt <= h.ate);
-  const dentro = cobre.find(h => dt > h.de) || cobre[0];
-  if(dentro) return dentro;
+
+  /* Havendo qualquer data preenchida, elas mandam sozinhas — misturar com o
+     palpite pela cidade daria respostas contraditórias no mesmo roteiro. */
+  const comData = hs.filter(h => h.de && h.ate);
+  if(comData.length){
+    const cobre = comData.filter(h => dt && dt >= h.de && dt <= h.ate);
+    /* Só conta a hospedagem em que se dormiu na véspera (dt depois da entrada).
+       No dia do próprio check-in ela é destino, não origem: quem chega vem de
+       outro lugar — do aeroporto, ou da hospedagem anterior, que aparece aqui
+       por ter a saída marcada para hoje. Decidir por data, e não pela ordem da
+       lista, mantém a resposta igual se a família reordenar as hospedagens. */
+    return cobre.find(h => dt > h.de) || null;
+  }
+
   const cidade = cidadeDoDia(pk, notes);
   return hs.find(h => (h.cidade||"").toLowerCase().includes(cidade)) || null;
 }
@@ -1531,13 +1539,29 @@ function dayStops(pk, notes, items, dt){
 /* O ponto de saída fica escrito no dia, não só desenhado no mapa: é a
    primeira decisão da manhã e quem confere o roteiro na véspera não vai abrir
    o Google Maps para descobrir de onde sai. */
+/* Hospedagem cujo check-in é justamente hoje: o dia termina nela. */
+const chegadaDoDia = (dt) => (S.hotels || []).find(h => h && h.de && h.de === dt) || null;
+
 function blocoSaida(dt, pk, notes){
   const h = hospedagemDoDia(dt, pk, notes);
   if(!h){
     if(ehDiaDeChegada(dt, pk)) return "";   /* chegando: não há de onde sair ainda */
+    /* Dia de check-in vindo de fora não tem ponto de saída e também não tem
+       nada faltando — avisar ali seria cobrar um cadastro que já existe. O que
+       ajuda é dizer para onde o dia vai. */
+    const chega = chegadaDoDia(dt);
+    if(chega) return linhaSaida("chega em", chega, "saida-chega");
     return `<p class="saida saida-vazia">Sem hospedagem para este dia — cadastre em <b>Ajustes › Hospedagem</b>, com as datas de entrada e saída, e o roteiro passa a sair de lá.</p>`;
   }
-  return `<p class="saida"><span class="eyebrow">sai de</span>
+  /* Dia de mudança: sai de uma e dorme na outra. As duas linhas, porque é
+     justamente o dia em que se procura o endereço da próxima. */
+  const chega = chegadaDoDia(dt);
+  return linhaSaida("sai de", h)
+    + (chega && chega.id !== h.id ? linhaSaida("chega em", chega, "saida-chega") : "");
+}
+
+function linhaSaida(rotulo, h, cls){
+  return `<p class="saida ${cls||""}"><span class="eyebrow">${rotulo}</span>
     <b>${esc(h.nome || "Hospedagem")}</b>${h.endereco ? `<span> · ${esc(h.endereco)}</span>` : ""}
     <a class="pill neutral linkpill" href="${esc(mapUrl(enderecoHotel(h)))}" target="_blank" rel="noopener noreferrer">mapa ↗</a></p>`;
 }
@@ -5612,6 +5636,30 @@ function toggleTheme(){
         "no dia da troca sai-se de onde se dormiu — o check-in de Orlando é a chegada");
       console.assert(hospedagemDoDia("2026-08-26", "hs", "") === orl,
         "no dia seguinte à troca, já é o hotel de Orlando");
+      /* chegando de fora no dia do check-in: a hospedagem é o destino do dia,
+         não a origem — é o caso real do 24/08, que pousa em Miami e dirige */
+      { const bak3 = S.hotels;
+        S.hotels = [{id:"h9", nome:"Airbnb", cidade:"Orlando, FL", endereco:"end orl",
+                     de:"2026-08-24", ate:"2026-08-30"}];
+        console.assert(hospedagemDoDia("2026-08-24", "off", "seguir direto para Orlando") === null,
+          "no dia do check-in, sem hospedagem anterior, não se sai de lugar nenhum");
+        console.assert(dayStops("off", "seguir direto para Orlando", [], "2026-08-24")[0]
+          === "Miami International Airport, FL", "e a rota volta a sair do aeroporto");
+        console.assert(blocoSaida("2026-08-24", "off", "seguir direto para Orlando").indexOf("chega em") !== -1,
+          "no dia do check-in o bloco diz para onde o dia vai, não que falta cadastro");
+        console.assert(blocoSaida("2026-08-24", "off", "").indexOf("saida-vazia") === -1,
+          "e não cobra um cadastro que já existe");
+        console.assert(hospedagemDoDia("2026-08-25", "mk", "").id === "h9",
+          "no dia seguinte, sim");
+        console.assert(hospedagemDoDia("2026-09-01", "mia", "") === null,
+          "com datas preenchidas, dia fora de todas as faixas não cai no palpite pela cidade");
+        S.hotels = bak3; }
+      /* dia da mudança: as duas pontas na tela */
+      { const b = blocoSaida("2026-08-25", "off", "");
+        console.assert(b.indexOf("sai de") !== -1 && b.indexOf("chega em") !== -1,
+          "no dia da mudança aparecem a hospedagem que se deixa e a que se pega");
+        console.assert(blocoSaida("2026-08-26", "hs", "").indexOf("chega em") === -1,
+          "e só nesse dia — nos outros seria ruído"); }
       { const invertido = [orl, mia];
         const bak2 = S.hotels; S.hotels = invertido;
         console.assert(hospedagemDoDia("2026-08-25", "off", "") === mia,
