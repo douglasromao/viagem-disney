@@ -330,6 +330,8 @@ table select:hover{border-color:var(--line-soft)}
 .saida span:not(.eyebrow){color:var(--fg-dim);font-size:12.5px}
 .saida-vazia{background:var(--warn-bg);border-color:var(--warn);color:var(--fg)}
 .saida-chega{background:var(--accent-soft);border-color:var(--accent)}
+.semmapa{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;color:var(--fg-dim);cursor:pointer}
+.semmapa input{margin-top:2px;flex:0 0 auto}
 
 
 /* ---------- capa ---------- */
@@ -1509,8 +1511,14 @@ function hospedagemDoDia(dt, pk, notes){
 }
 const enderecoHotel = (h) => h.endereco || ((h.nome||"") + " " + (h.cidade||"")).trim();
 
+/* Nem todo item do dia é um lugar: "Voo GRU → Miami", "Trecho Miami → Orlando"
+   e "Café (a decidir)" são linha de roteiro, não parada. Marcados como semMapa,
+   continuam na programação e somem da rota — antes viravam pino em cima do que
+   o Google achasse com aquele texto. */
+const ehLugar = (it) => !it.semMapa;
+
 function dayStops(pk, notes, items, dt){
-  const nomes = dayItemsSorted(items);
+  const nomes = dayItemsSorted(items).filter(ehLugar);
   const h = hospedagemDoDia(dt, pk, notes);
   const saida = h ? [enderecoHotel(h)] : [];
 
@@ -1533,10 +1541,14 @@ function dayStops(pk, notes, items, dt){
     const meio = nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome + " Orlando FL");
     return origem.concat(meio, fim);
   }
-  if(pk === "none") return saida.concat(nomes.map(i => i.nome));
+  if(pk === "none") return saida.concat(nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome));
 
   const stops = saida.slice();
-  stops.push(PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL"));
+  /* "Miami" não é destino, é a cidade inteira: como parada vira um ponto no
+     meio do mapa que ninguém vai visitar. Só entra quando o dia não tem mais
+     nada marcado. Parque de verdade é o contrário — ele é o destino. */
+  if(pk !== "mia" || !nomes.length)
+    stops.push(PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL"));
   const sufixo = pk === "mia" ? " Miami FL" : " Orlando FL";
   stops.push(...nomes.map(i => (i.end && i.end.trim()) ? i.end.trim() : i.nome + sufixo));
   return stops;
@@ -1580,7 +1592,7 @@ function diningForDay(dt){
 }
 function mergedDayItems(dt, day){
   const manuais = (day.items || []).map(it => ({
-    id:it.id, hora:it.hora, nome:it.nome, attr:it.attr, end:it.end,
+    id:it.id, hora:it.hora, nome:it.nome, attr:it.attr, end:it.end, semMapa:it.semMapa,
     periodo:periodoDoItem(it), ord:it.ord ?? 999, fonte:"item"
   }));
   const reservas = diningForDay(dt).map(r => ({
@@ -2234,6 +2246,10 @@ function roteiroDias(days){
         <a class="btn ghost sm" href="${googleUrl(it.nome + (p === "none" ? "" : (p === "mia" ? " Miami FL" : " Orlando FL")))}" target="_blank" rel="noopener noreferrer">Buscar no Google ↗</a>
         <a class="btn ghost sm" href="${mapUrl((it.end && it.end.trim()) ? it.end : it.nome + (p === "none" ? "" : (p === "mia" ? " Miami FL" : " Orlando FL")))}" target="_blank" rel="noopener noreferrer">Ver no Maps ↗</a>
       </div>
+      <label class="semmapa">
+        <input type="checkbox" data-item="${sel}|${it.id}" data-k="semMapa" ${it.semMapa ? "checked" : ""}>
+        <span>Não é um lugar — deixar fora do mapa <b>(voo, trecho, “a decidir”)</b></span>
+      </label>
     </div>` : ""}`;
 
   const blocos = PERIODOS.map(per => {
@@ -2778,7 +2794,8 @@ function paradasDoDia(dt){
     out.push({id:"hotel", tipo:"hotel", nome: hotel.nome || "Hospedagem",
               busca: enderecoHotel(hotel)});
 
-  if(pk !== "none" && pk !== "off")
+  const temItens = mergedDayItems(dt, day).filter(ehLugar).length > 0;
+  if(pk !== "none" && pk !== "off" && (pk !== "mia" || !temItens))
     out.push({id:"parque", tipo:"parque", nome: PARKS[pk].n,
               busca: PARKS[pk].n + (pk === "mia" ? ", FL" : " Orlando FL")});
 
@@ -2801,7 +2818,7 @@ function paradasDoDia(dt){
     }
   }
 
-  mergedDayItems(dt, day).forEach(it => out.push({
+  mergedDayItems(dt, day).filter(ehLugar).forEach(it => out.push({
     id: it.id, tipo: it.fonte === "dining" ? "reserva" : "item",
     nome: it.nome, periodo: it.periodo,
     /* endereço digitado vence o palpite "nome + cidade", que erra quando o
@@ -3588,7 +3605,7 @@ document.addEventListener("change", (e) => {
     const items = S.days[dt] && S.days[dt].items;
     const it = items && items.find(x => x.id === id);
     if(!it) return;
-    it[t.dataset.k] = t.value;
+    it[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value;
     save(); render(); return;
   }
   if(t.dataset.shop){
@@ -5646,6 +5663,41 @@ function toggleTheme(){
         "sem hospedagem cadastrada, a origem genérica volta");
       S.days = bakD; S.hotels = bakH; S.mapaSel = bakM;
       S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
+
+    /* ---- Item que não é lugar ---- */
+    {
+      const bakD = S.days, bakH = S.hotels, bakT = {s:S.trip.start,e:S.trip.end};
+      S.trip.start = "2026-08-23"; S.trip.end = "2026-09-01";
+      S.hotels = [{id:"hM", nome:"Praia", cidade:"Miami, FL", endereco:"end mia",
+                   de:"2026-08-30", ate:"2026-09-01"}];
+      const dt = "2026-09-01";
+      S.days = {}; S.days[dt] = {park:"mia", items:[
+        {id:"i1", nome:"Devolver o carro", periodo:"tarde", ord:0, end:"Miami International Airport, FL"},
+        {id:"i2", nome:"Voo Miami → Guarulhos, 19h", periodo:"noite", ord:1, semMapa:true}
+      ]};
+      const st = dayStops("mia", "", mergedDayItems(dt, S.days[dt]), dt);
+      console.assert(st.length === 2, "o voo não é parada: hospedagem + aeroporto, veio " + JSON.stringify(st));
+      console.assert(st[0] === "end mia" && st[1] === "Miami International Airport, FL",
+        "sai da hospedagem e termina no aeroporto, veio " + JSON.stringify(st));
+      console.assert(!st.some(x => x === "Miami, FL"),
+        "'Miami' é a cidade inteira: não vira parada quando o dia já tem lugares");
+      console.assert(!paradasDoDia(dt).some(p => p.id === "i2"),
+        "e o mapa não oferece o voo como parada");
+      console.assert(paradasDoDia(dt).some(p => p.id === "i1"),
+        "mas oferece o que é lugar");
+
+      /* dia de praia sem nada marcado: aí sim a cidade é a única pista */
+      S.days[dt].items = [];
+      console.assert(dayStops("mia", "", [], dt).indexOf("Miami, FL") !== -1,
+        "sem itens, a cidade volta a ser a parada do dia");
+
+      /* o item continua na programação — some do mapa, não do roteiro */
+      S.days[dt].items = [{id:"i2", nome:"Voo de volta", periodo:"noite", ord:0, semMapa:true}];
+      console.assert(mergedDayItems(dt, S.days[dt]).length === 1,
+        "item fora do mapa continua aparecendo no dia");
+
+      S.days = bakD; S.hotels = bakH; S.trip.start = bakT.s; S.trip.end = bakT.e;
     }
 
     /* ---- Ponto de saída do dia ---- */
