@@ -922,9 +922,7 @@ mk:[
  ["Big Thunder Mountain Railroad","Frontierland",102,"T"],
  ["Tiana's Bayou Adventure","Frontierland",102,"TP"],
  ["Country Bear Musical Jamboree","Frontierland",0,"B"],
- ["Tom Sawyer Island","Frontierland",0,"B"],
  ["Haunted Mansion","Liberty Square",0,"TB"],
- ["Liberty Square Riverboat","Liberty Square",0,"B"],
  ["The Hall of Presidents","Liberty Square",0,"B"],
  ["Seven Dwarfs Mine Train","Fantasyland",97,"TP"],
  ["Peter Pan's Flight","Fantasyland",0,"TBP"],
@@ -947,7 +945,13 @@ mk:[
  ["Astro Orbiter","Tomorrowland",0,"B"],
  ["Monsters Inc. Laugh Floor","Tomorrowland",0,"B"],
  ["Carousel of Progress","Tomorrowland",0,"B"],
- ["Meet Mickey — Town Square Theater","Main Street U.S.A.",0,"TBP"]
+ ["Meet Mickey — Town Square Theater","Main Street U.S.A.",0,"TBP"],
+ ["Disney Starlight (parada noturna)","Main Street U.S.A.",0,"TBP"],
+ ["Main Street Vehicles","Main Street U.S.A.",0,"B"],
+ ["A Pirate's Adventure (caça ao tesouro)","Adventureland",0,"TB"],
+ ["Frontierland Shootin' Arcade","Frontierland",0,"BC"],
+ ["Pete's Silly Sideshow (Donald, Daisy, Pateta, Minnie)","Fantasyland",0,"TB"],
+ ["Ariel's Grotto (encontro com Ariel)","Fantasyland",0,"B"]
 ],
 ue:[
  ["Constellation Carousel","Celestial Park",0,"TB"],
@@ -957,7 +961,7 @@ ue:[
  ["Yoshi's Adventure","Super Nintendo World",86,"TB"],
  ["Mine-Cart Madness (Donkey Kong)","Super Nintendo World",102,"TP"],
  ["Power-Up Band — desafios interativos","Super Nintendo World",0,"TB"],
- ["Harry Potter and the Battle at the Ministry","Ministry of Magic",122,"TP"],
+ ["Harry Potter and the Battle at the Ministry","Ministry of Magic",102,"TP"],
  ["Le Cirque Arcanus (show)","Ministry of Magic",0,"TB"],
  ["Hiccup's Wing Gliders","Isle of Berk",102,"T"],
  ["Dragon Racer's Rally","Isle of Berk",122,""],
@@ -977,15 +981,18 @@ hs:[
  ["Alien Swirling Saucers","Toy Story Land",81,"B"],
  ["Mickey & Minnie's Runaway Railway","Grand Avenue",0,"TB"],
  ["The Twilight Zone Tower of Terror","Sunset Blvd",102,"T"],
- ["Rock 'n' Roller Coaster","Sunset Blvd",122,"TC"],
+ ["Rock 'n' Roller Coaster Starring The Muppets","Sunset Blvd",122,"T"],
  ["Star Tours","Echo Lake",102,""],
  ["Indiana Jones Epic Stunt Spectacular","Echo Lake",0,"C"],
  ["Frozen Sing-Along Celebration","Echo Lake",0,"TB"],
- ["Disney Junior Play & Dance!","Animation Courtyard",0,"TB"],
- ["Walt Disney Presents","Animation Courtyard",0,"B"],
+ ["Walt Disney Presents","Animation Courtyard",0,"BC"],
  ["Beauty and the Beast Live on Stage","Sunset Blvd",0,"TB"],
  ["Fantasmic!","Sunset Blvd",0,"TBPC"],
- ["Muppet*Vision 3D","Grand Avenue",0,"C"]
+ ["The Little Mermaid — A Musical Adventure","Animation Courtyard",0,"TB"],
+ ["Disney Villains: Unfairly Ever After","Sunset Blvd",0,"T"],
+ ["Mickey Shorts Theater (Vacation Fun)","Echo Lake",0,"B"],
+ ["Oga's Cantina (precisa de reserva)","Galaxy's Edge",0,"P"],
+ ["The Magic of Disney Animation","Animation Courtyard",0,"C"]
 ],
 ak:[
  ["Avatar Flight of Passage","Pandora",112,"TP"],
@@ -997,12 +1004,14 @@ ak:[
  ["Kali River Rapids","Asia",97,""],
  ["Maharajah Jungle Trek","Asia",0,"B"],
  ["Feathered Friends in Flight!","Asia",0,"B"],
- ["TriceraTop Spin","DinoLand U.S.A.",0,"BC"],
- ["The Boneyard (playground)","DinoLand U.S.A.",0,"BC"],
  ["Wilderness Explorers (missões p/ crianças)","Discovery Island",0,"TB"],
  ["Tree of Life Awakenings","Discovery Island",0,"B"],
  ["Discovery Island Trails","Discovery Island",0,"B"],
- ["Área nova (Tropical Americas / Zootopia)","AK",0,"C"]
+ ["Zootopia: Better Zoogether!","Discovery Island",0,"TB"],
+ ["Bluey's Wild World (Conservation Station)","Rafiki's Planet Watch",0,"TB"],
+ ["Wildlife Express Train","Rafiki's Planet Watch",0,"TB"],
+ ["Animation Experience (Conservation Station)","Rafiki's Planet Watch",0,"B"],
+ ["Finding Nemo: The Big Blue... and Beyond!","Theater in the Wild",0,"TBC"]
 ],
 ds:[
  ["World of Disney (maior loja Disney)","The Marketplace",0,"TP"],
@@ -1013,7 +1022,11 @@ ds:[
  ["The Boathouse / Amphicar","The Landing",0,"P"],
  ["Gideon's Bakehouse (cookie gigante)","The Landing",0,"T"],
  ["Sprinkles / Ghirardelli (sorvete)","Marketplace",0,"B"],
- ["Marketplace Co-Op (achados baratos)","The Marketplace",0,""]
+ ["Marketplace Co-Op (achados baratos)","The Marketplace",0,""],
+ ["T-REX Cafe (dinossauros animatrônicos)","The Marketplace",0,"TB"],
+ ["Splash pad do Marketplace","The Marketplace",0,"B"],
+ ["Splitsville (boliche)","West Side",0,""],
+ ["Coca-Cola Store (rooftop)","West Side",0,""]
 ],
 mia:[
  ["Retirar o carro alugado no aeroporto (MIA)","Chegada",0,"TP"],
@@ -1029,6 +1042,9 @@ mia:[
  ["Sawgrass Mills (outlet gigante)","Compras",0,"TP"],
  ["Dolphin Mall","Compras",0,""],
  ["Aventura Mall","Compras",0,""],
+ ["Matheson Hammock Park (piscina de maré)","Praia",0,"TB"],
+ ["Frost Science Museum","Com crianças",0,"TB"],
+ ["Vizcaya Museum & Gardens","Passeio",0,""],
  ["Devolver o carro e voo de volta","Saída",0,"TP"]
 ],
 off:[
@@ -1254,6 +1270,10 @@ try{
 }catch(e){ S = seed(); }
 
 if(!S.device) S.device = navigator.platform && /iphone|ipad|android/i.test(navigator.userAgent) ? "Celular" : "Computador";
+
+/* Antes de qualquer tela: se as listas de atração mudaram desde a última visita,
+   remapear as marcas para os ids novos (ver migrarIdsDeAtracao). */
+migrarIdsDeAtracao();
 
 let saveTimer;
 /* bump=false para mudanças só de interface (aba, filtro): não conta como
@@ -1635,6 +1655,76 @@ function progress(ids){
 }
 
 function attrId(pk, i, nome){ return checkId("at", pk + i, nome); }
+
+/* O id de atração leva o índice na lista ("at|mk4|Jungle Cruise"). Uma atração
+   que fecha e sai do ATTR renumera todas as seguintes, e aí a marca da família,
+   a foto etiquetada e o item que veio para o roteiro apontam para um id que não
+   existe mais — tudo somindo em silêncio.
+   Em vez de congelar as listas, o app conserta na carga: marca cujo NOME ainda
+   existe naquele parque é remapeada para o id novo. Quem realmente fechou é
+   descartado, que é o que se quer. Roda em todo aparelho, então a próxima
+   revisão das listas sai de graça.
+   Os carimbos vão junto: sem mover u/del, o outro celular ressuscitaria o id
+   velho no merge seguinte. */
+function migrarIdsDeAtracao(){
+  const porNome = {};
+  for(const pk in ATTR)
+    ATTR[pk].forEach((a,i) => { porNome[pk + " " + a[0]] = attrId(pk, i, a[0]); });
+
+  /* id antigo → novo, para tudo que aponta para atração */
+  const novo = (id) => {
+    const pk = parqueDoAttr(id);
+    if(!pk) return id;                                    /* não é id de atração */
+    return porNome[pk + " " + nomeDoAttr(id)] || null; /* null = fechou */
+  };
+
+  let mexeu = 0;
+  const agora = Date.now();
+  S.u = S.u || {}; S.del = S.del || {};
+
+  const checks = {}, links = {};
+  for(const id in S.checks){
+    const n = novo(id);
+    if(n === id){ checks[id] = S.checks[id]; continue; }
+    mexeu++;
+    if(n){
+      checks[n] = S.checks[id];
+      S.u["checks:" + n] = S.u["checks:" + id] || agora;
+      if(S.attrLinks && S.attrLinks[id]) links[n] = S.attrLinks[id];
+    }
+    S.del["checks:" + id] = agora; delete S.u["checks:" + id];
+    if(S.attrLinks && S.attrLinks[id]){
+      S.del["attrLinks:" + id] = agora; delete S.u["attrLinks:" + id];
+      if(n) S.u["attrLinks:" + n] = agora;
+    }
+  }
+  S.checks = checks;
+  for(const id in S.attrLinks || {}) if(novo(id) === id) links[id] = S.attrLinks[id];
+  S.attrLinks = links;
+
+  for(const dt in S.days || {}){
+    const its = (S.days[dt] || {}).items || [];
+    for(const it of its){
+      if(!it.attr) continue;
+      const n = novo(it.attr);
+      if(n === it.attr) continue;
+      mexeu++;
+      /* Atração que fechou não deixa o programa órfão no dia: o item fica,
+         perde o vínculo e passa a ser linha escrita à mão. Apagar programa de
+         dia por causa de uma lista minha seria decidir demais. */
+      it.attr = n || null;
+      S.u["days:" + dt + ":items:" + it.id] = agora;
+    }
+  }
+
+  for(const f of S.fotos || []){
+    if(!f.attr) continue;
+    const n = novo(f.attr);
+    if(n !== f.attr){ f.attr = n || null; mexeu++; }
+  }
+
+  return mexeu;
+}
 
 const kids = () => S.family.filter(f => f.tipo !== "adulto");
 
@@ -5663,6 +5753,64 @@ function toggleTheme(){
         "sem hospedagem cadastrada, a origem genérica volta");
       S.days = bakD; S.hotels = bakH; S.mapaSel = bakM;
       S.trip.start = bakT.s; S.trip.end = bakT.e;
+    }
+
+    /* ---- Migração dos ids de atração ---- */
+    {
+      const bak = {c:S.checks, d:S.days, f:S.fotos, l:S.attrLinks, u:S.u, del:S.del};
+      /* "Jungle Cruise" é o índice 3 de mk hoje; finge que era o 6, como se
+         três atrações antes dela tivessem fechado */
+      const idNovo = attrId("mk", ATTR.mk.findIndex(a => a[0] === "Jungle Cruise"), "Jungle Cruise");
+      const idVelho = "at|mk6|Jungle Cruise";
+      const idMorto = "at|mk9|Tom Sawyer Island";
+      S.checks = {[idVelho]:true, [idMorto]:true, "ck|3|Passaportes":true};
+      S.attrLinks = {[idVelho]:"https://exemplo.com/jungle"};
+      S.days = {"2026-08-26":{park:"mk", items:[
+        {id:"iA", nome:"Jungle Cruise", attr:idVelho, periodo:"manha", ord:0},
+        {id:"iB", nome:"Tom Sawyer Island", attr:idMorto, periodo:"tarde", ord:0}]}};
+      S.fotos = [{id:"f1", attr:idVelho}, {id:"f2", attr:idMorto}];
+      S.u = {["checks:"+idVelho]: 111}; S.del = {};
+
+      const mexeu = migrarIdsDeAtracao();
+      console.assert(mexeu >= 4, "a migração tem que tocar marca, link, item e foto, veio " + mexeu);
+      console.assert(S.checks[idNovo] === true, "marca renumerada tem que sobreviver com o id novo");
+      console.assert(S.checks[idVelho] === undefined, "e o id velho sai");
+      console.assert(S.checks[idMorto] === undefined, "atração que fechou perde a marca — é o que se quer");
+      console.assert(S.checks["ck|3|Passaportes"] === true, "item de checklist não é atração: não pode ser mexido");
+      console.assert(S.attrLinks[idNovo] === "https://exemplo.com/jungle",
+        "o link do mapa acompanha a atração");
+      console.assert(S.u["checks:" + idNovo] === 111,
+        "o carimbo antigo viaja com ela, senão o merge acha que é marca nova");
+      console.assert(S.del["checks:" + idVelho] > 0,
+        "e o id velho vira lápide, senão o outro celular ressuscita a marca");
+      const its = S.days["2026-08-26"].items;
+      console.assert(its.find(x => x.id === "iA").attr === idNovo, "o item do dia reaponta");
+      console.assert(its.length === 2 && its.find(x => x.id === "iB").attr === null,
+        "e o item da atração que fechou fica no dia, só perde o vínculo");
+      console.assert(S.fotos[0].attr === idNovo && S.fotos[1].attr === null,
+        "a etiqueta da foto acompanha, e a da atração que fechou é solta");
+      console.assert(migrarIdsDeAtracao() === 0, "rodar de novo não pode mexer em nada");
+
+      S.checks = bak.c; S.days = bak.d; S.fotos = bak.f; S.attrLinks = bak.l;
+      S.u = bak.u; S.del = bak.del;
+    }
+
+    /* ---- As listas de atração conferem com a realidade ---- */
+    {
+      const nomes = Object.keys(ATTR).flatMap(pk => ATTR[pk].map(a => a[0]));
+      ["Tom Sawyer Island","Liberty Square Riverboat","TriceraTop Spin",
+       "The Boneyard (playground)","Muppet*Vision 3D","Disney Junior Play & Dance!"
+      ].forEach(n => console.assert(!nomes.includes(n),
+        "atração fechada não pode voltar para a lista: " + n));
+      const ministry = ATTR.ue.find(a => a[0].indexOf("Battle at the Ministry") !== -1);
+      console.assert(ministry && ministry[2] === 102,
+        "Battle at the Ministry é 40 in = 102 cm; com 122 o app diz que a criança não passa");
+      console.assert(ATTR.hs.some(a => a[0].indexOf("Alien Swirling Saucers") !== -1),
+        "o terceiro brinquedo da Toy Story Land continua na lista");
+      console.assert(new Set(ATTR.mk.map(a=>a[0])).size === ATTR.mk.length,
+        "nome repetido no mesmo parque quebraria a migração, que casa por nome");
+      Object.keys(ATTR).forEach(pk => console.assert(
+        new Set(ATTR[pk].map(a=>a[0])).size === ATTR[pk].length, "nome repetido em " + pk));
     }
 
     /* ---- Item que não é lugar ---- */
