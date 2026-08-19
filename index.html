@@ -1627,7 +1627,7 @@ function parqueDoAttr(id){
   const m = /^at\|([a-z]+)\d+\|/.exec(String(id||""));
   return m ? m[1] : null;
 }
-const nomeDoAttr = (id) => String(id||"").split("|").slice(2).join("|");
+function nomeDoAttr(id){ return String(id||"").split("|").slice(2).join("|"); }
 
 /* Primeiro dia do roteiro marcado com aquele parque. */
 function diaDoParque(pk){
