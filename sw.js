@@ -10,7 +10,7 @@
  * está offline.
  */
 
-const VERSAO = "disneytrip-v28";
+const VERSAO = "disneytrip-v29";
 const ESSENCIAL = [
   "./",
   "./index.html",
@@ -51,7 +51,11 @@ self.addEventListener("fetch", (e) => {
 
   if(ehPagina){
     e.respondWith(
-      fetch(req)
+      /* no-cache = revalida sempre (If-None-Match), 304 quando nao mudou.
+         Sem isso, fetch(req) passa pelo cache HTTP do navegador e o
+         max-age=600 do Pages faz o network-first servir — e pior, REGRAVAR
+         no cache — HTML velho por ate 10 min depois de cada publicacao. */
+      fetch(req.url, {cache: "no-cache"})
         .then(res => {
           const copia = res.clone();
           caches.open(VERSAO).then(c => c.put(req, copia));
