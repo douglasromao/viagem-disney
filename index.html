@@ -2664,7 +2664,10 @@ function viewCompras(){
     <div class="stat"><div class="k">Já comprado</div><div class="v" style="font-size:23px">${usd(feitoUSD)}</div><div class="n">${done} de ${S.shop.length} itens</div>
       <div class="bar"><i style="width:${S.shop.length?Math.round(done/S.shop.length*100):0}%"></i></div></div>
     <div class="stat"><div class="k">Falta comprar</div><div class="v" style="font-size:23px">${usd(totUSD-feitoUSD)}</div><div class="n">${brl((totUSD-feitoUSD)*S.trip.rate)}</div></div>
-    <div class="stat"><div class="k">Com o orçamento</div><div class="v" style="font-size:23px">${brl(totaisGerais().totalBRL)}</div><div class="n">viagem inteira · ${brl(totaisGerais().levar)} a levar</div></div>
+    ${(() => { const t=S.trip.rate||1;
+       const soma=(q)=>S.shop.filter(x=>quandoDeShop(x)===q).reduce((a,x)=>a+(x.qtd||0)*(x.usd||0),0);
+       return `<div class="stat"><div class="k">Dinheiro que levo</div><div class="v" style="font-size:23px;color:var(--warn)">${usd(soma("levar"))}</div><div class="n">${brl(soma("levar")*t)} · em espécie ou débito</div></div>
+    <div class="stat"><div class="k">Parcelo no cartão</div><div class="v" style="font-size:23px">${usd(soma("parcelado"))}</div><div class="n">${brl(soma("parcelado")*t)} · pago depois</div></div>`; })()}
   </div>
 
   <div class="stack">
@@ -2673,7 +2676,7 @@ function viewCompras(){
     const sub = its.reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
     return cardGrupo("sh:" + c, esc(c), `<span class="pill neutral">${usd(sub)}</span>`, `
         <div class="tw"><table>
-          <thead><tr><th style="width:26px"></th><th>Item</th><th>Onde</th><th class="num">Qtd</th><th class="num">US$ un.</th><th class="num">Total</th><th class="num">Prio</th><th></th></tr></thead>
+          <thead><tr><th style="width:26px"></th><th>Item</th><th>Onde</th><th>Como pago</th><th class="num">Qtd</th><th class="num">US$ un.</th><th class="num">Total</th><th class="num">Prio</th><th></th></tr></thead>
           <tbody>
           ${its.map(s => `
             <tr class="${s.done?"done":""}">
@@ -2681,6 +2684,10 @@ function viewCompras(){
               <td data-l="Item"><input type="text" data-shop="${s.id}" data-k="item" value="${esc(s.item)}"></td>
               <td data-l="Onde"><select data-shop="${s.id}" data-k="loja">
                 ${LOJAS.concat(LOJAS.includes(s.loja)?[]:[s.loja]).map(l => `<option ${l===s.loja?"selected":""}>${esc(l)}</option>`).join("")}
+              </select></td>
+              <td data-l="Como pago"><select data-shop="${s.id}" data-k="quando">
+                <option value="levar" ${quandoDeShop(s)==="levar"?"selected":""}>Dinheiro que levei</option>
+                <option value="parcelado" ${quandoDeShop(s)==="parcelado"?"selected":""}>Parcela no cartão</option>
               </select></td>
               <td class="num" data-l="Qtd"><input type="number" min="0" step="1" data-shop="${s.id}" data-k="qtd" value="${s.qtd}"></td>
               <td class="num" data-l="US$ un."><input type="number" min="0" step="1" data-shop="${s.id}" data-k="usd" value="${s.usd}"></td>
@@ -2705,40 +2712,53 @@ function viewCompras(){
   </div>`;
 }
 
-/* Visão completa do bolso: as linhas de orçamento e a lista de compras são
-   duas listas separadas na tela, mas o dinheiro é o mesmo. Somar as duas é o
-   único jeito de saber quanto a viagem custa de verdade.
-   Cuidado com dupla contagem: existe uma linha "Compras e souvenirs" no
-   orçamento. Se ela for preenchida, o valor entra duas vezes — por isso
-   devolvemos `duplicado` e a tela avisa, em vez de descontar escondido. */
+/* As duas listas viram uma só: a linha "Compras e souvenirs" do orçamento não
+   é digitada, ela ESPELHA o total da lista de compras. Assim não existe número
+   para manter em dois lugares nem risco de contagem dupla — a tabela do
+   orçamento já mostra o custo real da viagem. */
+const totalComprasUSD = () => S.shop.reduce((t,s) => t + (s.qtd||0) * (s.usd||0), 0);
+const ehLinhaCompras  = (b) => b.auto === "compras" || /compras e souvenir/i.test(b.label||"");
+const planDe = (b) => ehLinhaCompras(b) ? totalComprasUSD() : (b.plan||0);
+const curDe  = (b) => ehLinhaCompras(b) ? "USD" : b.cur;
+
 /* Duas naturezas de gasto muito diferentes:
-   - "parcelado": passagem, hotel, ingresso, carro. Já foi comprado, está sendo
-     pago em casa. Não sai da carteira na viagem.
+   - "parcelado": passagem, hotel, ingresso, carro. Já comprado, pago em casa.
+     Não sai da carteira durante a viagem.
    - "levar": comida, compras, gorjeta, pedágio. Precisa de dinheiro em mãos lá.
-   O padrao vem da categoria, mas cada linha pode ser corrigida na tela, porque
+   O padrão vem da categoria, mas cada linha se corrige na tela, porque
    "Carro e estrada" mistura os dois (aluguel parcelado, gasolina no ato). */
 const quandoDe = (b) => b.quando || (/antes da viagem/i.test(b.cat||"") ? "parcelado" : "levar");
 
+/* Item de compra tem a mesma escolha, item a item: dinheiro que você levou ou
+   parcela no cartão. O padrão é levar, que é o caso comum. */
+const quandoDeShop = (s) => s.quando || "levar";
+
 function totaisGerais(){
-  const orcBRL     = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
-  const parcelado  = S.budget.filter(b => quandoDe(b)==="parcelado")
-                             .reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
-  const levarOrc   = orcBRL - parcelado;
-  const comprasUSD = S.shop.reduce((t,s) => t + (s.qtd||0) * (s.usd||0), 0);
-  const comprasBRL = comprasUSD * (S.trip.rate || 1);
-  const duplicado  = S.budget
-    .filter(b => /compra|souvenir/i.test(b.label + " " + b.cat))
-    .reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
-  /* Compra feita la sempre entra como dinheiro a levar. */
-  return {orcBRL, comprasUSD, comprasBRL, totalBRL: orcBRL + comprasBRL,
-          parcelado, levar: levarOrc + comprasBRL, duplicado};
+  /* orcBRL já contém as compras, via linha espelhada. */
+  const orcBRL = S.budget.reduce((t,b) => t + toBRL(planDe(b), curDe(b)), 0);
+
+  /* A divisão parcelado/levar ignora a linha espelhada e usa os itens da lista
+     um a um — senão a escolha por item não teria efeito. */
+  const orcSemCompras = S.budget.filter(b => !ehLinhaCompras(b));
+  const somaOrc = (q) => orcSemCompras.filter(b => quandoDe(b)===q)
+                                      .reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+  const somaShop = (q) => S.shop.filter(s => quandoDeShop(s)===q)
+                                .reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0) * (S.trip.rate||1);
+
+  const comprasUSD = totalComprasUSD();
+  return {
+    orcBRL, comprasUSD, comprasBRL: comprasUSD * (S.trip.rate||1),
+    totalBRL: orcBRL,
+    parcelado: somaOrc("parcelado") + somaShop("parcelado"),
+    levar:     somaOrc("levar")     + somaShop("levar")
+  };
 }
 
 function viewOrcamento(){
   const cats = [];
   S.budget.forEach(b => { if(!cats.includes(b.cat)) cats.push(b.cat); });
 
-  const planBRL = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+  const planBRL = S.budget.reduce((t,b) => t + toBRL(planDe(b), curDe(b)), 0);
   const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
   const lancados = S.budget.filter(b => b.real > 0).length;
   const realTotal = realBRL + totalGastos();
@@ -2752,7 +2772,7 @@ function viewOrcamento(){
   <p class="sub">Valores iniciais são <b>estimativas</b> para vocês substituírem pelos números reais. Cada linha tem moeda própria — o total é sempre convertido para real pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida na aba Início.</p>
 
   <div class="stats" style="margin-bottom:16px">
-    <div class="stat"><div class="k">Previsto · tudo somado</div><div class="v" style="font-size:23px">${brl(G.totalBRL)}</div><div class="n">${brl(G.orcBRL)} orçamento + ${brl(G.comprasBRL)} compras</div></div>
+    <div class="stat"><div class="k">Previsto · tudo somado</div><div class="v" style="font-size:23px">${brl(G.totalBRL)}</div><div class="n">inclui ${brl(G.comprasBRL)} da lista de compras</div></div>
     <div class="stat"><div class="k">Gasto lançado</div><div class="v" style="font-size:23px">${brl(realTotal)}</div>
       <div class="n">${lancados} linha(s)${S.gastos.length ? ` · ${S.gastos.length} lançamento(s) na viagem` : ""}</div>
       <div class="bar ${realTotal>G.totalBRL?"c-crit":"c-ok"}"><i style="width:${G.totalBRL?Math.min(100,Math.round(realTotal/G.totalBRL*100)):0}%"></i></div></div>
@@ -2765,7 +2785,7 @@ function viewOrcamento(){
   <div class="stack">
   ${cats.map(c => {
     const its = S.budget.filter(b => b.cat === c);
-    const sub = its.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
+    const sub = its.reduce((t,b) => t + toBRL(planDe(b), curDe(b)), 0);
     return cardGrupo("bd:" + c, esc(c), `<span class="row" style="gap:6px">
         <span class="pill neutral">prev ${brl(sub)}</span>
         ${totalGastos(c) ? `<span class="pill ok">gasto ${brl(totalGastos(c))}</span>` : ""}
@@ -2776,17 +2796,21 @@ function viewOrcamento(){
           ${its.map(b => `
             <tr>
               <td data-l="Item"><input type="text" data-bud="${b.id}" data-k="label" value="${esc(b.label)}"></td>
-              <td data-l="Quando"><select data-bud="${b.id}" data-k="quando">
+              <td data-l="Quando">${ehLinhaCompras(b)
+                ? `<span class="pill neutral">item a item na lista</span>`
+                : `<select data-bud="${b.id}" data-k="quando">
                 <option value="parcelado" ${quandoDe(b)==="parcelado"?"selected":""}>Já pago / parcelado</option>
                 <option value="levar" ${quandoDe(b)==="levar"?"selected":""}>Levar em dinheiro</option>
-              </select></td>
-              <td data-l="Moeda"><select data-bud="${b.id}" data-k="cur">
+              </select>`}</td>
+              <td data-l="Moeda">${ehLinhaCompras(b) ? `US$` : `<select data-bud="${b.id}" data-k="cur">
                 <option value="BRL" ${b.cur==="BRL"?"selected":""}>R$</option>
                 <option value="USD" ${b.cur==="USD"?"selected":""}>US$</option>
-              </select></td>
-              <td class="num" data-l="Previsto"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}"></td>
+              </select>`}</td>
+              <td class="num" data-l="Previsto">${ehLinhaCompras(b)
+                ? `<span title="Vem da lista de compras" style="font-family:var(--font-data)">${planDe(b).toFixed(0)}</span>`
+                : `<input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}">`}</td>
               <td class="num" data-l="Real"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}"></td>
-              <td class="num" data-l="Em R$">${brl(toBRL(b.plan,b.cur))}</td>
+              <td class="num" data-l="Em R$">${brl(toBRL(planDe(b),curDe(b)))}</td>
               <td style="width:34px"><button class="del" type="button" data-act="delBud" data-id="${b.id}" aria-label="Remover">×</button></td>
             </tr>`).join("")}
           </tbody>
@@ -2824,9 +2848,8 @@ function viewOrcamento(){
     <div class="card-bd">
       <div class="tw"><table style="min-width:0">
         <tbody>
-          <tr><td>Orçamento (${S.budget.length} linhas)</td><td class="num">${brl(G.orcBRL)}</td></tr>
-          <tr><td>Lista de compras (${usd(G.comprasUSD)})</td><td class="num">${brl(G.comprasBRL)}</td></tr>
-          <tr><td><b>Previsto total</b></td><td class="num" style="font-size:19px;font-weight:700">${brl(G.totalBRL)}</td></tr>
+          <tr><td><b>Previsto total</b> <span style="color:var(--fg-dim)">— ${S.budget.length} linhas, já com a lista de compras</span></td><td class="num" style="font-size:19px;font-weight:700">${brl(G.totalBRL)}</td></tr>
+          <tr><td style="padding-left:16px;color:var(--fg-dim)">dos quais, lista de compras (${usd(G.comprasUSD)})</td><td class="num" style="color:var(--fg-dim)">${brl(G.comprasBRL)}</td></tr>
           <tr><td>Gasto lançado</td><td class="num" style="font-size:19px;font-weight:700">${brl(gastoTotalBRL())}</td></tr>
           ${totalGastos() ? `<tr><td style="padding-left:16px;color:var(--fg-dim)">dos quais, lançados na viagem</td><td class="num" style="color:var(--fg-dim)">${brl(totalGastos())}</td></tr>` : ""}
           <tr><td colspan="2" style="padding-top:14px;border-top:1px solid var(--line-soft)"></td></tr>
@@ -2837,7 +2860,7 @@ function viewOrcamento(){
           <tr><td>Por dia (${tripDays().length||1} dias)</td><td class="num">${brl(G.totalBRL/(tripDays().length||1))}</td></tr>
         </tbody>
       </table></div>
-      ${G.duplicado ? `<p style="font-size:12.5px;color:var(--warn);margin:10px 0 0">Atenção: o orçamento tem ${brl(G.duplicado)} em linha de compras/souvenir. Como a lista de compras já está somada acima, esse valor está sendo contado duas vezes — zere a linha do orçamento ou tire os itens da lista.</p>` : ""}
+      <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">A linha <b>Compras e souvenirs</b> não se digita: ela espelha o total da aba Compras. Para mudar esse valor, mexa nos itens da lista.</p>
     </div>
   </div>
 
