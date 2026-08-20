@@ -684,8 +684,8 @@ table select:hover{border-color:var(--line-soft)}
     </g>
   </symbol>
 
-  <!-- LISTAS — prancheta com o primeiro item já marcado -->
-  <symbol id="ico-listas" viewBox="0 0 64 64">
+  <!-- PREPARAÇÃO — prancheta com o primeiro item já marcado -->
+  <symbol id="ico-preparacao" viewBox="0 0 64 64">
     <rect x="11" y="13" width="42" height="47" rx="7" fill="none" stroke="currentColor" stroke-width="4"/>
     <rect x="23" y="4" width="18" height="12" rx="5" fill="currentColor"/>
     <path d="M21 33.5l7 7 13-14M22 51h20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -717,7 +717,7 @@ table select:hover{border-color:var(--line-soft)}
     <circle cx="32" cy="36" r="4" fill="currentColor"/>
   </symbol>
 
-  <symbol id="ico-gastos" viewBox="0 0 64 64">
+  <symbol id="ico-dinheiro" viewBox="0 0 64 64">
     <rect x="6" y="16" width="52" height="32" rx="6" fill="none" stroke="currentColor" stroke-width="4"/>
     <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4"/>
     <g fill="currentColor"><circle cx="15" cy="32" r="3"/><circle cx="49" cy="32" r="3"/></g>
@@ -1210,7 +1210,7 @@ const uid = (p) => p + "-" + Math.random().toString(36).slice(2, 9);
 function seed(){
   return {
     v:1,
-    tab:"inicio",
+    tab:"hoje",
     device:"",
     updatedAt:0,
     lastSync:0,
@@ -1239,7 +1239,7 @@ function seed(){
     parkFilter:"mk",
     onlyPlan:false,
     onlyKid:false,
-    seg:{roteiro:"dias", listas:"checklist"},
+    seg:{roteiro:"dias", preparacao:"checklist"},
     diaSel:"",
     mapaDia:"",
     itemAberto:"",
@@ -1270,6 +1270,13 @@ try{
 }catch(e){ S = seed(); }
 
 if(!S.device) S.device = navigator.platform && /iphone|ipad|android/i.test(navigator.userAgent) ? "Celular" : "Computador";
+
+/* Aba renomeada: Gastos virou Dinheiro, Listas virou Preparação. Sem isto, quem
+   já usava abre numa tela inesperada — VIEWS[S.tab] não existe mais e cai no
+   viewHoje. Declaração de função de propósito: é chamada aqui em cima, e const
+   não sofre hoisting (ver commit d9b8385). */
+function migrarAba(t){ return {gastos:"dinheiro", listas:"preparacao"}[t] || t; }
+S.tab = migrarAba(S.tab);
 
 /* Antes de qualquer tela: se as listas de atração mudaram desde a última visita,
    remapear as marcas para os ids novos (ver migrarIdsDeAtracao). */
@@ -1742,7 +1749,7 @@ const TABS = [
   {id:"hoje",       label:"Hoje",       short:"Hoje"},
   {id:"fotos",      label:"Fotos",      short:"Fotos"},
   {id:"documentos", label:"Documentos", short:"Docs"},
-  {id:"gastos",     label:"Gastos",     short:"Gastos"}
+  {id:"dinheiro",   label:"Dinheiro",   short:"Dinheiro"}
 ];
 
 /* Hoje saiu da gaveta e foi para a barra: é a tela de volta, e voltar não pode
@@ -1751,21 +1758,22 @@ const MENU = [
   {id:"roteiro", label:"Roteiro", desc:"os dias e as reservas"},
   {id:"mapa",    label:"Mapa",    desc:"trajeto do dia, parada a parada"},
   {id:"parques", label:"Parques", desc:"119 atrações, régua de altura, filas"},
-  {id:"listas",  label:"Listas",  desc:"checklist, compras e orçamento"},
+  {id:"preparacao", label:"Preparação", desc:"checklist e suas listas"},
   {id:"ajustes", label:"Ajustes", desc:"datas, família, sync e backup"}
 ];
 
-/* Segmentos dentro de Roteiro e Listas. Preferência de tela, não dado de
-   viagem — por isso `seg` está em LOCAL_ONLY. */
+/* Segmentos dentro de Roteiro, Dinheiro e Preparação. Preferência de tela, não
+   dado de viagem — por isso `seg` está em LOCAL_ONLY. */
 const SEGS = {
-  roteiro: [{id:"dias", label:"Dias"}, {id:"reservas", label:"Reservas"}],
-  listas:  [{id:"checklist", label:"Checklist"}, {id:"compras", label:"Compras"}, {id:"orcamento", label:"Orçamento"}]
+  roteiro:    [{id:"dias", label:"Dias"}, {id:"reservas", label:"Reservas"}],
+  dinheiro:   [{id:"gastos", label:"Gastos"}, {id:"compras", label:"Compras"}, {id:"orcamento", label:"Orçamento"}],
+  preparacao: [{id:"checklist", label:"Checklist"}]
 };
 
-/* Listas ganha um segmento por lista própria, além dos três fixos. */
+/* Preparação ganha um segmento por lista própria, além do fixo. */
 function segsDe(aba){
-  if(aba !== "listas") return SEGS[aba];
-  return SEGS.listas.concat((S.listas || []).map(l => ({id:l.id, label:l.nome || "Lista"})));
+  if(aba !== "preparacao") return SEGS[aba];
+  return SEGS.preparacao.concat((S.listas || []).map(l => ({id:l.id, label:l.nome || "Lista"})));
 }
 
 function segAtual(aba){
@@ -1778,7 +1786,7 @@ function barraSeg(aba, extra){
   const itens = segsDe(aba).map(x =>
     `<button class="chip" type="button" data-seg="${aba}" data-segid="${x.id}" aria-pressed="${segAtual(aba)===x.id}">${esc(x.label)}${
       extra && extra[x.id] ? ` <span style="opacity:.7">${extra[x.id]}</span>` : ""}</button>`).join("");
-  const mais = aba === "listas"
+  const mais = aba === "preparacao"
     ? `<button class="chip chip-mais" type="button" data-act="listaNova" title="Criar uma lista">+ lista</button>`
     : "";
   return `<div class="filters">${itens}${mais}</div>`;
@@ -1786,12 +1794,11 @@ function barraSeg(aba, extra){
 
 function renderNav(){
   const ck = progress(allCheckItems().map(c => c.id));
-  const shopDone = S.shop.filter(s => s.done).length;
   const counts = {
-    listas: ck.done + "/" + ck.total,
+    preparacao: ck.done + "/" + ck.total,
     fotos: S.fotos.length || "",
     documentos: S.docs.length || "",
-    gastos: S.gastos.length || ""
+    dinheiro: S.gastos.length || ""
   };
 
   const ico = (id) => `<svg class="ico" aria-hidden="true"><use href="#ico-${id}"/></svg>`;
@@ -1902,8 +1909,8 @@ function viewHoje(){
 
   const ck = progress(allCheckItems().map(c => c.id));
   const shopDone = S.shop.filter(s => s.done).length;
-  const orcBRL = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
-  const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
+  const orcBRL = totaisGerais().totalBRL;
+  const realBRL = gastoTotalBRL();
 
   const planNow = allCheckItems().filter(c => c.grupo === "Disney — janelas de tempo" && !S.checks[c.id]);
   const docNow  = allCheckItems().filter(c => c.grupo === "Documentos" && !S.checks[c.id]);
@@ -2769,7 +2776,7 @@ function viewOrcamento(){
 
   return `
   <h1>Orçamento</h1>
-  <p class="sub">Valores iniciais são <b>estimativas</b> para vocês substituírem pelos números reais. Cada linha tem moeda própria — o total é sempre convertido para real pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida na aba Início.</p>
+  <p class="sub">Valores iniciais são <b>estimativas</b> para vocês substituírem pelos números reais. Cada linha tem moeda própria — o total é sempre convertido para real pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida na aba Ajustes.</p>
 
   <div class="stats" style="margin-bottom:16px">
     <div class="stat"><div class="k">Previsto · tudo somado</div><div class="v" style="font-size:23px">${brl(G.totalBRL)}</div><div class="n">inclui ${brl(G.comprasBRL)} da lista de compras</div></div>
@@ -2929,7 +2936,7 @@ function viewDocumentos(){
 }
 
 /* Aba própria: lançar é a primeira coisa da tela, e a lista vem abaixo.
-   O botão flutuante saiu — com Gastos na barra de baixo ele era o mesmo toque
+   O botão flutuante saiu — com Dinheiro na barra de baixo ele era o mesmo toque
    duas vezes, e ainda cobria conteúdo. */
 /* Tela de mapa: escolhe o dia, marca as paradas, vê o trajeto.
    O iframe do Google exige chave da Maps Embed API (com faturamento). O link
@@ -3080,8 +3087,6 @@ function viewMapa(){
 
 function viewGastos(){
   const total = totalGastos();
-  const linhas = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
-  const prev = S.budget.reduce((t,b) => t + toBRL(b.plan, b.cur), 0);
 
   const porCat = {};
   S.gastos.forEach(g => porCat[g.cat] = (porCat[g.cat] || 0) + toBRL(g.valor||0, g.cur));
@@ -3091,14 +3096,6 @@ function viewGastos(){
 
   <button class="btn lancar" type="button" data-act="gastoAbrir">+ Lançar gasto</button>
   <p id="fotoMsg" style="display:none"></p>
-
-  <div class="stats" style="margin:16px 0">
-    <div class="stat"><div class="k">Lançado na viagem</div><div class="v" style="font-size:23px">${brl(total)}</div>
-      <div class="n">${S.gastos.length} lançamento(s)</div></div>
-    <div class="stat"><div class="k">Com as linhas do orçamento</div><div class="v" style="font-size:23px">${brl(total + linhas)}</div>
-      <div class="n">${prev ? "de " + brl(prev) + " previsto" : "sem previsão definida"}</div>
-      ${prev ? `<div class="bar ${(total+linhas)>prev?"c-crit":"c-ok"}"><i style="width:${Math.min(100,Math.round((total+linhas)/prev*100))}%"></i></div>` : ""}</div>
-  </div>
 
   ${Object.keys(porCat).length ? `
   <div class="card" style="margin-bottom:16px">
@@ -3136,7 +3133,7 @@ function viewGastos(){
 
   <div class="note" style="margin-top:16px">
     <b>Isto não substitui o orçamento</b>
-    <p style="margin:6px 0 0">As 20 linhas de <b>Listas › Orçamento</b> continuam sendo o planejado, com o campo <i>Real</i> para os valores grandes fechados antes da viagem. O que você lança aqui soma por cima, e as duas colunas aparecem separadas lá para você ver se contou duas vezes.</p>
+    <p style="margin:6px 0 0">As 20 linhas de <b>Dinheiro › Orçamento</b> continuam sendo o planejado, com o campo <i>Real</i> para os valores grandes fechados antes da viagem. O que você lança aqui soma por cima, e as duas colunas aparecem separadas lá para você ver se contou duas vezes.</p>
   </div>`;
 }
 
@@ -3173,7 +3170,7 @@ function novaLista(){
   if(!nome) return;
   const l = {id:uid("l"), nome, itens:[]};
   S.listas.push(l);
-  S.seg = Object.assign({}, S.seg, {listas: l.id});
+  S.seg = Object.assign({}, S.seg, {preparacao: l.id});
   save(); render();
 }
 
@@ -3182,7 +3179,7 @@ function apagarLista(id){
   if(!l) return;
   if(!confirm(`Apagar a lista “${l.nome}” e os ${l.itens.length} item(ns) dela?`)) return;
   S.listas = S.listas.filter(x => x.id !== id);
-  S.seg = Object.assign({}, S.seg, {listas: "checklist"});
+  S.seg = Object.assign({}, S.seg, {preparacao: "checklist"});
   save(); render();
 }
 
@@ -3214,19 +3211,52 @@ function viewListaPropria(l){
   </div>`;
 }
 
-function viewListas(){
-  const ck = progress(allCheckItems().map(c => c.id));
+/* Os três números que se quer olhar de relance na viagem, iguais nos três
+   segmentos. Nada é calculado aqui: `totaisGerais().totalBRL` e
+   `gastoTotalBRL()` são os mesmos que o Orçamento já mostra, então as duas
+   telas não podem divergir. */
+function faixaDinheiro(){
+  const prev  = totaisGerais().totalBRL;
+  const lanc  = gastoTotalBRL();
+  const falta = prev - lanc;
+  const sobra = falta >= 0;
+  return `<div class="stats" style="margin-bottom:16px">
+    <div class="stat"><div class="k">Previsto</div>
+      <div class="v" style="font-size:23px">${brl(prev)}</div>
+      <div class="n">viagem inteira, já com as compras</div></div>
+    <div class="stat"><div class="k">Gasto lançado</div>
+      <div class="v" style="font-size:23px">${brl(lanc)}</div>
+      <div class="n">${S.budget.filter(b => b.real > 0).length} linha(s)${S.gastos.length ? ` · ${S.gastos.length} lançamento(s) na viagem` : ""}</div>
+      ${prev ? `<div class="bar ${sobra?"c-ok":"c-crit"}"><i style="width:${Math.min(100,Math.round(lanc/prev*100))}%"></i></div>` : ""}</div>
+    <div class="stat"><div class="k">${sobra ? "Falta gastar" : "Acima do previsto"}</div>
+      <div class="v" style="font-size:23px;color:${sobra ? "var(--ok)" : "var(--crit)"}">${brl(Math.abs(falta))}</div>
+      <div class="n">${sobra ? "do que foi previsto" : "estourou o previsto"}</div></div>
+  </div>`;
+}
+
+/* Dinheiro reúne as três telas financeiras. Gastos vem primeiro porque lançar
+   um gasto é o que se faz de pé, na fila, com uma mão só. */
+function viewDinheiro(){
   const shopDone = S.shop.filter(s => s.done).length;
-  const cab = `<h1>Listas</h1>` + barraSeg("listas", {
-    checklist: ck.done + "/" + ck.total,
-    compras:   shopDone + "/" + S.shop.length
+  const cab = `<h1>Dinheiro</h1>` + faixaDinheiro() + barraSeg("dinheiro", {
+    compras: shopDone + "/" + S.shop.length
   });
-  const seg = segAtual("listas");
-  const propria = (S.listas || []).find(l => l.id === seg);
-  const corpo = propria ? viewListaPropria(propria)
-    : seg === "compras" ? viewCompras()
+  const seg = segAtual("dinheiro");
+  const corpo = seg === "compras" ? viewCompras()
     : seg === "orcamento" ? viewOrcamento()
-    : viewChecklist();
+    : viewGastos();
+  /* cada view já traz o próprio h1; some, porque o cabeçalho agora é do segmento */
+  return cab + corpo.replace(/^\s*<h1>[^<]*<\/h1>/, "");
+}
+
+function viewPreparacao(){
+  const ck = progress(allCheckItems().map(c => c.id));
+  const cab = `<h1>Preparação</h1>` + barraSeg("preparacao", {
+    checklist: ck.done + "/" + ck.total
+  });
+  const seg = segAtual("preparacao");
+  const propria = (S.listas || []).find(l => l.id === seg);
+  const corpo = propria ? viewListaPropria(propria) : viewChecklist();
   /* cada view já traz o próprio h1; some, porque o cabeçalho agora é do segmento */
   return cab + corpo.replace(/^\s*<h1>[^<]*<\/h1>/, "");
 }
@@ -3385,9 +3415,9 @@ function viewBackup(){
 
 /* ============================== 6. RENDER ============================== */
 
-const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, listas:viewListas,
+const VIEWS = {hoje:viewHoje, roteiro:viewRoteiro, preparacao:viewPreparacao,
                documentos:viewDocumentos, parques:viewParques, ajustes:viewAjustes,
-               fotos:viewFotos, gastos:viewGastos, mapa:viewMapa};
+               fotos:viewFotos, dinheiro:viewDinheiro, mapa:viewMapa};
 
 function render(){
   renderNav();
@@ -3729,7 +3759,6 @@ document.addEventListener("change", (e) => {
     save(); renderNav();
     const wrap = t.closest(".item, .attr");
     if(wrap) wrap.classList.toggle("done", t.checked);
-    if(S.tab === "checklist" || S.tab === "inicio") render();
     return;
   }
   if(t.dataset.shopchk !== undefined){
@@ -3874,7 +3903,7 @@ function moverItem(dt, id, dir){
 
 function aplicarSugestao(){
   const plano = sugerirRoteiro(S.trip);
-  if(!plano){ alert("O roteiro sugerido precisa de pelo menos 6 dias. Ajuste as datas na aba Início."); return; }
+  if(!plano){ alert("O roteiro sugerido precisa de pelo menos 6 dias. Ajuste as datas na aba Ajustes."); return; }
 
   /* Itens já cadastrados no dia não se perdem ao reaplicar a sugestão. */
   Object.keys(plano).forEach(dt => { plano[dt].items = (S.days[dt] && S.days[dt].items) || []; });
@@ -4900,7 +4929,7 @@ function removerGasto(id){
   render();
 }
 
-/* O botão flutuante saiu quando Gastos entrou na barra de baixo: era o mesmo
+/* O botão flutuante saiu quando Dinheiro entrou na barra de baixo: era o mesmo
    toque duas vezes, e ainda cobria conteúdo. Lançar agora é o primeiro botão
    dentro da aba. */
 
@@ -5655,15 +5684,48 @@ function toggleTheme(){
     {
       const bakL = S.listas, bakS = S.seg;
       S.listas = [{id:"l1", nome:"Remédios", itens:[{id:"a", texto:"Dipirona", done:false}]}];
-      console.assert(segsDe("listas").length === 4, "os 3 fixos mais a própria, veio " + segsDe("listas").length);
-      console.assert(segsDe("listas")[3].label === "Remédios", "a aba usa o nome da lista");
-      S.seg = {listas:"l1"};
-      console.assert(segAtual("listas") === "l1", "dá para abrir a lista própria");
+      console.assert(segsDe("preparacao").length === 2, "o fixo mais a própria, veio " + segsDe("preparacao").length);
+      console.assert(segsDe("preparacao")[1].label === "Remédios", "a aba usa o nome da lista");
+      S.seg = {preparacao:"l1"};
+      console.assert(segAtual("preparacao") === "l1", "dá para abrir a lista própria");
       S.listas = [];
-      console.assert(segAtual("listas") === "checklist",
+      console.assert(segAtual("preparacao") === "checklist",
         "lista apagada não pode deixar a tela apontando para o vazio");
-      console.assert(segsDe("roteiro").length === SEGS.roteiro.length, "só Listas ganha segmentos extras");
+      console.assert(segsDe("roteiro").length === SEGS.roteiro.length, "só Preparação ganha segmentos extras");
+      console.assert(!segsDe("preparacao").some(x => x.id === "compras" || x.id === "orcamento"),
+        "dinheiro não mora mais na aba de preparação");
       S.listas = bakL; S.seg = bakS;
+    }
+
+    /* ---- Dinheiro: as três telas financeiras numa aba só ---- */
+    console.assert(COLS.includes("gastos") && COLS.includes("listas"),
+      "renomear aba não pode derrubar coleção que sincroniza");
+    console.assert(!!VIEWS.dinheiro, "a aba Dinheiro precisa ter tela");
+    console.assert(segsDe("dinheiro").map(x => x.id).join(",") === "gastos,compras,orcamento",
+      "Gastos primeiro: lançar gasto tem que continuar a um toque");
+    console.assert(TABS.some(t => t.id === "dinheiro"), "Dinheiro fica na barra de baixo, não na gaveta");
+    console.assert(!TABS.some(t => t.id === "gastos"), "o id antigo da aba não pode sobreviver");
+    console.assert(migrarAba("gastos") === "dinheiro", "aparelho parado em Gastos abre em Dinheiro");
+    console.assert(migrarAba("listas") === "preparacao", "aparelho parado em Listas abre em Preparação");
+    console.assert(migrarAba("roteiro") === "roteiro", "aba não afetada continua igual");
+    console.assert(!!VIEWS[migrarAba("gastos")] && !!VIEWS[migrarAba("listas")],
+      "a migração tem que apontar para tela que existe");
+    {
+      const bakB = S.budget, bakG = S.gastos, bakSh = S.shop;
+      S.shop = [];
+      S.budget = [{id:"b1", label:"Ingressos", cat:"Nos parques", cur:"BRL", plan:1000, real:0}];
+      S.gastos = [{id:"g1", cat:"Nos parques", valor:250, cur:"BRL"}];
+      const sobra = faixaDinheiro();
+      console.assert(sobra.indexOf("Falta gastar") !== -1, "sobrando previsto, a faixa fala em faltar");
+      console.assert(sobra.indexOf(brl(750)) !== -1, "1000 previsto menos 250 lançado = 750 a gastar");
+
+      S.gastos = [{id:"g1", cat:"Nos parques", valor:1500, cur:"BRL"}];
+      const estouro = faixaDinheiro();
+      console.assert(estouro.indexOf("Acima do previsto") !== -1, "estourado, a faixa avisa");
+      console.assert(estouro.indexOf(brl(500)) !== -1, "estouro de 500 aparece como 500, em valor absoluto");
+      console.assert(estouro.indexOf("-500") === -1, "a faixa nunca mostra número negativo");
+
+      S.budget = bakB; S.gastos = bakG; S.shop = bakSh;
     }
 
     /* ---- Marca dos dias, escolhida no aparelho ---- */
@@ -6287,13 +6349,13 @@ function toggleTheme(){
         "segmento de uma tela que não existe: " + a);
       console.assert(segAtual(a) === SEGS[a][0].id, "sem escolha, cai no primeiro segmento");
     });
-    S.seg = {listas:"inventado"};
-    console.assert(segAtual("listas") === "checklist", "segmento inválido tem que cair no primeiro, não quebrar");
-    S.seg = {listas:"orcamento"};
-    console.assert(segAtual("listas") === "orcamento", "segmento válido tem que ser respeitado");
+    S.seg = {preparacao:"inventado"};
+    console.assert(segAtual("preparacao") === "checklist", "segmento inválido tem que cair no primeiro, não quebrar");
+    S.seg = {dinheiro:"orcamento"};
+    console.assert(segAtual("dinheiro") === "orcamento", "segmento válido tem que ser respeitado");
     /* nenhum texto de tela pode mandar o usuário para uma aba que não existe */
-    ["hoje","roteiro","parques","listas","ajustes"].forEach(() => {});
-    console.assert(!/aba <b>(Início|Backup|Checklist|Compras|Orçamento)<\/b>/.test(document.body.innerHTML),
+    ["hoje","roteiro","parques","preparacao","dinheiro","ajustes"].forEach(() => {});
+    console.assert(!/aba <b>?(Início|Backup|Checklist|Compras|Orçamento)<\/b>?/.test(document.body.innerHTML),
       "algum texto ainda manda o usuário para uma aba que não existe mais");
 
     console.assert(LOCAL_ONLY.includes("mapsKey"), "a chave do Maps não pode viajar no sync nem no código de transferência");
