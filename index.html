@@ -173,7 +173,7 @@ input[type=text],input[type=date],input[type=number],select,textarea{
 input[type=number]{font-family:var(--font-data);text-align:right;font-variant-numeric:tabular-nums}
 textarea{resize:vertical;font-size:14px}
 label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--fg-dim);min-width:0}
-label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
 .btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:7px;padding:8px 14px;cursor:pointer;font-family:var(--font-display);font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
 .btn:hover{filter:brightness(1.08)}
 .btn.ghost{background:var(--surface-2);color:var(--fg-dim);border:1px solid var(--line)}
@@ -238,6 +238,20 @@ label.f>span{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;t
 .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .35s ease}
 .bar.c-ok i{background:var(--ok)} .bar.c-warn i{background:var(--warn)} .bar.c-crit i{background:var(--crit)}
 
+/* Faixa do bolso: um cartão só, 2×2 no celular, 1×4 no desktop */
+.faixa2{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.faixa2 .c{padding:11px 14px}
+.faixa2 .c:nth-child(odd){border-right:1px solid var(--line-soft)}
+.faixa2 .c:nth-child(-n+2){border-bottom:1px solid var(--line-soft)}
+.faixa2 .k{font-family:var(--font-data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)}
+.faixa2 .v{font-family:var(--font-display);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}
+.faixa2 .n{font-size:11px;color:var(--fg-dim)}
+@media (min-width:861px){
+  .faixa2{grid-template-columns:repeat(4,1fr)}
+  .faixa2 .c{border-bottom:none}
+  .faixa2 .c:not(:last-child){border-right:1px solid var(--line-soft)}
+}
+
 /* ---------- tables ---------- */
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;min-width:640px}
@@ -257,6 +271,10 @@ table select:hover{border-color:var(--line-soft)}
 
 /* ---------- filters ---------- */
 .filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+/* Chips de segmento não quebram linha: rolam de lado, como app de celular */
+.filters.seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.filters.seg::-webkit-scrollbar{display:none}
+.filters.seg .chip{flex-shrink:0}
 .chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;font-family:var(--font-display);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim)}
 .chip:hover{border-color:var(--accent);color:var(--fg)}
 .chip[aria-pressed="true"]{background:var(--fg);color:var(--paper);border-color:var(--fg)}
@@ -519,6 +537,9 @@ table select:hover{border-color:var(--line-soft)}
   padding:15px 16px 10px;border-bottom:1px solid var(--line-soft)}
 .folha-hd b{font-family:var(--font-display);font-size:18px}
 .folha-bd{padding:14px 16px 18px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg2 button{background:var(--surface-2);border:none;padding:11px;cursor:pointer;font-family:var(--font-display);font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-dim);min-height:44px}
+.seg2 button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 
 /* ---------- hoje, durante a viagem ---------- */
 .hoje-prox{background:var(--accent-soft);border-radius:9px;padding:8px 11px;margin:0 0 10px}
@@ -1789,7 +1810,7 @@ function barraSeg(aba, extra){
   const mais = aba === "preparacao"
     ? `<button class="chip chip-mais" type="button" data-act="listaNova" title="Criar uma lista">+ lista</button>`
     : "";
-  return `<div class="filters">${itens}${mais}</div>`;
+  return `<div class="filters seg">${itens}${mais}</div>`;
 }
 
 function renderNav(){
@@ -1909,8 +1930,9 @@ function viewHoje(){
 
   const ck = progress(allCheckItems().map(c => c.id));
   const shopDone = S.shop.filter(s => s.done).length;
-  const orcBRL = totaisGerais().totalBRL;
-  const realBRL = gastoTotalBRL();
+  const B = bolso();
+  const orcBRL = B.previsto;
+  const realBRL = B.paguei;
 
   const planNow = allCheckItems().filter(c => c.grupo === "Disney — janelas de tempo" && !S.checks[c.id]);
   const docNow  = allCheckItems().filter(c => c.grupo === "Documentos" && !S.checks[c.id]);
@@ -2138,13 +2160,13 @@ function viewHoje(){
       <div class="stat">
         <div class="k">Orçamento previsto</div>
         <div class="v" style="font-size:23px">${brl(orcBRL)}</div>
-        <div class="n">gasto lançado: ${brl(realBRL)}</div>
+        <div class="n">já paguei: ${brl(realBRL)}</div>
       </div>` : `
       <div class="stat">
         <div class="k">Gasto até agora</div>
-        <div class="v" style="font-size:23px">${brl(gastoTotalBRL())}</div>
+        <div class="v" style="font-size:23px">${brl(B.paguei)}</div>
         <div class="n">${orcBRL ? `de ${brl(orcBRL)} previsto` : "sem previsão definida"}</div>
-        ${orcBRL ? (() => { const g = gastoTotalBRL();
+        ${orcBRL ? (() => { const g = B.paguei;
           return `<div class="bar ${g>orcBRL?"c-crit":"c-ok"}"><i style="width:${Math.min(100,Math.round(g/orcBRL*100))}%"></i></div>`; })() : ""}
       </div>`}
     </div>
@@ -2178,6 +2200,7 @@ function blocoViagem(){
           <label class="f"><span>Ida</span><input type="date" data-trip="start" value="${esc(S.trip.start)}"></label>
           <label class="f"><span>Volta</span><input type="date" data-trip="end" value="${esc(S.trip.end)}"></label>
           <label class="f"><span>Cotação do dólar</span><input type="number" step="0.01" min="0" data-trip="rate" value="${S.trip.rate}"></label>
+          <label class="f"><span>Caixa em espécie (US$)</span><input type="number" step="1" min="0" data-trip="caixaUSD" value="${S.trip.caixaUSD || ""}" placeholder="0"></label>
         </div>
         <p style="font-size:12.5px;color:var(--fg-dim);margin:10px 0 0">Use a cotação real do seu cartão, já com IOF — é ela que vale no orçamento, não a do noticiário.</p>
 
@@ -2761,13 +2784,44 @@ function totaisGerais(){
   };
 }
 
+/* O bolso responde as quatro perguntas da viagem: quanto já paguei, quanto
+   ainda vou pagar (em casa × lá), como estamos contra o plano, e quanto resta
+   do caixa em espécie. Compra riscada conta como paga — por isso o `real` da
+   linha-espelho é ignorado: as compras riscadas já são o real dela.
+   Única fonte dos quatro números; tela nenhuma recalcula por conta própria. */
+function bolso(){
+  const rate = S.trip.rate || 1;
+  const linhas = S.budget.filter(b => !ehLinhaCompras(b));
+  const compradasUSD = S.shop.filter(s => s.done).reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
+  const abertasUSD   = S.shop.filter(s => !s.done).reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
+
+  const paguei = linhas.reduce((t,b) => t + toBRL(b.real||0, b.cur), 0)
+               + compradasUSD*rate + totalGastos();
+
+  const aberto = (q) => linhas.filter(b => quandoDe(b) === q)
+    .reduce((t,b) => t + Math.max(0, toBRL(b.plan||0, b.cur) - toBRL(b.real||0, b.cur)), 0);
+  const aPagarCasa = aberto("parcelado");
+  const aPagarLa   = aberto("levar") + abertasUSD*rate;
+
+  const previsto = totaisGerais().totalBRL;
+  const delta = (paguei + aPagarCasa + aPagarLa) - previsto;
+
+  /* O caixa é em dólar: só gasto em US$ pago em espécie e compra riscada
+     "dinheiro que levei" saem dele. */
+  const caixaUSD = (S.trip.caixaUSD || 0)
+    - S.gastos.filter(g => g.forma === "dinheiro" && g.cur === "USD")
+              .reduce((t,g) => t + (g.valor||0), 0)
+    - S.shop.filter(s => s.done && quandoDeShop(s) === "levar")
+            .reduce((t,s) => t + (s.qtd||0)*(s.usd||0), 0);
+
+  return {paguei, aPagarCasa, aPagarLa, aPagar: aPagarCasa + aPagarLa, previsto, delta, caixaUSD};
+}
+
 function viewOrcamento(){
   const cats = [];
   S.budget.forEach(b => { if(!cats.includes(b.cat)) cats.push(b.cat); });
 
-  const planBRL = S.budget.reduce((t,b) => t + toBRL(planDe(b), curDe(b)), 0);
-  const realBRL = S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0);
-  const lancados = S.budget.filter(b => b.real > 0).length;
+  const realBRL = S.budget.filter(b => !ehLinhaCompras(b)).reduce((t,b) => t + toBRL(b.real, b.cur), 0);
   const realTotal = realBRL + totalGastos();
 
   const G = totaisGerais();
@@ -2779,10 +2833,6 @@ function viewOrcamento(){
   <p class="sub">Valores iniciais são <b>estimativas</b> para vocês substituírem pelos números reais. Cada linha tem moeda própria — o total é sempre convertido para real pela cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida na aba Ajustes.</p>
 
   <div class="stats" style="margin-bottom:16px">
-    <div class="stat"><div class="k">Previsto · tudo somado</div><div class="v" style="font-size:23px">${brl(G.totalBRL)}</div><div class="n">inclui ${brl(G.comprasBRL)} da lista de compras</div></div>
-    <div class="stat"><div class="k">Gasto lançado</div><div class="v" style="font-size:23px">${brl(realTotal)}</div>
-      <div class="n">${lancados} linha(s)${S.gastos.length ? ` · ${S.gastos.length} lançamento(s) na viagem` : ""}</div>
-      <div class="bar ${realTotal>G.totalBRL?"c-crit":"c-ok"}"><i style="width:${G.totalBRL?Math.min(100,Math.round(realTotal/G.totalBRL*100)):0}%"></i></div></div>
     <div class="stat"><div class="k">Preciso levar</div>
       <div class="v" style="font-size:23px;color:var(--warn)">${brl(G.levar)}</div>
       <div class="n">${brl(G.parcelado)} já pago/parcelado · ${delta>=0?"acima":"abaixo"} do previsto em ${brl(Math.abs(delta))}</div></div>
@@ -2816,7 +2866,9 @@ function viewOrcamento(){
               <td class="num" data-l="Previsto">${ehLinhaCompras(b)
                 ? `<span title="Vem da lista de compras" style="font-family:var(--font-data)">${planDe(b).toFixed(0)}</span>`
                 : `<input type="number" min="0" step="10" data-bud="${b.id}" data-k="plan" value="${b.plan}">`}</td>
-              <td class="num" data-l="Real"><input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}"></td>
+              <td class="num" data-l="Real">${ehLinhaCompras(b)
+                ? `<span class="pill neutral" title="As compras riscadas já são o pago desta linha">riscadas na lista</span>`
+                : `<input type="number" min="0" step="10" data-bud="${b.id}" data-k="real" value="${b.real}">`}</td>
               <td class="num" data-l="Em R$">${brl(toBRL(planDe(b),curDe(b)))}</td>
               <td style="width:34px"><button class="del" type="button" data-act="delBud" data-id="${b.id}" aria-label="Remover">×</button></td>
             </tr>`).join("")}
@@ -2837,10 +2889,10 @@ function viewOrcamento(){
       <p style="font-size:12.5px;color:var(--fg-dim);margin:0 0 10px">Lançados pelo botão <b>+ Gasto</b> durante a viagem. Somam por cima do previsto das linhas acima — não substituem o campo <b>Real</b>, que serve para os valores grandes fechados antes de embarcar.</p>
       ${S.gastos.slice().sort((a,b)=>b.at-a.at).map(g => `
         <div class="doc">
-          <span class="doc-i" aria-hidden="true">${g.cur === "USD" ? "💵" : "🇧🇷"}</span>
+          <span class="doc-i" aria-hidden="true">${g.forma === "dinheiro" ? "💵" : "💳"}</span>
           <span class="doc-txt">
             <b>${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " · " + esc(g.nota) : ""}</b>
-            <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}</span>
+            <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}${" · " + (g.forma === "dinheiro" ? "do caixa" : "no cartão")}</span>
           </span>
           ${g.rec
             ? `<button class="btn ghost sm" type="button" data-act="recVer" data-id="${g.id}" aria-label="Ver o recibo">Recibo</button>`
@@ -2857,7 +2909,7 @@ function viewOrcamento(){
         <tbody>
           <tr><td><b>Previsto total</b> <span style="color:var(--fg-dim)">— ${S.budget.length} linhas, já com a lista de compras</span></td><td class="num" style="font-size:19px;font-weight:700">${brl(G.totalBRL)}</td></tr>
           <tr><td style="padding-left:16px;color:var(--fg-dim)">dos quais, lista de compras (${usd(G.comprasUSD)})</td><td class="num" style="color:var(--fg-dim)">${brl(G.comprasBRL)}</td></tr>
-          <tr><td>Gasto lançado</td><td class="num" style="font-size:19px;font-weight:700">${brl(gastoTotalBRL())}</td></tr>
+          <tr><td>Já paguei</td><td class="num" style="font-size:19px;font-weight:700">${brl(bolso().paguei)}</td></tr>
           ${totalGastos() ? `<tr><td style="padding-left:16px;color:var(--fg-dim)">dos quais, lançados na viagem</td><td class="num" style="color:var(--fg-dim)">${brl(totalGastos())}</td></tr>` : ""}
           <tr><td colspan="2" style="padding-top:14px;border-top:1px solid var(--line-soft)"></td></tr>
           <tr><td>Já pago / parcelado <span style="color:var(--fg-dim)">— não sai na viagem</span></td><td class="num">${brl(G.parcelado)}</td></tr>
@@ -3092,9 +3144,9 @@ function viewGastos(){
   S.gastos.forEach(g => porCat[g.cat] = (porCat[g.cat] || 0) + toBRL(g.valor||0, g.cur));
 
   return `<h1>Gastos</h1>
+  <button class="btn lancar" type="button" data-act="gastoAbrir">+ Lançar gasto</button>
   <p class="sub">Lance na hora, com o valor em dólar — a conversão usa a cotação de ${S.trip.rate.toLocaleString("pt-BR",{minimumFractionDigits:2})} definida em Ajustes.</p>
 
-  <button class="btn lancar" type="button" data-act="gastoAbrir">+ Lançar gasto</button>
   <p id="fotoMsg" style="display:none"></p>
 
   ${Object.keys(porCat).length ? `
@@ -3115,10 +3167,10 @@ function viewGastos(){
     <div class="card-bd">
       ${S.gastos.slice().sort((a,b)=>b.at-a.at).map(g => `
         <div class="doc">
-          <span class="doc-i" aria-hidden="true">${g.cur === "USD" ? "💵" : "🇧🇷"}</span>
+          <span class="doc-i" aria-hidden="true">${g.forma === "dinheiro" ? "💵" : "💳"}</span>
           <span class="doc-txt">
             <b>${g.cur === "USD" ? usd(g.valor) : brl(g.valor)}${g.nota ? " · " + esc(g.nota) : ""}</b>
-            <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}</span>
+            <span>${esc(g.cat)} · ${(() => { const x = d(g.dia); return isNaN(x) ? "" : String(x.getDate()).padStart(2,"0") + " " + MO[x.getMonth()]; })()}${g.cur === "USD" ? " · " + brl(toBRL(g.valor,"USD")) : ""}${" · " + (g.forma === "dinheiro" ? "do caixa" : "no cartão")}</span>
           </span>
           ${g.rec
             ? `<button class="btn ghost sm" type="button" data-act="recVer" data-id="${g.id}">Recibo</button>`
@@ -3211,26 +3263,26 @@ function viewListaPropria(l){
   </div>`;
 }
 
-/* Os três números que se quer olhar de relance na viagem, iguais nos três
-   segmentos. Nada é calculado aqui: `totaisGerais().totalBRL` e
-   `gastoTotalBRL()` são os mesmos que o Orçamento já mostra, então as duas
-   telas não podem divergir. */
+/* Os quatro números do bolso, iguais em qualquer segmento. Nada é calculado
+   aqui: bolso() é a única fonte, então as telas não podem divergir. */
 function faixaDinheiro(){
-  const prev  = totaisGerais().totalBRL;
-  const lanc  = gastoTotalBRL();
-  const falta = prev - lanc;
-  const sobra = falta >= 0;
-  return `<div class="stats" style="margin-bottom:16px">
-    <div class="stat"><div class="k">Previsto</div>
-      <div class="v" style="font-size:23px">${brl(prev)}</div>
-      <div class="n">viagem inteira, já com as compras</div></div>
-    <div class="stat"><div class="k">Gasto lançado</div>
-      <div class="v" style="font-size:23px">${brl(lanc)}</div>
-      <div class="n">${S.budget.filter(b => b.real > 0).length} linha(s)${S.gastos.length ? ` · ${S.gastos.length} lançamento(s) na viagem` : ""}</div>
-      ${prev ? `<div class="bar ${sobra?"c-ok":"c-crit"}"><i style="width:${Math.min(100,Math.round(lanc/prev*100))}%"></i></div>` : ""}</div>
-    <div class="stat"><div class="k">${sobra ? "Falta gastar" : "Acima do previsto"}</div>
-      <div class="v" style="font-size:23px;color:${sobra ? "var(--ok)" : "var(--crit)"}">${brl(Math.abs(falta))}</div>
-      <div class="n">${sobra ? "do que foi previsto" : "estourou o previsto"}</div></div>
+  const B = bolso();
+  const ok = B.delta <= 0.005;
+  const temCaixa = (S.trip.caixaUSD || 0) > 0;
+  return `<div class="faixa2">
+    <div class="c"><div class="k">Já paguei</div><div class="v">${brl(B.paguei)}</div>
+      <div class="n">plano + compras + viagem</div></div>
+    <div class="c"><div class="k">Ainda vou pagar</div><div class="v">${brl(B.aPagar)}</div>
+      <div class="n">${brl(B.aPagarCasa)} em casa · ${brl(B.aPagarLa)} lá</div></div>
+    <div class="c" data-act="caixaEditar" role="button" tabindex="0" style="cursor:pointer">
+      <div class="k">Caixa</div>
+      <div class="v" style="color:${B.caixaUSD < 0 ? "var(--crit)" : "var(--warn)"}">${temCaixa || B.caixaUSD ? usd(Math.abs(B.caixaUSD)) : "definir"}</div>
+      <div class="n">${B.caixaUSD < 0 ? "saiu mais em espécie do que o registrado — confira"
+        : temCaixa ? `de ${usd(S.trip.caixaUSD)} levados · toque p/ ajustar`
+        : "quanto você levou em espécie?"}</div></div>
+    <div class="c"><div class="k">Vs plano</div>
+      <div class="v" style="color:${ok ? "var(--ok)" : "var(--crit)"}">${ok ? "no previsto" : brl(B.delta) + " acima"}</div>
+      <div class="n">${brl(B.previsto)} combinados</div></div>
   </div>`;
 }
 
@@ -3577,7 +3629,21 @@ document.addEventListener("click", (e) => {
   else if(a === "gastoAbrir"){ abrirGasto(); return; }
   else if(a === "gastoFechar"){ fecharGasto(); return; }
   else if(a === "gastoSalvar"){ salvarGasto(); return; }
+  else if(a === "gastoForma"){
+    formaGasto = act.dataset.forma;
+    document.querySelectorAll('[data-act="gastoForma"]').forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.forma === formaGasto)));
+    return;
+  }
   else if(a === "gastoDel"){ removerGasto(act.dataset.id); return; }
+  else if(a === "caixaEditar"){
+    if(act.querySelector("input")) return;
+    act.innerHTML = `<div class="k">Caixa · quanto levou (US$)</div>
+      <input type="number" inputmode="decimal" min="0" step="1" value="${S.trip.caixaUSD || ""}" data-caixain
+        style="margin-top:4px;width:110px;font-size:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-family:var(--font-data)">`;
+    const inp = act.querySelector("input"); inp.focus(); inp.select();
+    return;
+  }
   else if(a === "recVer"){ abrirDocId(recId(act.dataset.id)); return; }
   else if(a === "fotoVer"){ abrirDocId(fotoId(act.dataset.id)); return; }
   else if(a === "fotoExp"){ exportarFoto(act.dataset.id); return; }
@@ -3683,6 +3749,16 @@ document.addEventListener("click", (e) => {
   save(); render();
 });
 
+/* O input do caixa vive dentro da faixa e salva ao perder o foco — change não
+   basta: sem mudança, o campo ficaria preso até o próximo render. */
+document.addEventListener("focusout", (e) => {
+  const t = e.target;
+  if(t && t.dataset && t.dataset.caixain !== undefined){
+    S.trip.caixaUSD = parseFloat(t.value) || 0;
+    save(); render();
+  }
+});
+
 document.addEventListener("change", (e) => {
   const t = e.target;
 
@@ -3768,7 +3844,7 @@ document.addEventListener("change", (e) => {
   }
   if(t.dataset.trip){
     const k = t.dataset.trip;
-    S.trip[k] = k === "rate" ? (parseFloat(t.value) || 0) : t.value;
+    S.trip[k] = (k === "rate" || k === "caixaUSD") ? (parseFloat(t.value) || 0) : t.value;
     save(); render(); return;
   }
   if(t.dataset.fam){
@@ -4484,6 +4560,7 @@ function comprimirImagem(arquivo, maxLado = 1400, q = 0.72, tipo = "image/jpeg")
 
 /* Segura a foto escolhida até o gasto ser salvo — antes disso ele não tem id. */
 let recPendente = null;
+let formaGasto = "cartao";
 
 async function escolherRecibo(arquivo){
   if(!arquivo) return;
@@ -4883,14 +4960,9 @@ function totalGastos(cat){
     .reduce((t,g) => t + toBRL(g.valor||0, g.cur), 0);
 }
 
-/* Soma o que foi lançado nas linhas e o que foi anotado no dia. Alguém pode
-   contar duas vezes se lançar nos dois lugares; a tela de Orçamento separa as
-   duas colunas justamente para isso ficar visível. */
-const gastoTotalBRL = () =>
-  S.budget.reduce((t,b) => t + toBRL(b.real, b.cur), 0) + totalGastos();
-
 function abrirGasto(){
   recPendente = null;
+  formaGasto = "cartao";
   S.gastoAberto = true; save(false); render();
   setTimeout(() => { const el = document.querySelector("[data-gasto=valor]"); if(el) el.focus(); }, 30);
 }
@@ -4907,7 +4979,7 @@ async function salvarGasto(){
   const cat  = (document.querySelector("[data-gasto=cat]")  || {}).value || gastoCats()[0] || "Nos parques";
   const nota = ((document.querySelector("[data-gasto=nota]") || {}).value || "").trim();
 
-  const g = {id:uid("g"), valor:v, cur, cat, nota, dia:iso(today()), at:Date.now()};
+  const g = {id:uid("g"), valor:v, cur, cat, nota, forma:formaGasto, dia:iso(today()), at:Date.now()};
   if(recPendente){
     try{ await docPut(recId(g.id), recPendente); g.rec = recPendente.size; }
     catch(e){ console.warn("recibo:", e && e.message); }
@@ -4955,6 +5027,11 @@ function folhaGasto(){
       </div>
       <label class="f" style="margin-top:10px"><span>Categoria</span>
         <select data-gasto="cat">${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
+      <div class="f" style="margin-top:10px"><span>Como pagou</span>
+        <div class="seg2" role="group" aria-label="Como pagou">
+          <button type="button" data-act="gastoForma" data-forma="cartao" aria-pressed="${formaGasto === "cartao"}">💳 Cartão</button>
+          <button type="button" data-act="gastoForma" data-forma="dinheiro" aria-pressed="${formaGasto === "dinheiro"}">💵 Dinheiro</button>
+        </div></div>
       <label class="f" style="margin-top:10px"><span>O que foi (opcional)</span>
         <input type="text" data-gasto="nota" placeholder="almoço, pipoca, estacionamento…"></label>
       <div class="recibo-linha">
@@ -5638,9 +5715,10 @@ function toggleTheme(){
     console.assert(caminhos({gastos:[{id:"g1"}], trip:{}}).includes("gastos:g1"),
       "sem estar em COLS, o gasto não teria caminho e não sincronizaria");
     {
-      const bakG = S.gastos, bakB = S.budget, bakR = S.trip.rate;
+      const bakG = S.gastos, bakB = S.budget, bakR = S.trip.rate, bakSh = S.shop;
       S.trip.rate = 5;
       S.budget = [{id:"b1", label:"x", cat:"Nos parques", plan:100, real:50, cur:"BRL"}];
+      S.shop = [];
       S.gastos = [
         {id:"g1", valor:10, cur:"USD", cat:"Nos parques", nota:"pipoca", dia:"2026-08-25", at:1},
         {id:"g2", valor:30, cur:"BRL", cat:"Compras",     nota:"",       dia:"2026-08-25", at:2}
@@ -5649,10 +5727,10 @@ function toggleTheme(){
       console.assert(totalGastos("Compras") === 30, "gasto em real não é convertido de novo");
       console.assert(totalGastos() === 80, "sem categoria, soma tudo");
       console.assert(totalGastos("Não existe") === 0, "categoria sem gasto dá zero, não NaN");
-      console.assert(gastoTotalBRL() === 130, "total = linhas (50) + lançamentos (80), veio " + gastoTotalBRL());
-      S.gastos = []; 
-      console.assert(gastoTotalBRL() === 50, "sem lançamentos, o total é só o das linhas");
-      S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR;
+      console.assert(bolso().paguei === 130, "paguei = linhas (50) + lançamentos (80), veio " + bolso().paguei);
+      S.gastos = [];
+      console.assert(bolso().paguei === 50, "sem lançamentos, o paguei é só o das linhas");
+      S.gastos = bakG; S.budget = bakB; S.trip.rate = bakR; S.shop = bakSh;
     }
 
     /* ---- Grupos recolhíveis e listas próprias ---- */
@@ -5711,21 +5789,69 @@ function toggleTheme(){
     console.assert(!!VIEWS[migrarAba("gastos")] && !!VIEWS[migrarAba("listas")],
       "a migração tem que apontar para tela que existe");
     {
-      const bakB = S.budget, bakG = S.gastos, bakSh = S.shop;
-      S.shop = [];
-      S.budget = [{id:"b1", label:"Ingressos", cat:"Nos parques", cur:"BRL", plan:1000, real:0}];
-      S.gastos = [{id:"g1", cat:"Nos parques", valor:250, cur:"BRL"}];
-      const sobra = faixaDinheiro();
-      console.assert(sobra.indexOf("Falta gastar") !== -1, "sobrando previsto, a faixa fala em faltar");
-      console.assert(sobra.indexOf(brl(750)) !== -1, "1000 previsto menos 250 lançado = 750 a gastar");
+      const bak = S.gastoAberto; S.gastoAberto = true;
+      const html = folhaGasto();
+      console.assert(/data-forma="dinheiro"/.test(html) && /data-forma="cartao"/.test(html),
+        "a folha oferece cartão e dinheiro");
+      console.assert(/aria-pressed="true"[^>]*>💳|data-forma="cartao" aria-pressed="true"/.test(html),
+        "cartão é o padrão");
+      S.gastoAberto = bak;
+    }
+    console.assert(/data-trip="caixaUSD"/.test(blocoViagem()), "Ajustes tem o campo do caixa");
 
-      S.gastos = [{id:"g1", cat:"Nos parques", valor:1500, cur:"BRL"}];
-      const estouro = faixaDinheiro();
-      console.assert(estouro.indexOf("Acima do previsto") !== -1, "estourado, a faixa avisa");
-      console.assert(estouro.indexOf(brl(500)) !== -1, "estouro de 500 aparece como 500, em valor absoluto");
-      console.assert(estouro.indexOf("-500") === -1, "a faixa nunca mostra número negativo");
+    /* ---- bolso(): pago, a pagar e o caixa ---- */
+    {
+      const bakB = S.budget, bakG = S.gastos, bakSh = S.shop, bakT = S.trip;
+      S.trip = Object.assign({}, S.trip, {rate:5, caixaUSD:1000});
+      S.budget = [
+        {id:"x1", label:"Passagem", cat:"Antes da viagem", cur:"BRL", plan:1000, real:400},
+        {id:"x2", label:"Comida",   cat:"Nos parques",     cur:"USD", plan:200,  real:0},
+        {id:"x3", label:"Compras e souvenirs", cat:"Compras", cur:"USD", plan:0, real:999}
+      ];
+      S.shop = [
+        {id:"y1", nome:"a", qtd:2, usd:50, done:true,  quando:"levar"},
+        {id:"y2", nome:"b", qtd:1, usd:30, done:false, quando:"parcelado"}
+      ];
+      S.gastos = [];
+      let B = bolso();
+      console.assert(B.paguei === 900, "paguei = real(400) + riscadas(500), espelho ignorado — veio " + B.paguei);
+      console.assert(B.aPagarCasa === 600 && B.aPagarLa === 1150,
+        "a pagar separa casa (600) e lá (1000 da comida + 150 da compra aberta) — veio " + B.aPagarCasa + "/" + B.aPagarLa);
+      console.assert(Math.abs(B.delta) < 0.01, "sem ad-hoc, caminho == previsto — delta veio " + B.delta);
+      console.assert(B.caixaUSD === 900, "compra riscada em dinheiro sai do caixa (1000-100) — veio " + B.caixaUSD);
 
-      S.budget = bakB; S.gastos = bakG; S.shop = bakSh;
+      S.gastos = [{id:"z1", valor:40, cur:"USD", cat:"Nos parques", forma:"dinheiro"}];
+      B = bolso();
+      console.assert(Math.abs(B.delta - 200) < 0.01, "ad-hoc de US$40 vira 200 no vs plano — veio " + B.delta);
+      console.assert(B.caixaUSD === 860, "gasto em dinheiro desconta do caixa — veio " + B.caixaUSD);
+      console.assert(faixaDinheiro().indexOf(brl(200) + " acima") !== -1,
+        "com estouro, a faixa mostra o valor absoluto em 'acima'");
+
+      S.gastos = [{id:"z2", valor:40, cur:"USD", cat:"Nos parques"}];
+      console.assert(bolso().caixaUSD === 900, "gasto sem forma é cartão: caixa não mexe");
+      S.gastos = [{id:"z3", valor:40, cur:"BRL", cat:"Nos parques", forma:"dinheiro"}];
+      console.assert(bolso().caixaUSD === 900, "dinheiro em R$ não sai do caixa (o caixa é US$)");
+
+      S.shop[0].done = false;
+      const B2 = bolso();
+      console.assert(B2.paguei === 400 + 40 && B2.caixaUSD === 1000,
+        "desriscar desfaz pago e caixa — veio " + B2.paguei + "/" + B2.caixaUSD);
+      S.budget = bakB; S.gastos = bakG; S.shop = bakSh; S.trip = bakT;
+    }
+
+    /* ---- faixaDinheiro(): cartão único, sem número negativo, igual ao Hoje ---- */
+    console.assert(/class="faixa2"/.test(faixaDinheiro()), "a faixa é o cartão único 2×2");
+    console.assert(!/R\$\s*-\d/.test(faixaDinheiro()), "a faixa nunca mostra R$ negativo");
+    console.assert(viewHoje().indexOf(brl(bolso().paguei)) !== -1,
+      "Hoje mostra o mesmo 'já paguei' do bolso — telas não podem divergir");
+
+    /* ---- viewOrcamento(): sem espelho editável nem cartões duplicados ---- */
+    console.assert(!/Previsto · tudo somado/.test(viewOrcamento()),
+      "cartão duplicado saiu do Orçamento — a faixa já mostra");
+    {
+      const esp = S.budget.find(ehLinhaCompras);
+      if(esp) console.assert(viewOrcamento().indexOf(`data-bud="${esp.id}" data-k="real"`) === -1,
+        "o Real da linha-espelho não pode ser editável (contaria as compras duas vezes)");
     }
 
     /* ---- Marca dos dias, escolhida no aparelho ---- */
